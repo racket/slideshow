@@ -736,7 +736,7 @@
       ((if right? ghost values) smiley)
       ((if right? values ghost) smiley))
      (blank)
-     ((if right? values ghost) (page-para "The face should have moved frmo left to right"))))
+     ((if right? values ghost) (page-para "The face should have moved from left to right"))))
   (scroll-slide #f)
   
   ;; We really need a better way to do this!

@@ -99,18 +99,18 @@
        (page-item/bullet (bt " 2.") "Registers certain picts as slides")
        (sub-para "For example,")
        (code (slide (t "Hello")))
-       (sub-para "registers a slide containing only" (colorize (t "Hello") "black"))
-       (blank)
-       (with-font 
-	`(italic . ,main-font)
-	(lambda ()
-	  (para (* 3/4 client-w)
-		"Technically, the pict concept comes from the"
-		(tt "\"texpict\"") "collection. The distinction between"
-		"Slideshow and texpict matters when you"
-		"use Help Desk to find information on other pict functions."
-		"For now, we ignore the distinction."))))
+       (sub-para "registers a slide containing only" (colorize (t "Hello") "black")))
       
+      (slide/title/center
+       "Slides versus Picts"
+       (page-para "Technically, the pict concept comes from the"
+		  (tt "\"texpict\"") "collection, and the"
+		  (tt "\"slideshow\"") "collection builds on it")
+       (page-item "The distinction between"
+		  "Slideshow and texpict matters when you"
+		  "use Help Desk to find information")
+       (page-item "For now, we ignore the distinction"))
+
       (slide/title/center
        "The Rest of the Tutorial"
        (page-para "The rest of this tutorial (starting with the next slide) is meant to"
