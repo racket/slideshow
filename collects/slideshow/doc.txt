@@ -2,7 +2,14 @@
 _Slideshow_ Quick Start
 =======================
 
-In DrScheme:
+Stand-alone:
+
+ 1. Double-click the "Slideshow" executable, or run "slideshow"
+    from the command line.
+
+ 2. Click the "Tutorial" button.
+
+On in DrScheme:
 
  1. Open "tutorial-show.ss", which is in the "slideshow" collection.
     
@@ -14,6 +21,22 @@ In DrScheme:
     Use the "Choose Language" menu item in the "Language" menu.
 
  3. Click DrScheme's "Execute" button.
+
+
+     ---------- !! IMPORTANT SECURITY INFORMATION !! ----------
+
+   Do not run any Slideshow program in DrScheme unless you know the
+   creator of the slide program and/or trust the slide
+   program. Instead, run untrusted programs with the "Slideshow"
+   executable or "slideshow" command-line program.
+
+   A Slideshow program has access to the full PLT Scheme language,
+   which means that it can write to files and establish network
+   connections (possibly sending your private information elsewhere).
+
+   When you use the "Slideshow" executable or "slideshow" command-line
+   program, however, the slide program is prevented from writing to
+   the filesystem or creating network connections.
 
 
 Slideshow Overview

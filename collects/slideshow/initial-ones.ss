@@ -6,7 +6,8 @@
   (require (lib "code.ss" "slideshow")
 	   (lib "package.ss")
 	   (lib "mred.ss" "mred")
-	   (lib "class.ss"))
+	   (lib "class.ss")
+	   (lib "etc.ss"))
 
   (provide do-initial-slides)
 
@@ -73,6 +74,7 @@
 
       (define mytalk.scm (tt "mytalk.scm"))
 
+
       (slide/title
        "Slideshow Programs"
        (page-para "A Slideshow program has the form")
@@ -81,12 +83,32 @@
        (page-para "in a file named" mytalk.scm)
        (colorize (hline (* 3/4 client-w) gap-size) "green")
        'alts
-       (list (list (page-para "Run a Slideshow program in DrScheme as follows:")
+       (list (list (page-para "To run a Slideshow program,")
+		   (page-item "Double-click the" (bt "Slideshow") "executable or run" 
+			      (tt "slideshow") "on the command line")
+		   (page-item "Click the" (bt "Load...") "button and select the"
+			      "Slideshow program file, such as" mytalk.scm))
+	     (list (page-para "Alternately, run a Slideshow program in DrScheme:")
 		   (page-item "Open" mytalk.scm "in DrScheme")
 		   (page-item "Select" (bt "Choose Language") "from the" (bt "Language") "menu")
 		   (page-item "Choose the" (tt "(module ...)") "language")
-		   (page-item "Click" (bt "Execute")))
-	     (list (page-para "You can also execute it from the command line:")
+		   (page-item "Click" (bt "Execute"))
+		   (colorize (bt "Use DrScheme only if you trust the program") "red"))
+	     (list (page-para (colorize (bt "Important security information:") "red"))
+		   (page-item "A slideshow program has access to the"
+			      (it "full") (it "Scheme") (it "language"))
+		   (page-item "If you don't know the creator of a slide program"
+			      "(or if you don't trust them), run the slides through the"
+			      (bt "Slideshow") "executable or"
+			      (tt "slideshow") "command line")
+		   (colorize
+		    (page-item/bullet
+		     (ghost bullet)
+		     "When run in" (bt "Slideshow") "instead of DrScheme,"
+		     "a slide program cannot write files"
+		     "or make network connections")
+		    "blue"))
+	     (list (page-para "When using a command line, you can specify the program directly:")
 		   (hbl-append (tt "slideshow ") mytalk.scm)
 		   (blank)
 		   (page-para "To print the talk:")
@@ -129,7 +151,7 @@
 		  "be viewed while reading the program source")
        (blank)
        (page-para "The source is")
-       (let ([s (path->string (build-path (collection-path "slideshow") "tutorial-show.ss"))])
+       (let ([s (path->string (build-path (this-expression-source-directory) "tutorial-show.ss"))])
 	 (clickback
 	  (scale/improve-new-text
 	   (let ([p (tt s)])

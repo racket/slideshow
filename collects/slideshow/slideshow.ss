@@ -31,6 +31,7 @@
   (define use-offscreen? #t)
   (define use-transitions? use-offscreen?)
   (define talk-duration-minutes #f)
+  (define trust-me? #f)
   (define no-squash? #t)
   (define two-frames? #f)
   (define use-prefetch? #t)
@@ -89,6 +90,8 @@
 			 (set! talk-duration-minutes n)))
       (("-i" "--immediate") "no transitions"
        (set! use-transitions? #f))
+      (("--trust") "allow slide program to write files and make network connections"
+       (set! trust-me? #t))
       (("--no-prefetch") "disable next-slide prefetch"
        (set! use-prefetch? #f))
       (("--preview-prefetch") "use prefetch for next-slide preview"
@@ -1854,6 +1857,21 @@
               (invoke-unit go@))))))
   
   (define (load-content content)
+    (unless trust-me?
+      (current-security-guard
+       (make-security-guard (current-security-guard)
+			    (lambda (who what mode)
+			      (when (memq 'write mode)
+				(error 'slideshow
+				       "slide program attempted to write to filesystem: ~e"
+				       what))
+			      (when (memq 'execute mode)
+				(error 'slideshow
+				       "slide program attempted to execute external code: ~e"
+				       what)))
+			    (lambda (who where-name where-port-num mode)
+			      (error 'slideshow
+				     "slide program attempted to make a network connection")))))
     (send progress-window show #t)
     (start-making-slides)
     (dynamic-require (path->complete-path content) #f)
