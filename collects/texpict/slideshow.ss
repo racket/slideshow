@@ -945,7 +945,7 @@
                      [redraw (lambda ()
 			       (reset-display-inset! (slide-inset (list-ref talk-slide-list current-page)))
 			       (cond
-				[offscreen-transitions?
+				[(and offscreen-transitions? (not printing?))
 				 (let-values ([(cw ch) (get-client-size)])
 				   (when (and offscreen
 					      (let ([bm (send offscreen get-bitmap)])
