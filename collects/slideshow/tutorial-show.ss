@@ -765,6 +765,7 @@
 	  [inside (make-object brush% "white" 'solid)])
       (inset (dc (lambda (dc x y)
 		   (let ([b (send dc get-brush)]
+			 [p (send dc get-pen)]
 			 [draw-one
 			  (lambda (i)
 			    (send dc draw-rectangle
@@ -779,6 +780,7 @@
 		      #t #f)
 		     (send dc set-brush inside)
 		     (draw-one margin)
+		     (send dc set-pen p)
 		     (send dc set-brush b)))
 		 w h 0 0)
 	     (- margin))))

@@ -39,9 +39,10 @@
      "slideshow"
      (current-command-line-arguments)
      [once-each
-      (("-d" "--double") "show next slide (non-mirroring display)" (set! two-frames? #t))
+      (("-d" "--double") "show next slide (useful on a non-mirroring display)" 
+                         (set! two-frames? #t))
       (("-p" "--print") "print"
-		   (set! printing? #t))
+		        (set! printing? #t))
       (("-c" "--condense") "condense"
 			   (set! condense? #t))
       (("-t" "--start") page "set the starting page"
@@ -92,9 +93,7 @@
                           (length slide-module-file)
                           slide-module-file)])]))
 
-  ;; probably two-frames? doesn't have to imply no transitions, but
-  ;; I'm not sure what the transitions are for... -robby
-  (when (or printing? condense? two-frames?)
+  (when (or printing? condense?)
     (set! use-transitions? #f))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1006,47 +1005,20 @@
                                                  (unless on?
                                                    (when background-f
                                                      (send background-f show #f)))))
+
           (define/override on-subwindow-char
             (lambda (w e)
               (let ([k (send e get-key-code)])
                 (case k
                   [(right)
-                   (cond
-                     [(or (send e get-meta-down)
-                          (send e get-alt-down))
-                      (move-over 20 0)]
-                     [(send e get-shift-down)
-                      (move-over 1 0)]
-                     [else
-                      (next)])
-                   #t]
-                  [(left)
-                   (cond
-                     [(or (send e get-meta-down)
-                          (send e get-alt-down))
-                      (move-over -20 0)]
-                     [(send e get-shift-down)
-                      (move-over -1 0)]
-                     [else
-                      (prev)])
-                   #t]
-                  [(up)
-                   (cond
-                     [(or (send e get-meta-down)
-                          (send e get-alt-down))
-                      (move-over 0 -20)]
-                     [(send e get-shift-down)
-                      (move-over 0 -1)])
-                   #t]
-                  [(down)
-                   (cond
-                     [(or (send e get-meta-down)
-                          (send e get-alt-down))
-                      (move-over 0 20)]
-                     [(send e get-shift-down)
-                      (move-over 0 1)])
-                   #t]
-                  [(#\space #\f #\n)
+		   (shift e 1 0 (lambda () (next)))]
+		  [(left)
+		   (shift e -1 0 (lambda () (prev)))]
+		  [(up)
+		   (shift e 0 -1 void)]
+		  [(down)
+		   (shift e 0 1 void)]
+		  [(#\space #\f #\n)
                    (next)
                    #t]
                   [(#\b)
@@ -1085,6 +1057,17 @@
                    #t]
                   [else
                    #f]))))
+
+	  (define/private (shift e xs ys otherwise)
+	    (cond
+	     [(or (send e get-meta-down)
+		  (send e get-alt-down))
+	      (move-over (* xs 20) (* ys 20))]
+	     [(send e get-shift-down)
+	      (move-over xs ys)]
+	     [else
+	      (otherwise)])
+	    #t)
           
           (inherit get-x get-y move)
           (define/private (move-over dx dy)
@@ -1112,6 +1095,7 @@
                   (do-transitions (slide-transitions old) (send c get-offscreen))
                   (when (< current-page (- (length talk-slide-list) 1))
                     (cache-slide (+ current-page 1))))))
+
           (super-new)))
       
       (define-values (screen-left-inset screen-top-inset)
@@ -1350,13 +1334,14 @@
               (let-values ([(cw ch) (send dc get-size)])
                 (send dc set-origin 0 0)
                 (send dc draw-line (/ cw 2) 0 (/ cw 2) ch)
-                (paint-slide dc current-page 1/2 1/2 cw (* 2 ch) 0)
-                (send dc set-origin (/ actual-screen-w 2) 0)
-                (paint-slide dc
-                             (+ current-page 1)
-                             1/2 1/2 
-                             cw  (* 2 ch)
-                             0))))
+                (paint-slide dc current-page 1/2 1/2 cw (* 2 ch) #f)
+                (send dc set-origin (/ cw 2) 0)
+		(when (< (add1 current-page) (length talk-slide-list))
+		  (paint-slide dc
+			       (+ current-page 1)
+			       1/2 1/2 
+			       cw (* 2 ch)
+			       #f)))))
           (define/public (redraw) (on-paint))
           (super-new)))
 
@@ -1365,14 +1350,15 @@
           [(dc) (paint-slide dc current-page)]
           [(dc page) 
            (let-values ([(cw ch) (send dc get-size)])
-             (let ([m (- margin (/ (- actual-screen-w cw) 2))])
-               (paint-slide dc page 1 1 cw ch m)))]
-          [(dc page extra-scale-x extra-scale-y cw ch m)
-           (stop-transition/no-refresh)
+	     (paint-slide dc page 1 1 cw ch #f))]
+          [(dc page extra-scale-x extra-scale-y cw ch to-main?)
+           (when to-main?
+	     (stop-transition/no-refresh))
            (let* ([slide (list-ref talk-slide-list page)]
                   [set-scale? (not (and (= actual-screen-w screen-w)
-                                        (= actual-screen-h screen-h)))])
-             
+                                        (= actual-screen-h screen-h)))]
+		  [m (- margin (/ (- actual-screen-w cw) 2))])
+
              (cond
                [set-scale?
                 (send dc set-scale 
@@ -1440,7 +1426,12 @@
 			(new timer% 
 			     [just-once? #t]
 			     [interval (inexact->exact (floor (* 1000 went)))]
-			     [notify-callback do-trans]))))))))
+			     [notify-callback (lambda ()
+						;; Going through queue-callback
+						;;  avoids blocking events
+						(queue-callback
+						 do-trans
+						 #f))]))))))))
 
       (define (stop-transition)
 	(stop-transition/no-refresh)
