@@ -594,8 +594,9 @@
                     (set! current-page 0)
                     (refresh-page)
                     #t]
-                   [(#\q)
-                    (when (send e get-meta-down)
+                   [(#\q #\317)  ; #\317 is for Mac OS
+                    (when (or (send e get-meta-down)
+			      (send e get-alt-down))
                       (send c-frame show #f)
                       (send f show #f))
                     #f]
