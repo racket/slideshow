@@ -93,6 +93,7 @@
 			     (string=? (get-family-builtin-face 'default) " Sans"))
 			'default
 			'swiss))
+  (define current-main-font (make-parameter main-font))
 
   (define red "red")
   (define green "forest green")
@@ -114,16 +115,20 @@
 				 (raise-type-error 'current-font-size "exact non-negative integer" x))
 			       x)))
 
-  (define (t s) (text s main-font (current-font-size)))
-  (define (it s) (text s `(italic . ,main-font) (current-font-size)))
-  (define (bt s) (text s `(bold . ,main-font) (current-font-size)))
-  (define (bit s) (text s `(bold italic . ,main-font) (current-font-size)))
+  (define (t s) (text s (current-main-font) (current-font-size)))
+  (define (it s) (text s `(italic . ,(current-main-font)) (current-font-size)))
+  (define (bt s) (text s `(bold . ,(current-main-font)) (current-font-size)))
+  (define (bit s) (text s `(bold italic . ,(current-main-font)) (current-font-size)))
   (define (tt s) (text s '(bold . modern) (current-font-size)))
   (define (rt s) (text s 'roman (current-font-size)))
   (define (titlet s) (colorize (text s 
-				     `(bold . ,main-font) 
+				     `(bold . ,(current-main-font)) 
 				     title-size)
 			       green))
+
+  (define (with-font f k)
+    (parameterize ([current-main-font f])
+      (k)))
 
   (define (tt* . l) (apply vl-append line-sep (map tt l)))
 
@@ -595,7 +600,8 @@
 	   itemize itemize* page-itemize page-itemize*
 	   para para* page-para page-para*
 	   para/c para/r para*/c para*/r page-para/c page-para/r page-para*/c page-para*/r
-	   font-size char-size current-font-size line-sep title-size main-font
+	   font-size char-size current-font-size line-sep title-size 
+	   main-font current-main-font with-font
 	   red green blue purple orange
 	   t it bt bit tt titlet tt* rt
 	   bullet o-bullet
