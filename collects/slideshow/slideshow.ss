@@ -259,7 +259,8 @@
   (define (evenize-width p)
     (let ([w (pict-width p)])
       ;; Force even size:
-      (inset p 0 0 (+ (- w (floor w)) (modulo (floor w) 2)) 0)))
+      (inset p 0 0 (+ (- (ceiling w) w)
+		      (modulo (ceiling w) 2)) 0)))
 
   (define (apply-slide-inset sinset pict)
     (inset pict 
