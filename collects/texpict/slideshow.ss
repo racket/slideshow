@@ -129,7 +129,7 @@
 
   (define talk-slide-list null)
   (define-struct slide (drawer title comment page page-count))
-  (define-struct comment (text))
+  (define-struct just-a-comment (text))
 
   (define page-number 1)
 
@@ -157,7 +157,7 @@
 		  (let loop ([x x][c #f][r null])
 		    (cond
 		     [(null? x) (values (reverse! r) c)]
-		     [(comment? (car x))
+		     [(just-a-comment? (car x))
 		      (loop (cdr x) (car x) r)]
 		     [else
 		      (loop (cdr x) c (cons (car x) r))]))])
@@ -225,7 +225,7 @@
 		       x)))))
 	   0 s x))
 
-  (define (slide . x) (apply slide/title #f x))
+  (define (:slide . x) (apply slide/title #f x))
 
   (define (slide/center . x) (apply slide/title/center #f x))
 
@@ -281,7 +281,7 @@
 	      (loop (cdddr l)))])))
 	0 font-size 0 0))))
 
-  (define (comment . s) (make-comment
+  (define (comment . s) (make-just-a-comment
 			 (apply string-append s)))
 
   ;----------------------------------------
@@ -459,7 +459,7 @@
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (provide (all-from mzscheme)
-	   slide slide/title slide/title/tall 
+	   (rename :slide slide) slide/title slide/title/tall 
 	   slide/center slide/title/center
 	   most-recent-slide retract-most-recent-slide re-slide 
 	   comment make-outline
