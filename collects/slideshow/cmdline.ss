@@ -75,12 +75,12 @@
 	   [once-each
 	    (("-d" "--preview") "show next-slide preview (useful on a non-mirroring display)" 
 	     (set! two-frames? #t))
-	    (("-p" "--print") "print to PostScript"
-	     (set! printing? #t))
-	    (("-P" "--Print") "print using native support (Windows and Mac OS)"
+	    (("-p" "--print") "print (always to PostScript, except under Windows and Mac OS)"
 	     (set! printing? #t)
 	     (set! native-printing? #t))
-	    (("-o") file "set output file for printing"
+	    (("-P" "--ps") "print to PostScript"
+	     (set! printing? #t))
+	    (("-o") file "set output file for PostScript printing"
 	     (set! print-target file))
 	    (("-c" "--condense") "condense"
 	     (set! condense? #t))
