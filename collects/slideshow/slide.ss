@@ -74,10 +74,11 @@
 		    [slide/name/center slide/title-contract]
 		    [slide/name/inset slide/title/inset-contract]
 		    [slide/name/tall/inset slide/title/inset-contract]
-		    [slide/name/center/inset slide/title/inset-contract])
+		    [slide/name/center/inset slide/title/inset-contract]
+		    [comment (() (listof (union string? pict?)) . ->* . any)])
   (provide most-recent-slide retract-most-recent-slide re-slide start-at-recent-slide
 	   scroll-transition pause-transition
-	   comment make-outline
+	   make-outline
 	   item item* page-item page-item*
 	   item/bullet item*/bullet page-item/bullet page-item*/bullet
 	   subitem subitem* page-subitem page-subitem*

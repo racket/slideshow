@@ -24,7 +24,7 @@
 				   page-count    ; int
 				   inset         ; sinset
 				   transitions)) ; canvas% bitmap% -> 'went or delay-msecs
-  (define/provide-struct just-a-comment (text))
+  (define/provide-struct just-a-comment (content)) ; content is list of strings and picts
   (define/provide-struct sinset (l t r b))
   (define/provide-struct click-region (left top right bottom thunk show-click?))
 
@@ -467,8 +467,8 @@
 			  rest)
 			 rest))))]))))))
 
-      (define (comment . s) (make-just-a-comment
-			     (apply string-append s)))
+      (define (comment . s) 
+	(make-just-a-comment s))
 
       ;; ----------------------------------------
 

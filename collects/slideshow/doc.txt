@@ -421,8 +421,8 @@ Procedure Reference
 > (pause-transition secs) - inserts a delay "animation" with no
   drawing effect.   See also "Transition Animations", above.
 
-> (comment string ...) - Concatenated the strings, to be used as a
-  slide element for (usually hidden) commentary.
+> (comment string-or-pict ...) - Combines strings and picts to be used
+  as a slide element for (usually hidden) commentary.
 
 > (make-outline { symbol/s string-or-pict subitems } ...)  - Returns a
   function that takes a symbol and generates an outline slide. Each

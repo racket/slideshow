@@ -451,6 +451,26 @@
 	    set-line-count 3)
       (send commentary auto-wrap #t)
       (send c-frame reflow-container)
+      (define pict-snip%
+	(class snip%
+	  (init-field pict)
+	  (define drawer (make-pict-drawer pict))
+	  (define/override (draw dc x y left top right bottom dx dy draw-caret)
+	    (drawer dc x y))
+	  (define/private (set-box/f b v)
+	    (when b (set-box! b v)))
+	  (define/override (get-extent dc x y wbox hbox descent space lspace rspace)
+	    (set-box/f wbox (pict-width pict))
+	    (set-box/f hbox (pict-height pict))
+	    (set-box/f descent (pict-descent pict))
+	    (set-box/f space 0)
+	    (set-box/f lspace 0)
+	    (set-box/f rspace 0))
+	  (super-new)
+	  (inherit set-snipclass)
+	  (set-snipclass pict-snipclass)))
+      (define pict-snipclass (new snip-class%))
+
       
       (define start-time #f)
       
@@ -615,7 +635,11 @@
 	    (send commentary erase)
 	    (let ([s (talk-list-ref current-page)])
 	      (when (just-a-comment? (sliderec-comment s))
-		(send commentary insert (just-a-comment-text (sliderec-comment s)))))
+		(for-each (lambda (v)
+			    (send commentary insert (if (string? v)
+							v
+							(make-object pict-snip% v))))
+			  (just-a-comment-content (sliderec-comment s)))))
 	    (send commentary lock #t)
 	    (set! click-regions null)
 	    (set! clicking #f)
