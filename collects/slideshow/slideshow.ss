@@ -1637,11 +1637,11 @@
 			       [parent msg-panel]))
 			strs))])
 	  (t "To run a slide presentation, either"
-	     " * provide the path of the main file on the Slideshow comamnd line,"
-	     " * develop the talk in DrScheme using the (lib \"run.ss\" \"slideshow\") language, or"
-	     " * click the Load button below to select a slide module"
+	     " - provide the path of the main file on the Slideshow comamnd line, "
+	     " - develop the talk in DrScheme using the (lib \"run.ss\" \"slideshow\") language, or "
+	     " - click the Load button below to select a slide module. "
 	     " "
-	     "Click the Tutorial button below for more information."
+	     "Click the Tutorial button below for more information. "
 	     " "))
 	(new button% 
 	     [label "Tutorial"]
