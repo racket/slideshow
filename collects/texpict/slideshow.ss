@@ -426,18 +426,18 @@
     (para*/align vc-append w s))
 
 
-  (define (para/align v-append w . s)
-    (lbl-superimpose (para*/align v-append w s)
-		     (blank w 0)))
+  (define (para/align superimpose v-append w . s)
+    (superimpose (para*/align v-append w s)
+		 (blank w 0)))
 
   (define (para w . s)
-    (para/align vl-append w s))
+    (para/align lbl-superimpose vl-append w s))
 
   (define (para/r w . s)
-    (para/align vr-append w s))
+    (para/align rbl-superimpose vr-append w s))
 
   (define (para/c w . s)
-    (para/align vc-append w s))
+    (para/align cbl-superimpose vc-append w s))
 
 
   (define (page-para*/align v-append . s)
@@ -453,17 +453,17 @@
     (page-para*/align vc-append s))
 
 
-  (define (page-para/align v-append . s)
-    (para/align v-append client-w s))
+  (define (page-para/align superimpose v-append . s)
+    (para/align superimpose v-append client-w s))
 
   (define (page-para . s)
-    (page-para/align vl-append s))
+    (page-para/align lbl-superimpose vl-append s))
 
   (define (page-para/r . s)
-    (page-para/align vr-append s))
+    (page-para/align rbl-superimpose vr-append s))
 
   (define (page-para/c . s)
-    (page-para/align vc-append s))
+    (page-para/align cbl-superimpose vc-append s))
 
   ;----------------------------------------
 
@@ -878,11 +878,14 @@
 				 (when (send e button-down?)
 				   (let ([x (send e get-x)]
 					 [y (send e get-y)])
-				     (for-each 
+				     (ormap
 				      (lambda (c)
-					(when (and (<= (click-region-left c) x (click-region-right c))
-						   (<= (click-region-top c) y (click-region-bottom c)))
-					  ((click-region-thunk c))))
+					(if (and (<= (click-region-left c) x (click-region-right c))
+						 (<= (click-region-top c) y (click-region-bottom c)))
+					    (begin
+					      ((click-region-thunk c))
+					      #t)
+					    #f))
 				      click-regions))))])
 		   
 		   (private-field
