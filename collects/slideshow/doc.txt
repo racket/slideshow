@@ -370,6 +370,10 @@ Procedure Reference
 > (re-slide slide [pict]) - [Re-]inserts a slide, optionally
   `lt-superimpose'ing the given additional pict.
 
+> (start-at-recent-slide) - Sets the starting slide for the talk to
+  the most recently created slide. If this function is used multiple
+  times, the last use overrides the realier uses.
+
 > (scroll-transition x y w h dx dy [secs steps-k]) - inserts a scroll
   animation that shifts the screen rectangle (x, y, x+w, y+h) by `dx'
   and `dy', taking `secs' time and animating with `steps-k' steps.

@@ -30,7 +30,7 @@
   (define quad-view? #f)
   (define print-slide-seconds? #f)
   (define use-transitions? #t)
-  (define talk-duration-minutes 25)
+  (define talk-duration-minutes #f)
 
   (define current-page 0)
   
@@ -325,11 +325,15 @@
        [(memq (car l) '(ALTS ALTS~)) 
 	(let ([rest (cddr l)])
 	  (let aloop ([al (cadr l)][skipped skipped])
-	    (if (null? (cdr al))
-		(loop (append (car al) rest) r comment skip-all? skipped)
-		(let ([skip? (or skip-all? (and condense? skip-ok? (eq? (car l) 'ALTS~)))])
-		  (let ([skipped (loop (car al) r comment skip? skipped)])
-		    (aloop (cdr al) skipped))))))]
+	    (cond
+	     [(null? al) ;; only happens when al starts out null
+	      (loop rest r comment skip-all? skipped)]
+	     [(null? (cdr al))
+	      (loop (append (car al) rest) r comment skip-all? skipped)]
+	     [else
+	      (let ([skip? (or skip-all? (and condense? skip-ok? (eq? (car l) 'ALTS~)))])
+		(let ([skipped (loop (car al) r comment skip? skipped)])
+		  (aloop (cdr al) skipped)))])))]
        [else (loop (cdr l) (cons (car l) r) comment skip-all? skipped)])))
 
   ;; Let the contract check always pass. We do more specific checking.
@@ -450,6 +454,9 @@
 				   null)
 				  talk-slide-list))
       (set! page-number (+ page-number 1))))
+
+  (define (start-at-recent-slide)
+    (set! current-page (max 0 (- page-number 2))))
 
   (define (make-outline . l)
     (define ah (arrowhead gap-size 0))
@@ -738,10 +745,10 @@
 				[xs (/ actual-screen-w screen-w)]
 				[ys (/ actual-screen-h screen-h)]
 				[x-in (if (positive? dx)
-					  (floor (* xs (/ dx steps)))
+					  (ceiling (* xs (/ dx steps)))
 					  0)]
 				[y-in (if (positive? dy)
-					  (floor (* ys (/ dy steps)))
+					  (ceiling (* ys (/ dy steps)))
 					  0)])
 			   (unless (and scroll-bm
 					(>= (send scroll-bm get-width) 
@@ -835,7 +842,7 @@
 		    [slide/name/inset slide/title/inset-contract]
 		    [slide/name/tall/inset slide/title/inset-contract]
 		    [slide/name/center/inset slide/title/inset-contract])
-  (provide most-recent-slide retract-most-recent-slide re-slide 
+  (provide most-recent-slide retract-most-recent-slide re-slide start-at-recent-slide
 	   scroll-transition pause-transition
 	   comment make-outline
 	   item item* page-item page-item*
@@ -1089,7 +1096,7 @@
                                                   -1))))
       
       (define (calc-progress)
-        (if start-time
+        (if (and start-time talk-duration-minutes)
             (values (min 1 (/ (- (current-seconds) start-time) (* 60 talk-duration-minutes)))
                     (/ current-page (max 1 (sub1 (length talk-slide-list)))))
             (values 0 0)))

@@ -40,6 +40,11 @@
   (define hex-tooth-height 50)
   (define hex-tooth-accept-space 10)
   (define hex-tooth-inset 20)
+
+  (slide/center
+   (page-para/c
+    "The following slide sequences was extracted"
+    "from a talk on components and contracts"))
   
   (define (interlocking-components)
     (slide (make-orig #t #f ghost ghost ghost ghost ghost
