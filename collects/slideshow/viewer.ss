@@ -846,8 +846,8 @@
 
 	  (refresh-page)
 	  
-	  (let ([bm (make-object bitmap% (build-path (collection-path "slideshow") "slideshow.bmp"))]
-		[mbm (make-object bitmap% (build-path (collection-path "slideshow") "mask.xbm"))])
+	  (let* ([bm (make-object bitmap% (build-path (collection-path "slideshow") "slideshow.png"))]
+		 [mbm (make-object bitmap% (build-path (collection-path "slideshow") "mask.xbm"))])
 	    (when (send bm ok?)
 	      (send f set-icon bm (and (send mbm ok?) mbm) 'both)))
 	  
