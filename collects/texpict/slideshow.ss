@@ -13,7 +13,7 @@
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (define-values (screen-w screen-h) (values 1024 768))
-  (define-values (actual-screen-w actual-screen-h) (get-display-size))
+  (define-values (actual-screen-w actual-screen-h) (get-display-size #t))
 
   (define condense? #f)
   (define printing? #f)
@@ -52,6 +52,10 @@
 		(set! current-page (sub1 n))))
       (("-q" "--quad") "show four slides at a time"
 		       (set! quad-view? #t))
+      (("-n" "--no-stretch") "don't stretch the slide window to fit this screen"
+       (when (> actual-screen-w screen-w)
+	 (set! actual-screen-w screen-w)
+	 (set! actual-screen-h screen-h)))
       (("-f" "--font") fs "set base font size"
 		       (let ([n (string->number fs)])
 			 (unless (and n 
@@ -97,6 +101,11 @@
 			'default
 			'swiss))
   (define current-main-font (make-parameter main-font))
+
+  (when (not (and (= actual-screen-w screen-w)
+		  (= actual-screen-h screen-h)))
+    (current-expected-text-scale (list (/ actual-screen-w screen-w)
+				       (/ actual-screen-h screen-h))))
 
   (define red "red")
   (define green "forest green")
