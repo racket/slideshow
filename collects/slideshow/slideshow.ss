@@ -1075,6 +1075,7 @@
       (send (make-object editor-canvas% c-frame commentary)
             set-line-count 3)
       (send commentary auto-wrap #t)
+      (send c-frame reflow-container)
       
       (define start-time #f)
       
