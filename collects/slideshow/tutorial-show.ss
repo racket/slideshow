@@ -2,7 +2,7 @@
 ;;  running the example show.
 
 (module tutorial-show (lib "run.ss" "slideshow")
-
+  
   ;; The first few slides are not to be read
   ;; until you have seen the rest of the tutorial,
   ;; so we put them in a separate file
@@ -221,7 +221,7 @@
   
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Part II starts here
-  
+
   (define outline 
     (make-outline
      'one "Part I: Basic Concepts" 
@@ -238,6 +238,8 @@
      'end "Conclusion" 
      (lambda (tag)
        (para (* 3/4 client-w) "This is the end"))))
+
+  
   (outline 'two)
   
   (slide/title/center
@@ -374,12 +376,32 @@
    (note "The above also uses" (code standard-fish) ","
 	 (code jack-o-lantern) "," (code cloud) ", and"
 	 (code file-icon)))
-
+  
   (slide/title
    "Bitmaps"
    (page-para "The" (code bitmap) "function loads a bitmap to display:")
    (blank)
    (bitmap (build-path (collection-path "icons") "plt.gif")))
+
+  ;; require to demonstrate dc.
+  (require (lib "mred.ss" "mred") (lib "class.ss"))
+  (slide/title 
+   "Arbitrary Drawing"
+   (page-para "The" (code dc) "function lets you write a function to draw"
+              "an aribtrary pict. It is an escape hatch to the underlying"
+              "GUI toolkit."
+              "For example, ")
+   (code (disk 100))
+   (page-para "is shorthand for")
+   (code
+    (dc (lambda (dc dx dy)
+          (send dc draw-ellipse dx dy 100 100))
+        100 100 0 0))
+   (dc (lambda (dc dx dy)
+         (send dc draw-ellipse dx dy 100 100))
+       100 100 0 0)
+   (disk 100)
+   (page-para "See Help Desk for more details."))
 
   (require (lib "math.ss")) ; to get pi
   (define orientations 
@@ -468,6 +490,79 @@
 		(place-over p (/ (pict-width p) 2)  (/ (pict-height p) 2) 
 			    (linewidth 3 (colorize (arrow-line 50 -50 gap-size) "orange"))))
 	      "without changing the layout"))
+
+  (slide/title
+   "Ghosting"
+   (page-para "Sometimes a pict's size is useful in the"
+              "layout of other picts, but the pict itself"
+              "should not be visible.")
+   (page-para "Texpict provides" (code ghost : pict -> pict)
+              "for this purpose. It constructs an invisible pict"
+              "of the same size as its argument (except that the"
+              "ghosted pict is still visible to the" (code find-*)
+              "functions)."))
+  
+  (slide/title
+   "Ghosting, 2"
+   (page-para "For example, the figure on the left and the"
+              "figure on the right are the same size, thanks to"
+              (code ghost) ".")
+   (let ([big-circle (circle 400)]
+         [small-circle (circle 250)])
+     (hc-append
+      30
+      big-circle
+      (lt-superimpose
+       small-circle
+       (rt-superimpose
+        small-circle
+        (lb-superimpose
+         small-circle
+         (rb-superimpose
+          small-circle
+          (ghost big-circle))))))))
+  
+  (define (animate big small1 small2 small3 small4)
+    (let ([big-circle (circle 400)]
+          [small-circle (circle 250)])
+      (lt-superimpose
+       (small1 small-circle)
+       (rt-superimpose
+        (small2 small-circle)
+        (lb-superimpose
+         (small3 small-circle)
+         (rb-superimpose
+          (small4 small-circle)
+          (big big-circle)))))))
+  
+  (define (ident x) x)
+  
+  (slide/title
+   "Animations"
+   (page-para "The primitives" (code next) ", etc" 
+              "are sufficient for simple forms of"
+              "animation, but not for more sophisticated"
+              "animations. Instead, a more general technique"
+              "is to use" (code ghost) "combined with abstraction.")
+   'alts
+   (list 
+    (list (page-para "As an example, we can abstract over the"
+                     "two picts in the previous slide and invoke"
+                     "the same function twice, passing in ghost"
+                     "and the identity function differently."))
+    (list (animate ident ghost ghost ghost ghost))
+    (list (animate ghost ident ident ident ident))
+    (list (page-para
+           "As a further example, have a look at"
+           (tt "interlocking-components.scm")
+           "in this directory, which has the definition"
+           "of the following animation. The animation is"
+           "from the introduction of a talk on components"
+           "and contracts (originally designed for"
+           "an 800x600 screen)."))))
+  
+  (require "interlocking-components.scm")
+  (interlocking-components)
    
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Conclusion starts here
