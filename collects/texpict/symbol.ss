@@ -8,16 +8,13 @@
   (define (symbol n)
     (text (string (integer->char n)) 'symbol font-size))
 
-  (define sym:in (symbol 206))
-  (define sym:rightarrow (symbol 174))
-  (define sym:infinity (symbol 165))
-  (define sym:times (symbol 180))
-  (define sym:implies (symbol 222))
-  (define sym:emdash (symbol 190))
-  (define sym:therefore (symbol 92)))
-
-
-
-
+  (define sym:in (symbol #x2208))
+  (define sym:rightarrow (symbol #x2192))
+  (define sym:leftarrow (symbol #x2190))
+  (define sym:infinity (symbol #x221E))
+  (define sym:times (symbol 215))
+  (define sym:implies (symbol #x21D2))
+  (define sym:emdash (symbol 8212))
+  (define sym:therefore (symbol #x2234)))
 
 
