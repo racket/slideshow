@@ -19,7 +19,7 @@
   (define show-page-numbers? #t)
   (define quad-view? #f)
 
-  (define base-font-size 28)
+  (define base-font-size 32)
   
   (define current-page 0)
   
