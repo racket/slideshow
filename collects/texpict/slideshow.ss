@@ -693,6 +693,7 @@
   (define scroll-bm #f)
   (define scroll-dc (make-object bitmap-dc%))
 
+  ;; This code currently works only with negative displacements
   (define scroll-transition
     (opt-lambda (x y w h dx dy [duration 0.20] [steps 12])
       (add-transition! 'scroll-transition
