@@ -4,6 +4,7 @@
 	   (lib "class100.ss")
            (lib "unit.ss")
 	   (lib "file.ss")
+	   (lib "etc.ss")
 	   (lib "contracts.ss")
 	   (lib "mred.ss" "mred"))
 
@@ -545,12 +546,12 @@
 
   ;----------------------------------------
 
-  (define-struct click-region (left top right bottom thunk))
+  (define-struct click-region (left top right bottom thunk show-click?))
 
   (define click-regions null)
 
   (define clickback
-    (lambda (pict thunk)
+    (opt-lambda (pict thunk [show-click? #t])
       (let ([w (pict-width pict)]
 	    [h (pict-height pict)])
 	(cc-superimpose
@@ -563,7 +564,8 @@
 					   (+ (* y sy) dy)
 					   (+ (* (+ x w) sx) dx)
 					   (+ (* (+ y h) sy) dy)
-					   thunk)
+					   thunk
+					   show-click?)
 			click-regions))))
 	     w h
 	     (pict-ascent pict)
@@ -872,21 +874,67 @@
                               (unless printing?
                                 (show-time dc (- cw 10 w) (- ch 10)))))))])
 
+		   (private-field
+		     [clicking #f]
+		     [clicking-hit? #f])
+
 		   (override
 		     [on-paint (lambda () (paint (get-dc)))]
 		     [on-event (lambda (e)
-				 (when (send e button-down?)
-				   (let ([x (send e get-x)]
-					 [y (send e get-y)])
-				     (ormap
-				      (lambda (c)
-					(if (and (<= (click-region-left c) x (click-region-right c))
-						 (<= (click-region-top c) y (click-region-bottom c)))
-					    (begin
-					      ((click-region-thunk c))
-					      #t)
-					    #f))
-				      click-regions))))])
+				 (cond
+				  [(send e button-down?)
+				   (let ([c (ormap
+					     (lambda (c) (and (click-hits? e c) c))
+					     click-regions)])
+				     (when c
+				       (if (click-region-show-click? c)
+					   (begin
+					     (set! clicking c)
+					     (set! clicking-hit? #t)
+					     (invert-clicking!))
+					   ((click-region-thunk c)))))]
+				  [(and clicking (send e dragging?))
+				   (let ([hit? (click-hits? e clicking)])
+				     (unless (eq? hit? clicking-hit?)
+				       (set! clicking-hit? hit?)
+				       (invert-clicking!)))]
+				  [(and clicking (send e button-up?))
+				   (let ([hit? (click-hits? e clicking)]
+					 [c clicking])
+				     (unless (eq? hit? clicking-hit?)
+				       (set! clicking-hit? hit?)
+				       (invert-clicking!))
+				     (when clicking-hit?
+				       (invert-clicking!))
+				     (set! clicking #f)
+				     (when hit?
+				       ((click-region-thunk c))))]
+				  [else 
+				   (when (and clicking clicking-hit?)
+				     (invert-clicking!))
+				   (set! clicking #f)]))])
+		   
+		   (private
+		     [click-hits?
+		      (lambda (e c)
+			(let ([x (send e get-x)]
+			      [y (send e get-y)])
+			  (and (<= (click-region-left c) x (click-region-right c))
+			       (<= (click-region-top c) y (click-region-bottom c)))))]
+		     [invert-clicking!
+		      (lambda ()
+			(let* ([dc (get-dc)]
+			       [b (send dc get-brush)]
+			       [p (send dc get-pen)])
+			  (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
+			  (send dc set-brush  (send the-brush-list find-or-create-brush "black" 'xor))
+			  (send dc draw-rectangle 
+				(click-region-left clicking)
+				(click-region-top clicking)
+				(- (click-region-right clicking) (click-region-left clicking))
+				(- (click-region-bottom clicking) (click-region-top clicking)))
+			  (send dc set-pen p)
+			  (send dc set-brush b)))])
 		   
 		   (private-field
 		    [offscreen #f])
@@ -906,6 +954,7 @@
 				     (set! offscreen (make-object bitmap-dc% 
 								  (make-object bitmap% cw ch)))))
 				 (set! click-regions null)
+				 (set! clicking #f)
 				 (send offscreen clear)
 				 (paint offscreen)
 				 (let ([bm (send offscreen get-bitmap)])
