@@ -2,12 +2,16 @@
 ;;               Command Line                   ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define-values (screen-w screen-h) (values 1024 768))
+
 (define printing? #f)
 (define commentary? #f)
 (define show-gauge? #f)
 
 (define current-page 0)
 
+(begin-elaboration-time
+ (require-library "cmdline.ss"))
 (require-library "cmdline.ss")
 
 (define content
@@ -33,6 +37,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define font-size 28)
+(define line-sep 2)
 (define title-size (+ font-size 4))
 (define main-font 'swiss)
 
@@ -41,15 +46,21 @@
 (define blue "blue")
 (define purple "purple")
 
+(require-library "mrpict.ss" "texpict")
+(require-library "utils.ss" "texpict")
+
 (define (t s) (text s main-font font-size))
+(define (it s) (text s `(italic . ,main-font) font-size))
+(define (bt s) (text s `(bold . ,main-font) font-size))
+(define (bit s) (text s `(bold italic . ,main-font) font-size))
 (define (tt s) (text s '(bold . modern) font-size))
 (define (titlet s) (colorize (text s 
 				   `(bold . ,main-font) 
 				   title-size)
 			     green))
 
-(require-library "mrpict.ss" "texpict")
-(require-library "utils.ss" "texpict")
+(define bullet (cc-superimpose (disk (/ font-size 2)) 
+			       (blank 0 font-size)))
 
 (dc-for-text-size 
  (if printing?
@@ -61,10 +72,15 @@
 	 (let ([p (make-object post-script-dc% #f)])
 	   (send p start-doc "tmp")
 	   (send p start-page)
+	   (set-values! (screen-h screen-w) (send p get-size))
 	   p)))
 
      ;; Bitmaps give same size as the screen:
      (make-object bitmap-dc% (make-object bitmap% 1 1))))
+
+(define margin 10)
+(define full-page (blank (- screen-w (* margin 2))
+			 (- screen-h (* margin 2))))
 
 (define talk-slide-list null)
 (define-struct slide (drawer title comment))
@@ -87,10 +103,17 @@
 		   [else
 		    (loop (cdr x) c (cons (car x) r))]))])
     (add-slide!
-     (apply vc-append font-size
-	    (if s
-		(cons (titlet s) x)
-		x))
+     (ct-superimpose
+      full-page
+      (apply vc-append font-size
+	     (map
+	      (lambda (p)
+		(let ([w (pict-width p)])
+		  ;; Force even size:
+		  (inset p 0 0 (+ (- w (floor w)) (modulo (floor w) 2)) 0)))
+	      (if s
+		  (cons (titlet s) x)
+		  x))))
      s
      comment)))
 
@@ -103,20 +126,85 @@
      [(memq (car l) '(NEXT NEXT!))
       (unless (and printing? (eq? (car l) 'NEXT))
 	(apply slide/title s (reverse r)))
-      (loop (cdr l) r)]
+      (loop (cdr l) r comment)]
      [(memq (car l) '(ALTS ALTS~)) 
       (let ([rest (cddr l)])
 	(let aloop ([al (cadr l)])
 	  (if (null? (cdr al))
-	      (loop (append (car al) rest) r)
+	      (loop (append (car al) rest) r comment)
 	      (begin
 		(unless (and printing? (eq? (car l) 'ALTS~))
-		  (loop (car al) r))
+		  (loop (car al) r comment))
 		(aloop (cdr al))))))]
-     [else (loop (cdr l) (cons (car l) r))])))
+     [else (loop (cdr l) (cons (car l) r) comment)])))
+
+(define (make-outline . l)
+  (define a (colorize (arrow font-size 0) blue))
+  (lambda (which)
+    (slide/title
+     "Outline"
+     (inset
+      (lc-superimpose
+       (blank (pict-width full-page) 0)
+       (let loop ([l l])
+	 (cond
+	  [(null? l) (blank)]
+	  [else
+	   (vl-append
+	    font-size
+	    (hbl-append
+	     (quotient font-size 2)
+	     ((if (eq? which (car l)) values ghost) a)
+	     bullet
+	     (let ([p (cadr l)])
+	       (if (pict? p)
+		   p
+		   (bt p))))
+	    (loop (cdddr l)))])))
+      0 font-size 0 0))))
 
 (define (comment . s) (make-comment
 		       (apply string-append s)))
+
+(define (para s w)
+  (let loop ([s s][r ""])
+    (let ([p (t s)])
+      (let ([m (if (< (pict-width p) w)
+		   #f
+		   (regexp-match "(.*) (.*)" s))])
+	(if m
+	    (loop (cadr m) (string-append
+			    (caddr m)
+			    (if (string=? r "") "" " ")
+			    r))
+	    (if (string=? r "")
+		p
+		(vl-append
+		 line-sep
+		 p
+		 (loop r ""))))))))
+
+(define (item s)
+  (htl-append (/ font-size 2)
+	      bullet 
+	      (para s (- screen-w 
+			 (pict-width bullet) 
+			 (/ font-size 2)))))
+
+(define (itemize . l)
+  (apply
+   vl-append
+   (let loop ([l l])
+     (cond
+      [(null? l) null]
+      [else (cons (item (car l))
+		  (loop (cdr l)))]))))
+
+(define (page-item s)
+  (cc-superimpose (item s) (blank screen-w 0)))
+
+(define (page-itemize . l)
+  (cc-superimpose (apply itemize l) (blank screen-w 0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                Talk                          ;;
@@ -133,8 +221,6 @@
 (define TALK-MINUTES 25)
 (define GAUGE-WIDTH 100)
 (define GAUGE-HEIGHT 4)
-
-(define-values (screen-w screen-h) (values 1024 768))
 
 (define talk-frame%
   (class frame% (closeable? . args)
@@ -229,7 +315,10 @@
 			 [f (send dc get-font)]
 			 [c (send dc get-text-foreground)]
 			 [s (format "~a" (add1 current-page))])
-		    ((slide-drawer (list-ref talk-slide-list current-page)) (get-dc) 0 0)
+		    (let*-values ([(cw ch) (get-client-size)]
+				  [(m) (- margin (/ (- screen-w cw) 2))])
+		      ((slide-drawer (list-ref talk-slide-list current-page)) 
+		       (get-dc) m m))
 		    
 		    ;; Slide number
 		    (send dc set-font number-font)
@@ -286,6 +375,7 @@
 	 [p (make-object horizontal-pane% d)])
     (send d center)
     (send p set-alignment 'right 'center)
+    (send p stretchable-height #f)
     (make-object button% "Cancel" p (lambda (b e) (send d show #f)))
     (make-object button% "Ok" p 
 		 (lambda (b e)
