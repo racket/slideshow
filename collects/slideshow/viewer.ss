@@ -32,7 +32,7 @@
       (define-accessor client-w get-client-w)
       (define-accessor client-h get-client-h)
 
-      (define current-page 0)
+      (define current-page config:init-page)
       (define use-background-frame? #f)
       (define show-page-numbers? #t)
       (define click-to-advance? #t)
@@ -42,6 +42,8 @@
       (define talk-slide-reverse-cell-list null)
       (define given-slide-count 0)
       (define slide-count 0)
+
+      (define error-on-slide? #f)
 
       (define empty-slide
 	(make-sliderec (lambda (dc x y) (void))
@@ -68,6 +70,8 @@
 	      (set! slide-count given-slide-count))))
 
       (define (add-talk-slide! s)
+	(when error-on-slide?
+	  (error "slide window has been closed"))
 	(let ([p (cons s null)])
 	  (if (null? talk-slide-reverse-cell-list)
 	      (set! given-talk-slide-list p)
@@ -98,8 +102,8 @@
 	     (caar talk-slide-reverse-cell-list)))
       
       (define (set-init-page! p)
-	(set! current-page p))
-      (set-init-page! config:init-page)
+	(set! current-page p)
+	(refresh-page))
       
       (define (viewer:set-use-background-frame! on?)
 	(set! use-background-frame? (and on? #t)))
@@ -263,7 +267,9 @@
 	    (when config:print-slide-seconds?
 	      (printf "Total Time: ~a seconds~n"
 		      (- (current-seconds) talk-start-seconds)))
-	    (exit))
+	    ;; In case slides are still building, tell them to stop. We
+	    ;;  prefer not to `exit' directly if we don't have to.
+	    (set! error-on-slide? #t))
 	  
 	  (define/private (shift e xs ys otherwise)
 	    (cond
@@ -970,9 +976,7 @@
 	      (loop #t (cdr l) (add1 n))))
 	  (parameterize ([current-security-guard original-security-guard])
 	    (send ps-dc end-doc))
-	  ;; In case slides are still building, exit explicitly:
 	  (exit)))
-
 
       ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                Progress for Print             ;;
