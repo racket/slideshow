@@ -1,5 +1,5 @@
 #cs
-(module step (lib "slideshow.ss" "texpict")
+(module step (lib "slideshow.ss" "slideshow")
   (require (lib "list.ss"))
 
   (provide with-steps with-steps~)

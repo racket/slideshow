@@ -131,6 +131,16 @@
 				 (raise-type-error 'current-font-size "exact non-negative integer" x))
 			       x)))
 
+  (define current-title-color (make-parameter
+			       green
+			       (lambda (x)
+				 (unless (or (string? x)
+					     (x . is-a? . color%))
+				   (raise-type-error 'current-title-color
+						     "string or color% object"
+						     x))
+				 x)))
+
   (define (t s) (text s (current-main-font) (current-font-size)))
   (define (it s) (text s `(italic . ,(current-main-font)) (current-font-size)))
   (define (bt s) (text s `(bold . ,(current-main-font)) (current-font-size)))
@@ -140,7 +150,7 @@
   (define (titlet s) (colorize (text s 
 				     `(bold . ,(current-main-font)) 
 				     title-size)
-			       green))
+			       (current-title-color)))
 
   (define (with-font f k)
     (parameterize ([current-main-font f])
@@ -195,6 +205,7 @@
   (define-struct slide (drawer title comment page page-count inset transitions))
   (define-struct just-a-comment (text))
   (define-struct sinset (l t r b))
+  (define-struct name-only (title))
 
   (define page-number 1)
 
@@ -248,12 +259,12 @@
       (let ([content (apply vc-append v-sep
 			    (map
 			     evenize-width
-			     (if s
+			     (if (and s (not (name-only? s)))
 				 (cons (titlet s) (process x))
 				 (process x))))])
 	(do-add-slide!
 	 content
-	 s
+	 (if (name-only? s) (name-only-title s) s)
 	 c
 	 (+ 1 skipped-pages)
 	 inset))))
@@ -331,34 +342,32 @@
     (make-sinset l t r b))
 
   (define (slide/title/tall/inset s inset . x)
-    (unless (or (string? s) (not s))
-      (raise-type-error 'slide/title/tall/inset "string" s))
-    (unless (sinset? inset)
-      (raise-type-error 'slide/title/tall/inset "slide-inset" inset))
     (apply do-slide/title/tall/inset do-add-slide! #t values gap-size s inset x))
 
+  (define (slide/name/tall/inset s inset . x)
+    (apply slide/title/tall/inset (make-name-only s) inset x))
+
   (define (slide/title/tall s . x)
-    (unless (or (string? s) (not s))
-      (raise-type-error 'slide/title/tall "string" s))
     (apply do-slide/title/tall/inset do-add-slide! #t values gap-size s zero-inset x))
 
+  (define (slide/name/tall s . x)
+    (apply slide/title/tall (make-name-only s) x))
+
   (define (slide/title s . x)
-    (unless (or (string? s) (not s))
-      (raise-type-error 'slide/title "string" s))
     (if s
 	(apply slide/title/tall s (blank) x)
 	(apply slide/title/tall s x)))
 
+  (define (slide/name s . x)
+    (apply slide/title (make-name-only s) x))
+
   (define (slide/title/inset s inset . x)
-    (unless (or (string? s) (not s))
-      (raise-type-error 'slide/title "string" s))
     (apply slide/title/tall/inset s inset (blank) x))
 
+  (define (slide/name/inset s inset . x)
+    (apply slide/title/inset (make-name-only s) inset x))
+
   (define (slide/title/center/inset s inset . x)
-    (unless (or (string? s) (not s))
-      (raise-type-error 'slide/title/center "string" s))
-    (unless (sinset? inset)
-      (raise-type-error 'slide/title/center/inset "slide-inset" inset))
     (let ([max-width 0]
 	  [max-height 0]
 	  [combine (lambda (x)
@@ -380,14 +389,22 @@
 	     (lambda (x)
 	       (list
 		(cc-superimpose
-		 (apply-slide-inset inset (if s titleless-page full-page))
+		 (apply-slide-inset inset (if (string? s)
+					      titleless-page 
+					      full-page))
 		 (ct-superimpose
 		  (blank max-width max-height)
 		  (combine x)))))
 	     0 s inset x)))
 
+  (define (slide/name/center/inset s inset . x)
+    (apply slide/title/center/inset (make-name-only s) inset x))
+
   (define (slide/title/center s . x)
     (apply slide/title/center/inset s zero-inset x))
+
+  (define (slide/name/center s . x)
+    (apply slide/title/center (make-name-only s) x))
 
   (define (:slide . x) (apply slide/title #f x))
   (define (slide/inset inset . x) (apply slide/title/inset #f inset x))
@@ -802,7 +819,13 @@
 		    [slide/title/inset slide/title/inset-contract]
 		    [slide/title/tall/inset slide/title/inset-contract]
 		    [slide/center/inset slide/inset-contract]
-		    [slide/title/center/inset slide/title/inset-contract])
+		    [slide/title/center/inset slide/title/inset-contract]
+		    [slide/name slide/title-contract]
+		    [slide/name/tall slide/title-contract]
+		    [slide/name/center slide/title-contract]
+		    [slide/name/inset slide/title/inset-contract]
+		    [slide/name/tall/inset slide/title/inset-contract]
+		    [slide/name/center/inset slide/title/inset-contract])
   (provide most-recent-slide retract-most-recent-slide re-slide 
 	   scroll-transition pause-transition
 	   comment make-outline
@@ -813,7 +836,7 @@
 	   para para* page-para page-para*
 	   para/c para/r para*/c para*/r page-para/c page-para/r page-para*/c page-para*/r
 	   font-size gap-size current-font-size line-sep title-size 
-	   main-font current-main-font with-font
+	   main-font current-main-font with-font current-title-color
 	   red green blue purple orange size-in-pixels
 	   t it bt bit tt titlet tt* rt
 	   bullet o-bullet

@@ -10,7 +10,8 @@
     ;; We use package just to support a top-level-like sequence of
     ;; definitions and expressions
     (package p ()
-      (slide/center
+      (slide/name/center
+       "Title Slide"
        (titlet "Slideshow Tutorial")
        (blank)
        (bitmap (build-path (collection-path "icons") "PLTnolarval.jpg"))

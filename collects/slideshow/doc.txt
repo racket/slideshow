@@ -245,23 +245,8 @@ Thus, if the above example is in multi-step.ss, then
 
 runs the slides.
 
-The "Slideshow" executable accepts a number of command-line flags:
-
-  --print : Prints the slides to a PostScript file. Note that the
-            fonts might be different, so printed results will not
-            necessarily match the screen form exactly.
-
-  -c, --condense : Skips 'next in slide constructions, and uses only
-            the last alternative for 'alts~ (which otherwise acts like
-            'alts).
-
-  -p <page> : Sets the starting page.
-
-  -q, --quad : Shows four slides at a time.
-
-  -f <fs>, --font <fs> : Sets the base font size.
-
-  --comment : Displays commentary from `comment' elements.
+The "Slideshow" executable accepts a number of command-line flags.
+Use the --help flag to obtain a list of other flags.
 
 Procedure Reference
 ===================
@@ -290,6 +275,17 @@ Procedure Reference
 > (slide/center/inset slide-inset element ...)
   Like `slide/title', etc., except that an inset is supplied. A slide
   inset is created with `make-slide-inset'.
+
+> (slide/name title-string element ...)
+> (slide/name/tall title-string element ...)
+> (slide/name/center title-string element ...)
+> (slide/name/inset title-string slide-inset element ...)
+> (slide/name/tall/inset title-string slide-inset element ...)
+> (slide/name/center/inset title-string slide-inset element ...)
+  Like `slide/title', etc., except that the title string is used only
+  for naming the slide, as in the Alt-g dialog, and does not appear at
+  the top of the slide. The content area is therefore the same size as
+  `client-page'.
 
 > (make-slide-inset left-inset top-inset right-inset bottom-inset) -
   Creates a slide inset, which describes a number of pixels to inset
@@ -418,6 +414,7 @@ Procedure Reference
 > title-size - Font size used for slide titles, derived from `font-size'.
 > main-font - Font specification used for `t' by default
 > current-main-font - Parameter for the font specification used for `t'
+> current-title-color - Parameter for the color used by titles/`titlet'
 
 > (with-font f thunk) - Calls `thunk' with `current-main-font' set to `f'.
 
@@ -435,7 +432,7 @@ Procedure Reference
 
 > margin - client margin within the full slide
 
-> full-page - an empty pict that is the same size as the client ares
+> full-page - an empty pict that is the same size as the client area
 > titleless-page - an empty pict that is the same size as the client
   ares minus the title area
 
