@@ -25,10 +25,11 @@
   (define printing? #f)
   (define commentary? #f)
   (define show-gauge? #f)
+  (define keep-titlebar? #f)
   (define show-page-numbers? #t)
   (define quad-view? #f)
   (define print-slide-seconds? #f)
-  (define offscreen-transitions? #f)
+  (define use-transitions? #t)
   (define talk-duration-minutes 25)
 
   (define current-page 0)
@@ -38,34 +39,46 @@
      "slideshow"
      (current-command-line-arguments)
      [once-each
-      (("--print") "print"
+      (("-p" "--print") "print"
 		   (set! printing? #t))
       (("-c" "--condense") "condense"
 			   (set! condense? #t))
-      (("-p") page "set the starting page"
-	      (let ([n (string->number page)])
-		(unless (and n 
-			     (integer? n)
-			     (exact? n)
-			     (positive? n))
-		  (error 'talk "argument to -p is not a positive exact integer: ~a" page))
-		(set! current-page (sub1 n))))
+      (("-t" "--start") page "set the starting page"
+       (let ([n (string->number page)])
+	 (unless (and n 
+		      (integer? n)
+		      (exact? n)
+		      (positive? n))
+	   (error 'slideshow "argument to -t is not a positive exact integer: ~a" page))
+	 (set! current-page (sub1 n))))
       (("-q" "--quad") "show four slides at a time"
 		       (set! quad-view? #t))
       (("-n" "--no-stretch") "don't stretch the slide window to fit this screen"
        (when (> actual-screen-w screen-w)
+	 (set! keep-titlebar? #t)
 	 (set! actual-screen-w screen-w)
 	 (set! actual-screen-h screen-h)))
+      (("-s" "--size") w h "show <w> high and <h> tall"
+       (let ([nw (string->number w)]
+	     [nh (string->number h)])
+	 (unless (and nw (< 0 nw 10000))
+	   (error 'slideshow "bad width: ~e" w))
+	 (unless (and nw (< 0 nh 10000))
+	   (error 'slideshow "bad height: ~e" h))
+	 (when (> actual-screen-h nh)
+	   (set! keep-titlebar? #t))
+	 (set! actual-screen-w nw)
+	 (set! actual-screen-h nh)))
       (("-m" "--minutes") min "set talk duration in minutes"
 		       (let ([n (string->number min)])
 			 (unless (and n 
 				      (integer? n)
 				      (exact? n)
 				      (positive? n))
-			   (error 'talk "argument to -m is not a positive exact integer: ~a" min))
+			   (error 'slideshow "argument to -m is not a positive exact integer: ~a" min))
 			 (set! talk-duration-minutes n)))
-      (("-s" "--smooth") "use an offscreen bitmap for slide transitions"
-       (set! offscreen-transitions? #t))
+      (("-i" "--immediate") "no transitions"
+       (set! use-transitions? #f))
       (("--comment") "display commentary"
                      (set! commentary? #t))
       (("--time") "time seconds per slide" (set! print-slide-seconds? #t))]
@@ -77,6 +90,9 @@
                           "expects at most one module file, given ~a: ~s"
                           (length slide-module-file)
                           slide-module-file)])]))
+
+  (when (or printing? condense?)
+    (set! use-transitions? #f))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                    Setup                      ;;
@@ -684,7 +700,7 @@
 
   (define (add-transition! who trans)
     (unless (or (null? talk-slide-list)
-		printing? condense?)
+		(not use-transitions?))
       (let ([slide (car talk-slide-list)])
 	(set-slide-transitions! slide 
 				(append! (slide-transitions slide)
@@ -697,10 +713,10 @@
   (define scroll-transition
     (opt-lambda (x y w h dx dy [duration 0.20] [steps 12])
       (add-transition! 'scroll-transition
-		       (lambda (old-slide)
+		       (lambda (offscreen-dc)
 			 (let ([steps-done 0]
-			       [clear-pen (make-object pen% "WHITE" 1 'transparent)]
-			       [white-brush (make-object brush% "WHITE" 'solid)])
+			       [xs (/ actual-screen-w screen-w)]
+			       [ys (/ actual-screen-h screen-h)])
 			   (unless (and scroll-bm
 					(>= (send scroll-bm get-width) 
 					    (+ w dx))
@@ -715,49 +731,37 @@
 
 			   (when scroll-bm
 			     (send scroll-dc clear)
-			     (let ([xs (/ actual-screen-w screen-w)]
-				   [ys (/ actual-screen-h screen-h)]
-				   [p (send scroll-dc get-pen)]
-				   [b (send scroll-dc get-brush)])
-			       (send scroll-dc set-scale xs ys)
-			       ((slide-drawer old-slide) scroll-dc (- x) (- y))
-			       ;; Erase the part that we won't use:
-			       (send scroll-dc set-brush white-brush)
-			       (send scroll-dc set-pen clear-pen)
-			       (send scroll-dc draw-rectangle
-				     x (+ y (abs dy)) (+ x w (abs dx)) (+ y h (abs dy)))
-			       (send scroll-dc draw-rectangle
-				     x (+ y (abs dy)) (+ x w) (+ y h (abs dy)))
-			       (send scroll-dc set-pen p)
-			       (send scroll-dc set-brush b)))
+			     (send scroll-dc draw-bitmap-section (send offscreen-dc get-bitmap)
+				   0 0
+				   (* (+ margin x) xs) (* (+ margin y) ys)
+				   (* w xs) (* h ys)))
 			   
-			   (lambda (canvas)
+			   (lambda (canvas offscreen-dc)
 			     (if (or (not scroll-bm) (= steps-done steps))
 				 'done
 				 (let*-values ([(cw ch) (send canvas get-client-size)]
-					       [(m) (- margin (/ (- actual-screen-w cw) 2))])
+					       [(xm) (- (/ (- actual-screen-w cw) 2))]
+					       [(ym) (- (/ (- actual-screen-h ch) 2))])
 				   (set! steps-done (add1 steps-done))
-				   #;
-				   (when (= 1 steps-done)
-				     (send (send canvas get-dc) draw-rectangle
-					   (+ x m)
-					   (+ y m)
-					   w h))
-				   (send (send canvas get-dc) draw-bitmap-section
-					 scroll-bm
-					 (+ x m (* dx (/ steps-done steps)))
-					 (+ y m (* dy (/ steps-done steps)))
-					 0 0 
-					 (ceiling (+ w (/ (abs dx) steps))) 
-					 (ceiling (+ h (/ (abs dy) steps))))
+				   (let ([draw
+					  (lambda (dc xm ym)
+					    (send dc draw-bitmap-section
+						  scroll-bm
+						  (+ (* xs (+ x margin (* dx (/ steps-done steps)))) xm)
+						  (+ (* ys (+ y margin (* dy (/ steps-done steps)))) ym)
+						  0 0 
+						  (ceiling (* xs (+ w (/ (abs dx) steps))))
+						  (ceiling (* ys (+ h (/ (abs dy) steps))))))])
+				     (draw (send canvas get-dc) xm ym)
+				     (draw offscreen-dc 0 0))
 				   (/ duration steps)))))))))
 
   (define pause-transition
     (lambda (time)
       (add-transition! 'pause-transition
-		       (lambda (old-slide)
+		       (lambda (offscreen-dc)
 			 (let ([done? #f])
-			   (lambda (canvas)
+			   (lambda (canvas offscreen-dc)
 			     (if done?
 				 'done
 				 (begin
@@ -938,7 +942,7 @@
 			      (printf "Slide ~a: ~a seconds~n" current-page
 				      (- slide-end-seconds slide-start-seconds))
 			      (set! slide-start-seconds slide-end-seconds)))
-			  (do-transitions (slide-transitions old) old)
+			  (do-transitions (slide-transitions old) (send c get-offscreen))
 			  #t))]
                    [(left #\b)
 		    (stop-transition)
@@ -1002,7 +1006,9 @@
                   [x (- screen-left-inset)] [y (- screen-top-inset)]
                   [width (inexact->exact (floor actual-screen-w))]
                   [height (inexact->exact (floor actual-screen-h))]
-                  [style '(no-caption no-resize-border hide-menu-bar)]))
+                  [style (if keep-titlebar?
+			     null
+			     '(no-caption no-resize-border hide-menu-bar))]))
       
       (define current-sinset zero-inset)
       (define (reset-display-inset! sinset)
@@ -1185,12 +1191,14 @@
 		   
 		   (private-field
 		    [offscreen #f])
+		   (public
+		     [get-offscreen (lambda () offscreen)])
 		   
                    (public
                      [redraw (lambda ()
 			       (reset-display-inset! (slide-inset (list-ref talk-slide-list current-page)))
 			       (cond
-				[(and offscreen-transitions? (not printing?))
+				[use-transitions?
 				 (let-values ([(cw ch) (get-client-size)])
 				   (when (and offscreen
 					      (let ([bm (send offscreen get-bitmap)])
@@ -1226,16 +1234,16 @@
       (define current-transitions null)
       (define current-transitions-key #f)
 
-      (define (do-transitions transes old-slide)
+      (define (do-transitions transes offscreen)
 	(let ([key (cons 1 2)])
-	  (set! current-transitions (map (lambda (mk) (mk old-slide)) transes))
+	  (set! current-transitions (map (lambda (mk) (mk offscreen)) transes))
 	  (set! current-transitions-key key)
 	  (if (null? transes)
 	      (refresh-page)
 	      (let do-trans ()
 		(when (and (eq? current-transitions-key key)
 			   (pair? current-transitions))
-		  (let ([went ((car current-transitions) c)])
+		  (let ([went ((car current-transitions) c offscreen)])
 		    (if (eq? went 'done)
 			(begin
 			  (set! current-transitions (cdr current-transitions))
