@@ -129,7 +129,7 @@
 		  "be viewed while reading the program source")
        (blank)
        (page-para "The source is")
-       (let ([s (build-path (collection-path "slideshow") "tutorial-show.ss")])
+       (let ([s (path->string (build-path (collection-path "slideshow") "tutorial-show.ss"))])
 	 (clickback
 	  (scale/improve-new-text
 	   (let ([p (tt s)])

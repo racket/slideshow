@@ -1847,11 +1847,11 @@
   (define (load-content content)
     (send progress-window show #t)
     (start-making-slides)
-    (dynamic-require `(file ,content) #f)
+    (dynamic-require content #f)
     (done-making-slides))
 
   (when content
-    (load-content content))
+    (load-content (string->path content)))
 
   (define (started-from-launcher)
     (unless done-once?
