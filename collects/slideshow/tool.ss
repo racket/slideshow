@@ -56,14 +56,14 @@ pict snip :
       (define original-output-port (current-output-port))
       (define (oprintf . args) (apply fprintf original-output-port args))
       
-      (define sc-show-slideshow-panel "Show Slideshow Panel")
-      (define sc-hide-slideshow-panel "Hide Slideshow Panel")
-      (define sc-freeze-picts "Freeze These Picts")
-      (define sc-thaw-picts "Show Picts Under Mouse")
-      (define sc-hide-picts "Show Nested Boxes")
-      (define sc-show-picts "Show Picts")
-      (define sc-cannot-show-picts "Cannot show picts; run program to cache sizes first")
-      (define sc-insert-pict-box "Insert Pict Box")
+      (define sc-show-slideshow-panel (string-constant slideshow-show-slideshow-panel))
+      (define sc-hide-slideshow-panel (string-constant slideshow-hide-slideshow-panel))
+      (define sc-freeze-picts (string-constant slideshow-freeze-picts))
+      (define sc-thaw-picts (string-constant slideshow-thaw-picts))
+      (define sc-hide-picts (string-constant slideshow-hide-picts))
+      (define sc-show-picts (string-constant slideshow-show-picts))
+      (define sc-cannot-show-picts (string-constant slideshow-cannot-show-picts))
+      (define sc-insert-pict-box (string-constant slideshow-insert-pict-box))
       
       
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
