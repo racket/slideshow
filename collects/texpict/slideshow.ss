@@ -13,6 +13,7 @@
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (define-values (screen-w screen-h) (values 1024 768))
+  (define-values (actual-screen-w actual-screen-h) (get-display-size))
 
   (define condense? #f)
   (define printing? #f)
@@ -24,7 +25,7 @@
   (define offscreen-transitions? #f)
   (define talk-duration-minutes 25)
 
-  (define base-font-size (get-preference 'slideshow:base-font-size (lambda () 32)))
+  (define base-font-size (get-preference 'slideshow:default-font-size (lambda () 32)))
   
   (define current-page 0)
   
@@ -36,7 +37,9 @@
      (current-command-line-arguments)
      [once-each
       (("--print") "print"
-		   (set! printing? #t))
+		   (set! printing? #t)
+		   ;; Ignore screen-relevant preference:
+		   (set! base-font-size 32))
       (("-c" "--condense") "condense"
 			   (set! condense? #t))
       (("-p") page "set the starting page"
@@ -83,10 +86,10 @@
   ;;                    Setup                      ;;
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (define ps-pre-scale 0.8)
+  (define ps-pre-scale 0.7)
 
   (define font-size base-font-size)
-  (define char-size 24)
+  (define gap-size (* 3/4 base-font-size))
   (define line-sep 2)
   (define title-size (+ font-size 4))
   (define main-font (if (and (not printing?)
@@ -132,10 +135,10 @@
 
   (define (tt* . l) (apply vl-append line-sep (map tt l)))
 
-  (define bullet (cc-superimpose (disk (/ char-size 2)) 
-				 (blank 0 char-size)))
-  (define o-bullet (cc-superimpose (circle (/ char-size 2)) 
-				   (blank 0 char-size)))
+  (define bullet (cc-superimpose (disk (/ gap-size 2)) 
+				 (blank 0 gap-size)))
+  (define o-bullet (cc-superimpose (circle (/ gap-size 2)) 
+				   (blank 0 gap-size)))
 
   (dc-for-text-size
    (if printing?
@@ -144,7 +147,10 @@
 	 (send pss set-mode 'file)
 	 (send pss set-file
 	       (if content
-		   (regexp-replace "[.][^.]+$" (file-name-from-path content) ".ps")
+		   (regexp-replace "[.][^.]+$" (file-name-from-path content) 
+				   (if quad-view?
+				       "-4u.ps"
+				       ".ps"))
 		   "untitled.ps"))
 	 (send pss set-scaling ps-pre-scale ps-pre-scale)
 	 (send pss set-orientation 'landscape)
@@ -164,7 +170,7 @@
 					     (- screen-h (* margin 2))))
   (define full-page (blank client-w client-h))
   (define (mk-titleless-page)
-    (inset full-page 0 (- 0 (pict-height (titlet "Hi")) (* 2 char-size)) 0 0))
+    (inset full-page 0 (- 0 (pict-height (titlet "Hi")) (* 2 gap-size)) 0 0))
   (define titleless-page (mk-titleless-page))
 
   (define use-background-frame? #f)
@@ -272,12 +278,12 @@
       (raise-type-error 'slide/title/tall/inset "string" s))
     (unless (sinset? inset)
       (raise-type-error 'slide/title/tall/inset "slide-inset" inset))
-    (apply do-slide/title/tall/inset values char-size s inset x))
+    (apply do-slide/title/tall/inset values gap-size s inset x))
 
   (define (slide/title/tall s . x)
     (unless (or (string? s) (not s))
       (raise-type-error 'slide/title/tall "string" s))
-    (apply do-slide/title/tall/inset values char-size s zero-inset x))
+    (apply do-slide/title/tall/inset values gap-size s zero-inset x))
 
   (define (slide/title s . x)
     (unless (or (string? s) (not s))
@@ -299,7 +305,7 @@
 	     (list
 	      (cc-superimpose
 	       (apply-slide-inset inset (if s titleless-page full-page))
-	       (apply vc-append char-size
+	       (apply vc-append gap-size
 		      (map
 		       evenize-width
 		       x)))))
@@ -343,8 +349,8 @@
     (set! page-number (+ page-number 1)))
 
   (define (make-outline . l)
-    (define ah (arrowhead char-size 0))
-    (define current-item (colorize (hc-append (- (/ char-size 2)) ah ah) blue))
+    (define ah (arrowhead gap-size 0))
+    (define current-item (colorize (hc-append (- (/ gap-size 2)) ah ah) blue))
     (define other-item (rc-superimpose (ghost current-item) (colorize ah "light gray")))
     (lambda (which)
       (slide/title
@@ -359,10 +365,10 @@
 				(and (list? (car l))
 				     (memq which (car l))))])
 	      (vc-append
-	       char-size
+	       gap-size
 	       (page-para
 		(hbl-append
-		 (quotient char-size 2)
+		 (quotient gap-size 2)
 		 (if current?
 		     current-item
 		     other-item)
@@ -376,7 +382,7 @@
 			  sub-items
 			  (not (null? sub-items)))
 		     (vc-append
-		      char-size
+		      gap-size
 		      (sub-items which)
 		      rest)
 		     rest))))]))))))
@@ -481,17 +487,17 @@
   (define (l-combiner para w l)
     (apply
      vl-append
-     char-size
+     gap-size
      (map (lambda (x) (para w x)) l)))
 
   ;----------------------------------------
 
   (define (item* w . s)
-    (htl-append (/ char-size 2)
+    (htl-append (/ gap-size 2)
 		bullet 
 		(para* (- w
 			  (pict-width bullet) 
-			  (/ char-size 2)) 
+			  (/ gap-size 2)) 
 		       s)))
 
   (define (item w . s)
@@ -507,14 +513,14 @@
   ;----------------------------------------
 
   (define (subitem* w . s)
-    (inset (htl-append (/ char-size 2)
+    (inset (htl-append (/ gap-size 2)
 		       o-bullet 
 		       (para* (- w
-				 (* 2 char-size)
+				 (* 2 gap-size)
 				 (pict-width bullet) 
-				 (/ char-size 2)) 
+				 (/ gap-size 2)) 
 			      s))
-	   (* 2 char-size) 0 0 0))
+	   (* 2 gap-size) 0 0 0))
 
   (define (subitem w . s)
     (lbl-superimpose (subitem* w s)
@@ -600,7 +606,7 @@
 	   itemize itemize* page-itemize page-itemize*
 	   para para* page-para page-para*
 	   para/c para/r para*/c para*/r page-para/c page-para/r page-para*/c page-para*/r
-	   font-size char-size current-font-size line-sep title-size 
+	   font-size gap-size current-font-size line-sep title-size 
 	   main-font current-main-font with-font
 	   red green blue purple orange
 	   t it bt bit tt titlet tt* rt
@@ -671,9 +677,10 @@
                               [untitled "(untitled)"])
                           (cons (make-slide
                                  (lambda (dc x y)
+				   (define-values (orig-sx orig-sy) (send dc get-scale))
                                    (define scale (min (/ (- (/ client-h 2) margin) client-h)
                                                       (/ (- (/ client-w 2) margin) client-w)))
-                                   (send dc set-scale scale scale)
+                                   (send dc set-scale (* orig-sx scale) (* orig-sy scale))
                                    (send dc set-origin x y)
                                    ((slide-drawer a) dc 0 0)
                                    (send dc set-origin (+ x (/ client-w 2) margin) y)
@@ -682,7 +689,7 @@
                                    ((slide-drawer c) dc 0 0)
                                    (send dc set-origin (+ x (/ client-w 2) margin) (+ y (/ client-h 2) margin))
                                    ((slide-drawer d) dc 0 0)
-                                   (send dc set-scale 1 1)
+                                   (send dc set-scale orig-sx orig-sy)
                                    (send dc set-origin x y)
                                    (send dc draw-line (/ client-w 2) 0 (/ client-w 2) client-h)
                                    (send dc draw-line 0 (/ client-h 2) client-w (/ client-h 2))
@@ -767,8 +774,8 @@
 			     ()
 			     [label "Slidsehow Background"]
 			     [x 0] [y 0]
-			     [width (inexact->exact (floor screen-w))]
-			     [height (inexact->exact (floor screen-h))]
+			     [width (inexact->exact (floor actual-screen-w))]
+			     [height (inexact->exact (floor actual-screen-h))]
 			     [style '(no-caption no-resize-border)])))))
 
       (when background-f
@@ -780,8 +787,8 @@
                              (format "~a: slideshow" (file-name-from-path content))
                              "Slideshow")]
                   [x 0] [y 0]
-                  [width (inexact->exact (floor screen-w))]
-                  [height (inexact->exact (floor screen-h))]
+                  [width (inexact->exact (floor actual-screen-w))]
+                  [height (inexact->exact (floor actual-screen-h))]
                   [style '(no-caption no-resize-border)]))
       
       (define current-sinset zero-inset)
@@ -791,8 +798,8 @@
 		     (= (sinset-r current-sinset) (sinset-r sinset))
 		     (= (sinset-b current-sinset) (sinset-b sinset)))
 	  (send f resize 
-		(max 1 (- (inexact->exact (floor screen-w)) (sinset-l sinset) (sinset-r sinset)))
-		(max 1 (- (inexact->exact (floor screen-h)) (sinset-t sinset) (sinset-b sinset))))
+		(max 1 (- (inexact->exact (floor actual-screen-w)) (sinset-l sinset) (sinset-r sinset)))
+		(max 1 (- (inexact->exact (floor actual-screen-h)) (sinset-t sinset) (sinset-b sinset))))
 	  (send f move (sinset-l sinset) (sinset-t sinset))
 	  (set! current-sinset sinset)))
 		
@@ -856,11 +863,24 @@
                         (let* ([f (send dc get-font)]
                                [c (send dc get-text-foreground)]
                                [slide (list-ref talk-slide-list current-page)]
-                               [s (slide-page-string slide)])
+                               [s (slide-page-string slide)]
+			       [set-scale? (not (and (= actual-screen-w screen-w)
+						     (= actual-screen-h screen-h)))])
+			  ;; Scale to adjust for screen size
+			  (when set-scale?
+			    (send dc set-scale 
+				  (/ actual-screen-w screen-w)
+				  (/ actual-screen-h screen-h)))
+			    
+			  ;; Draw the slide
                           (let*-values ([(cw ch) (get-client-size)]
-                                        [(m) (- margin (/ (- screen-w cw) 2))])
+                                        [(m) (- margin (/ (- actual-screen-w cw) 2))])
                             ((slide-drawer slide) dc m m))
-                          
+
+			  ;; Reset the scale:
+                          (when set-scale?
+			    (send dc set-scale 1 1))
+
                           ;; Slide number
                           (send dc set-font number-font)
                           (let-values ([(duration distance) (calc-progress)])
