@@ -119,8 +119,8 @@
 	(if (< (/ actual-screen-w screen-w)
 	       (/ actual-screen-h screen-h))
 	    (values actual-screen-w
-		    (* (/ actual-screen-w screen-w) screen-h))
-	    (values (* (/ actual-screen-h screen-h) screen-w)
+		    (floor (* (/ actual-screen-w screen-w) screen-h)))
+	    (values (floor (* (/ actual-screen-h screen-h) screen-w))
 		    actual-screen-h))
 	(values actual-screen-w actual-screen-h)))
 
@@ -1581,7 +1581,7 @@
                      (= use-screen-w (send prefetch-bitmap get-width))
                      (= use-screen-h (send prefetch-bitmap get-height)))
           (send prefetch-dc set-bitmap #f)
-          (set! prefetch-bitmap (make-bitmap (ceiling use-screen-w) (ceiling use-screen-h)))
+          (set! prefetch-bitmap (make-bitmap use-screen-w use-screen-h))
 	  (when (send prefetch-bitmap ok?)
 	    (send prefetch-dc set-bitmap prefetch-bitmap)))
 
