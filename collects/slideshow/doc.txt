@@ -1,5 +1,22 @@
 
-_Slideshow_ Overview
+_Slideshow_ Quick Start
+=======================
+
+In DrScheme:
+
+ 1. Open "tutorial-show.ss", which is in the "slideshow" collection.
+    
+    The path depends on your PLT install directory:
+       <plt install dir>/collects/slideshow/tutorial-show.ss
+
+ 2. Set DrScheme's language to "(module ...)".
+ 
+    Use the "Choose Language" menu item in the "Language" menu.
+
+ 3. Click DrScheme's "Execute" button.
+
+
+Slideshow Overview
 ====================
 
 Slideshow is a library for creating presentation slides. Unlike
@@ -42,15 +59,9 @@ the implicit start-up actions.
    presentation window. That's why "slideshow.ss" is the main module
    for the "Slideshow" executable.]
 
-
-The "tutorial-show.ss" module in the "slideshow" collection is a
-Slideshow presentation that is intended a tutorial. The presentation
-starts from fundamentals and builds up towards realistic slides. Read
-the source as you step through the presentation.
-
-
-The rest of this section repeats much of the information in the
-tutorial.
+The rest of this section repeats much of the information that is in
+"tutorial-show.ss" (see "Quick Start" at the top of this
+documentation).
 
 The main Slideshow function is `slide/title', which adds a slide to
 the presentation with a given title and content. For example, the
