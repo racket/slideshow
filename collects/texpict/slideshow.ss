@@ -259,7 +259,7 @@
 
 
 (define (page-para/align v-append . s)
-  (para v-append client-w s))
+  (para/align v-append client-w s))
 
 (define (page-para . s)
   (page-para/align vl-append s))
