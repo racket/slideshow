@@ -813,7 +813,9 @@
 		 [my (/ (- ch ush) 2)])
 	    (paint-letterbox dc cw ch usw ush)
 	    
-	    (send dc set-scale (* extra-scale-x sx) (* extra-scale-y sy))
+            (when config:smoothing?
+              (send dc set-smoothing 'smoothed))
+            (send dc set-scale (* extra-scale-x sx) (* extra-scale-y sy))
 
 	    ;; Draw the slide
 	    ;;  It's important to set the origin based on

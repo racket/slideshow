@@ -11,8 +11,9 @@
      screen-w screen-h          ; logical size, normally 1024x768
      use-screen-w use-screen-h  ; "pixel" size
      pixel-scale                ; amount the "pixels" are scaled (e.g., for quad)
-     condense? printing?))      ; mode
-
+     condense? printing?        ; mode
+     smoothing?))
+     
   ;; Viewer inputs to the core unit:
   (define-signature viewer^
     (;; Registering slides:

@@ -37,7 +37,8 @@
 				       (define use-screen-h h)
 				       (define pixel-scale 1)
 				       (define condense? c?)
-				       (define printing? #f)))]
+				       (define printing? #f)
+                                       (define smoothing? #t)))]
 		  [CORE : core^ (core@ CONFIG (VIEWER : viewer^))]
 		  [VIEWER : viewer^ ((unit/sig viewer^
 				       (import)

@@ -63,7 +63,8 @@
 	(define use-prefetch? #t)
 	(define use-prefetch-in-preview? #f)
 	(define print-target #f)
-	
+	(define smoothing? #t)
+        
 	(define init-page 0)
 	
 	(define file-to-load
@@ -105,7 +106,10 @@
 	       (set! actual-screen-h nh)))
 	    (("-a" "--squash") "scale to full window, even if not 4:3 aspect"
 	     (set! no-squash? #f))
-	    ;; Disable --minutes, because it's not used
+	    (("-m" "--no-smoothing") 
+             "disable smoothing to improve performance (drawing is not exactly the same)"
+             (set! smoothing? #f))
+            ;; Disable --minutes, because it's not used
 	    #;
 	    (("-m" "--minutes") min "set talk duration in minutes"
 	     (let ([n (string->number min)])
