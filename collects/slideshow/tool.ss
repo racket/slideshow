@@ -481,7 +481,7 @@ pict snip :
           ;; returns two #fs to indicate the event doesn't correspond to
           ;; a position in an editor, or returns the innermost text
           ;; and position in that text where the event is.
-          (define (get-pos/text event)
+          (define/private (get-pos/text event)
             (let ([event-x (send event get-x)]
                   [event-y (send event get-y)]
                   [on-it? (box #f)])
@@ -569,7 +569,7 @@ pict snip :
                         (lambda (l)
                           (list everything-else-panel))))))
           
-          (define (build-slideshow-panel)
+          (define/private (build-slideshow-panel)
             (let ([p (preferences:get 'plt:slideshow:panel-percentage)])
               ;; must save the value of the pref before creating slideshow-panel
               ;; so that the callback doesn't clobber it
