@@ -143,7 +143,7 @@
   (define-values (client-w client-h) (values (- screen-w (* margin 2))
 					     (- screen-h (* margin 2))))
   (define full-page (blank client-w client-h))
-  (define titleless-page (inset full-page 0 (- 0 title-size font-size) 0 0))
+  (define titleless-page (inset full-page 0 (- 0 (pict-height (titlet "Hi")) font-size) 0 0))
 
   (define talk-slide-list null)
   (define-struct slide (drawer title comment page page-count))
