@@ -7,6 +7,7 @@
 (define printing? #f)
 (define commentary? #f)
 (define show-gauge? #f)
+(define quad-view? #f)
 
 (define current-page 0)
 
@@ -27,6 +28,8 @@
 			   (positive? n))
 		(error 'talk "argument to -n is not a positive integer: ~a" page))
 	      (set! current-page (sub1 n))))
+    (("-q" "--quad") "show four slides at a time"
+		     (set! quad-view? #t))
     (("-c") "display commentary"
 	    (set! commentary? #t))]
    [args (lecture-file)
@@ -84,7 +87,7 @@
 (define-values (client-w client-h) (values (- screen-w (* margin 2))
 					   (- screen-h (* margin 2))))
 (define full-page (blank client-w client-h))
-(define titleless-page (inset full-page (- (* 2 font-size)) 0 0 0))
+(define titleless-page (inset full-page 0 (- 0 title-size font-size) 0 0))
 
 (define talk-slide-list null)
 (define-struct slide (drawer title comment))
@@ -282,10 +285,10 @@
   (l-combiner para w l))
 
 (define (page-paras* . l)
-  (l-combiner (lambda (x y) (page-para* x)) w l))
+  (l-combiner (lambda (x y) (page-para* y)) client-w l))
 
 (define (page-paras . l)
-  (l-combiner (lambda (x y) (page-para x)) w l))
+  (l-combiner (lambda (x y) (page-para y)) client-w l))
 
 ;----------------------------------------
 
@@ -296,10 +299,10 @@
   (l-combiner item* w l))
 
 (define (page-itemize . l)
-  (l-combiner (lambda (x y) (page-item x)) w l))
+  (l-combiner (lambda (x y) (page-item y)) client-w l))
 
 (define (page-itemize* . l)
-  (l-combiner (lambda (x y) (page-item* x)) w l))
+  (l-combiner (lambda (x y) (page-item* y)) client-w l))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                Talk                          ;;
@@ -312,6 +315,47 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (set! talk-slide-list (reverse talk-slide-list))
+
+(when quad-view?
+  (set! talk-slide-list
+	(let loop ([l talk-slide-list])
+	  (cond
+	   [(null? l) null]
+	   [(< (length l) 4)
+	    (loop (append l (vector->list
+			     (make-vector
+			      (- 4 (length l))
+			      (make-slide void #f #f)))))]
+	   [else (let ([a (car l)]
+		       [b (cadr l)]
+		       [c (caddr l)]
+		       [d (cadddr l)]
+		       [untitled "(untitled)"])
+		   (cons (make-slide
+			  (lambda (dc x y)
+			    (define scale (min (/ (- (/ client-h 2) margin) client-h)
+					       (/ (- (/ client-w 2) margin) client-w)))
+			    (send dc set-scale scale scale)
+			    (send dc set-origin x y)
+			    ((slide-drawer a) dc 0 0)
+			    (send dc set-origin (+ x (/ client-w 2) margin) y)
+			    ((slide-drawer b) dc 0 0)
+			    (send dc set-origin x (+ y (/ client-h 2) margin))
+			    ((slide-drawer c) dc 0 0)
+			    (send dc set-origin (+ x (/ client-w 2) margin) (+ y (/ client-h 2) margin))
+			    ((slide-drawer d) dc 0 0)
+			    (send dc set-scale 1 1)
+			    (send dc set-origin x y)
+			    (send dc draw-line (/ client-w 2) 0 (/ client-w 2) client-h)
+			    (send dc draw-line 0 (/ client-h 2) client-w (/ client-h 2))
+			    (send dc set-origin 0 0))
+			  (format "~a | ~a | ~a | ~a"
+				  (or (slide-title a) untitled)
+				  (or (slide-title b) untitled)
+				  (or (slide-title c) untitled)
+				  (or (slide-title d) untitled))
+			  #f)
+			 (loop (cddddr l))))]))))
 
 (define TALK-MINUTES 25)
 (define GAUGE-WIDTH 100)
