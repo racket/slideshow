@@ -591,7 +591,7 @@ steps (that are more complex than can be handled with 'next and 'alts
 in a `slide' sequence).
 
 > (with-steps (id ...) expr) - evaluates `expr' once for each `id',
-  skipping an `id' if it sends with "~" and `condense?' from
+  skipping an `id' if it ends with "~" and `condense?' from
   "slideshow.ss" is true
 
   Within `expr', several keywords are bound:
