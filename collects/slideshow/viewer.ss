@@ -856,41 +856,49 @@
       
       (define (get-page-from-user)
 	(unless (zero? slide-count)
-	  (let* ([d (make-object dialog% "Goto Page" f 200 250)]
-		 [short-slide-list 
-		  (let loop ([slides talk-slide-list][n 1][last-title #f])
-		    (cond
-		     [(null? slides) null]
-		     [(and last-title
-			   (equal? last-title (or (sliderec-title (car slides))
-						  "(untitled)")))
-		      (loop (cdr slides) (+ n 1) last-title)]
-		     [else
-		      (let ([title (or (sliderec-title (car slides))
-				       "(untitled)")])
-			(cons (cons
-			       n
-			       (format "~a. ~a" 
-				       (slide-page-string (car slides))
-				       title))
-			      (loop (cdr slides) (add1 n) title)))]))]
-		 [long-slide-list (let loop ([slides talk-slide-list][n 1])
-				    (if (null? slides)
-					null
-					(cons (cons
-					       n
-					       (format "~a. ~a" 
-						       (slide-page-string (car slides))
-						       (or (sliderec-title (car slides))
-							   "(untitled)")))
-					      (loop (cdr slides) (add1 n)))))]
-		 [slide-list short-slide-list]
-		 [l (make-object list-box% #f (map cdr slide-list)
-				 d void)]
-		 [p (make-object horizontal-pane% d)])
+	  (letrec ([d (make-object dialog% "Goto Page" f 200 250)]
+		   [short-slide-list 
+		    (let loop ([slides talk-slide-list][n 1][last-title #f])
+		      (cond
+		       [(null? slides) null]
+		       [(and last-title
+			     (equal? last-title (or (sliderec-title (car slides))
+						    "(untitled)")))
+			(loop (cdr slides) (+ n 1) last-title)]
+		       [else
+			(let ([title (or (sliderec-title (car slides))
+					 "(untitled)")])
+			  (cons (cons
+				 n
+				 (format "~a. ~a" 
+					 (slide-page-string (car slides))
+					 title))
+				(loop (cdr slides) (add1 n) title)))]))]
+		   [long-slide-list (let loop ([slides talk-slide-list][n 1])
+				      (if (null? slides)
+					  null
+					  (cons (cons
+						 n
+						 (format "~a. ~a" 
+							 (slide-page-string (car slides))
+							 (or (sliderec-title (car slides))
+							     "(untitled)")))
+						(loop (cdr slides) (add1 n)))))]
+		   [slide-list short-slide-list]
+		   [l (make-object list-box% #f (map cdr slide-list)
+				   d (lambda (l e)
+				       (when (eq? (send e get-event-type) 'list-box-dclick)
+					 (ok-action))))]
+		   [p (make-object horizontal-pane% d)]
+		   [ok-action (lambda ()
+				(send d show #f)
+				(let ([i (send l get-selection)])
+				  (when i
+				    (set! current-page (sub1 (car (list-ref slide-list i))))
+				    (refresh-page))))])
 	    (send d center)
 	    (send p stretchable-height #f)
-	    (make-object check-box% "All Pages" p
+	    (make-object check-box% "&All Pages" p
 			 (lambda (c e)
 			   (set! slide-list (if (send c get-value)
 						long-slide-list
@@ -898,14 +906,7 @@
 			   (send l set (map cdr slide-list))))
 	    (make-object pane% p)
 	    (make-object button% "Cancel" p (lambda (b e) (send d show #f)))
-	    (make-object button% "Ok" p 
-			 (lambda (b e)
-			   (send d show #f)
-			   (let ([i (send l get-selection)])
-			     (when i
-			       (set! current-page (sub1 (car (list-ref slide-list i))))
-			       (refresh-page))))
-			 '(border))
+	    (make-object button% "Ok" p (lambda (b e) (ok-action)) '(border))
 	    (send l focus)
 	    (send d reflow-container)
 	    (let ([now (let loop ([l slide-list][n 0])
