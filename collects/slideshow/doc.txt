@@ -598,17 +598,23 @@ in a `slide' sequence).
     `id', #f otherwise
 >   (vonly id) - returns the identity function during the evaluation of
     `expr' for `id', `ghost' otherwise
+>   (only id proc ...) - returns the composition of the `proc's for
+    `id', the identity function otherwise
 >   (before? id) - return #t before ... for `id'
 >   (vbefore id) - returns the identify function ... `ghost' otherwise
+>   (before id proc ...) - returns the composition ... identity otherwise
 >   (after? id) - return #t during and after ... for `id'
 >   (vafter id) - ...
+>   (after id proc ...) - ...
 >   (between? a-id b-id) - returns #t during and after ... for `a-id',
                            but #f after evaluation for `b-id'
 >   (vbetween a-id b-id) - ...
+>   (between a-id b-id proc ...) - ...
 >   (between-excl? a-id b-id) - returns #t during and after ... for
                                 `a-id', but #f during and after evaluation
                                 for `b-id'
 >   (vbetween-excl a-id b-id) - ...
+>   (between-excl a-id b-id proc ...) - ...
 
 > (with-steps~ (id ...) expr) - like `with-steps', but when
   `condense?' from "slideshow.ss" is true, then `expr' is evaluated
