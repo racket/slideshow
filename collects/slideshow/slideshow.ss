@@ -208,7 +208,7 @@
 	 (send pss set-scaling ps-pre-scale ps-pre-scale)
 	 (send pss set-orientation 'landscape)
 	 (parameterize ([current-ps-setup pss])
-	   (let ([p (make-object post-script-dc% #t #f #t)])
+	   (let ([p (make-object post-script-dc% #t #f #t #f)])
 	     (unless (send p ok?) (exit))
 	     (send p start-doc "Slides")
 	     (send p start-page)
