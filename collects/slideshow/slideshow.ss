@@ -782,6 +782,14 @@
 
   (define-struct click-region (left top right bottom thunk show-click?))
 
+  (define (shift-click-region cr dx dy)
+    (make-click-region (+ dx (click-region-left cr))
+		       (+ dy (click-region-top cr))
+		       (+ dx (click-region-right cr))
+		       (+ dy (click-region-bottom cr))
+		       (click-region-thunk cr)
+		       (click-region-show-click? cr)))
+
   (define click-regions null)
 
   (define clickback
@@ -1055,10 +1063,11 @@
       (define talk-frame%
         (class frame% 
           (init-field closeable?)
+          (init-field close-bg?)
           (define/override can-close? (lambda () closeable?))
           (define/override on-superwindow-show (lambda (on?)
                                                  (unless on?
-                                                   (when background-f
+                                                   (when (and close-bg? background-f)
                                                      (send background-f show #f)))))
 
           (define/override on-subwindow-char
@@ -1184,6 +1193,7 @@
 
       (define f (new talk-frame%
                      [closeable? keep-titlebar?]
+		     [close-bg? #t]
                      [label (if content
                                 (format "~a: slideshow" (file-name-from-path content))
                                 "Slideshow")]
@@ -1196,6 +1206,7 @@
       
       (define f-both (new talk-frame%
 			  [closeable? #t]
+			  [close-bg? #f]
 			  [label "Slideshow Preview"]
 			  [x (- screen-left-inset)] [y (- screen-top-inset)]
 			  [width (inexact->exact (floor actual-screen-w))]
@@ -1209,14 +1220,21 @@
 		     (= (sinset-r current-sinset) (sinset-r sinset))
 		     (= (sinset-b current-sinset) (sinset-b sinset)))
 	  (send f resize 
-		(max 1 (- (inexact->exact (floor actual-screen-w)) (sinset-l sinset) (sinset-r sinset)))
-		(max 1 (- (inexact->exact (floor actual-screen-h)) (sinset-t sinset) (sinset-b sinset))))
-	  (send f move (sinset-l sinset) (sinset-t sinset))
+		(max 1 (- (inexact->exact (floor actual-screen-w)) 
+			  (floor (* (+ (sinset-l sinset) (sinset-r sinset))
+				    (/ actual-screen-w screen-w)))))
+		(max 1 (- (inexact->exact (floor actual-screen-h)) 
+			  (floor (* (+ (sinset-t sinset) (sinset-b sinset))
+				    (/ actual-screen-h screen-h))))))
+	  (send f move 
+		(floor (* (sinset-l sinset) (/ actual-screen-w screen-w)))
+		(floor (* (sinset-t sinset) (/ actual-screen-h screen-h))))
 	  (set! current-sinset sinset)))
 		
 
       (define c-frame (new talk-frame%
                            [closeable? #t]
+			   [close-bg? #f]
                            [label "Commentary"]
                            [width 400]
                            [height 100]))
@@ -1326,6 +1344,7 @@
                (when (and clicking clicking-hit?)
                  (invert-clicking!))
                (set! clicking #f)]))
+
           
           (define/private (click-hits? e c)
             (let ([x (send e get-x)]
@@ -1349,6 +1368,19 @@
           (define offscreen #f)
           (define/public get-offscreen (lambda () offscreen))
           
+	  (define/private (paint-prefetch dc)
+	    (let-values ([(cw ch) (get-client-size)])
+	      (paint-letterbox dc cw ch use-screen-w use-screen-h)
+	      (let ([dx (floor (/ (- cw use-screen-w) 2))]
+		    [dy (floor (/ (- ch use-screen-h) 2))])
+		(send dc draw-bitmap prefetch-bitmap dx dy)
+		(set! click-regions (map (lambda (cr)
+					   (shift-click-region cr dx dy))
+					 prefetched-click-regions)))))
+
+	  (define/override (on-size w h)
+	    (redraw))
+
           (define/public (redraw)
             (reset-display-inset! (slide-inset (list-ref talk-slide-list current-page)))
             (send commentary lock #f)
@@ -1374,15 +1406,13 @@
                (send offscreen clear)
 	       (cond
 		[(equal? prefetched-page current-page)
-		 (set! click-regions prefetched-click-regions)
-		 (send offscreen draw-bitmap prefetch-bitmap 0 0)]
+		 (paint-prefetch offscreen)]
 		[else
 		 (paint-slide offscreen)])
                (let ([bm (send offscreen get-bitmap)])
                  (send (get-dc) draw-bitmap bm 0 0))]
 	      [(equal? prefetched-page current-page)
-	       (set! click-regions prefetched-click-regions)
-	       (send (get-dc) draw-bitmap prefetch-bitmap 0 0)]
+	       (paint-prefetch (get-dc))]
               [else
                (let ([dc (get-dc)])
 		 (send dc clear)
@@ -1448,6 +1478,24 @@
           (define/public (redraw) (on-paint))
           (super-new)))
 
+      (define (paint-letterbox dc cw ch usw ush)
+	(when (or (< usw cw)
+		  (< ush ch))
+	  (let ([b (send dc get-brush)]
+		[p (send dc get-pen)])
+	    (send dc set-brush black-brush)
+	    (send dc set-pen clear-pen)
+	    (when (< usw cw)
+	      (let ([half (/ (- cw usw) 2)])
+		(send dc draw-rectangle 0 0 half ch)
+		(send dc draw-rectangle (- cw half) 0 half ch)))
+	    (when (< ush ch)
+	      (let ([half (/ (- ch ush) 2)])
+		(send dc draw-rectangle 0 0 cw half)
+		(send dc draw-rectangle 0 (- ch half) cw half)))
+	    (send dc set-brush b)
+	    (send dc set-pen p))))
+
       (define paint-slide
         (case-lambda
           [(dc) (paint-slide dc current-page)]
@@ -1456,32 +1504,32 @@
 	     (paint-slide dc page 1 1 cw ch use-screen-w use-screen-h #t))]
           [(dc page extra-scale-x extra-scale-y cw ch usw ush to-main?)
            (let* ([slide (list-ref talk-slide-list page)]
+		  [ins (slide-inset slide)]
+		  [cw (if to-main?
+			  (+ cw (sinset-l ins) (sinset-r ins))
+			  cw)]
+		  [ch (if to-main?
+			  (+ ch (sinset-t ins) (sinset-b ins))
+			  ch)]
 		  [sx (/ usw screen-w)]
 		  [sy (/ ush screen-h)]
-                  [mx (- margin (/ (- usw cw) 2 sx))]
-		  [my (- margin (/ (- ush ch) 2 sy))])
-
-	     (when (or (< usw cw)
-		       (< ush ch))
-	       (let ([b (send dc get-brush)]
-		     [p (send dc get-pen)])
-		 (send dc set-brush black-brush)
-		 (send dc set-pen clear-pen)
-		 (when (< usw cw)
-		   (let ([half (/ (- cw usw) 2)])
-		     (send dc draw-rectangle 0 0 half ch)
-		     (send dc draw-rectangle (- cw half) 0 half ch)))
-		 (when (< ush ch)
-		   (let ([half (/ (- ch ush) 2)])
-		     (send dc draw-rectangle 0 0 cw half)
-		     (send dc draw-rectangle 0 (- ch half) cw half)))
-		 (send dc set-brush b)
-		 (send dc set-pen p)))
+                  [mx (/ (- cw usw) 2)]
+		  [my (/ (- ch ush) 2)])
+	     (paint-letterbox dc cw ch usw ush)
 	     
              (send dc set-scale (* extra-scale-x sx) (* extra-scale-y sy))
 
 	     ;; Draw the slide
-             ((slide-drawer slide) dc mx my)
+	     ;;  It's important to set the origin based on
+	     ;;  the floor of my and mx. That way, when we pre-fetch
+	     ;;  into a bitmap, we don't change roundoff in
+	     ;;  the drawing
+	     (let-values ([(ox oy) (send dc get-origin)])
+	       (send dc set-origin 
+		     (+ ox (* extra-scale-x (floor mx))) 
+		     (+ oy (* extra-scale-y (floor my))))
+	       ((slide-drawer slide) dc margin margin)
+	       (send dc set-origin ox oy))
 	     
              ;; reset the scale
              (send dc set-scale 1 1)
@@ -1495,8 +1543,8 @@
 		 (send dc set-text-foreground (current-page-number-color))
 		 (let-values ([(w h d a) (send dc get-text-extent s)])
 		   (send dc draw-text s 
-			 (- cw w 5 (/ (- cw usw) 2))
-			 (- ch h 5 (/ (- ch ush) 2))))
+			 (- cw w 5 (* sx (sinset-r ins)) (/ (- cw usw) 2))
+			 (- ch h 5 (* sy (sinset-b ins)) (/ (- ch ush) 2))))
 		 (send dc set-text-foreground c)
 		 (send dc set-font f))))]))
 
@@ -1519,9 +1567,9 @@
 
         ;; try to re-use existing bitmap
         (unless (and (is-a? prefetch-bitmap bitmap%)
-                     (= actual-screen-w (send prefetch-bitmap get-width))
-                     (= actual-screen-h (send prefetch-bitmap get-height)))
-          (set! prefetch-bitmap (make-object bitmap% actual-screen-w actual-screen-h))
+                     (= use-screen-w (send prefetch-bitmap get-width))
+                     (= use-screen-h (send prefetch-bitmap get-height)))
+          (set! prefetch-bitmap (make-object bitmap% use-screen-w use-screen-h))
 	  (send prefetch-dc set-bitmap prefetch-bitmap))
 
 	(when (send prefetch-dc ok?)
