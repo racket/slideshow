@@ -191,7 +191,7 @@
               (text "size" main-font 24) ", and even"
               (text "angle" main-font font-size (/ 3.14159 4))))
   
-  (require (lib "slide-code.ss" "texpict"))
+  (require (lib "code.ss" "slideshow"))
   (slide/title/center
    "Scheme Code"
    (page-para "For Scheme code, the" (code (lib "slide-code.ss" "texpict"))
@@ -217,8 +217,23 @@
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Part II starts here
   
-  (slide/center
-   (titlet "Part II: Practical Slides"))
+  (define outline 
+    (make-outline
+     'one "Part I: Basic Concepts" 
+     #f
+     
+     'two "Part II: Practical Slides" 
+     (lambda (tag)
+       (para (* 3/4 client-w) "Using" (code make-outline) "and more..."))
+
+     'three "Part III: Advanced Slides" 
+     (lambda (tag)
+       (para (* 3/4 client-w) "How to make fancy picts"))
+     
+     'end "Conclusion" 
+     (lambda (tag)
+       (para (* 3/4 client-w) "This is the end"))))
+  (outline 'two)
   
   (slide/title/center
    "Itemize"
@@ -249,19 +264,19 @@
    (page-item "A bullet goes with a statement")
    (page-item "And another does, too")
    (blank)
-   (page-para "Creating a zero-sized empty pict with" (code (blank))
-              "efectively doubles the gap, making a space that"
+   (page-para "Creating a zero-sized pict with" (code (blank))
+              "effectively doubles the gap, making a space that"
 	      "often looks right"))
   
   (slide/title/center
    "Steps"
    (page-item "Suppose you want to show only one item at a time")
    'next
-   (page-item "The" (code slide) "functions actually accept more"
-              "than just picts for the body")
-   (page-item "Use" (code 'next) "in the argument sequence"
-              "to create multiple slides, one"
-              "containing only the preceding picts, and another"
+   (page-item "In addition to body picts, the" (code slide) 
+	      "functions recognize certain staging symbols")
+   (page-item "Use" (code 'next) "in a sequence of" (code slide)
+              "arguments to create multiple slides, one"
+              "containing only the preceding content, and another"
               "with the remainder")
    'next
    (blank)
@@ -272,15 +287,14 @@
     
   
   (slide/title/center
-   "Steps and Printing"
+   "Steps and Condensing"
+   (page-item "Condensing is often useful when printing slides:")
+   (tt "slideshow --print --condense ...")
+   'next!
    (page-item "If you" (bit "condense") "these slides,"
               "the previous slide's steps will be skipped")
    'next!
-   (page-item "Not this slide's steps, because it uses" (code 'next!))
-   'next!
-   (page-item "Condensing is often useful when printing slides:")
-   (tt "slideshow --print --condense ..."))
-
+   (page-item "Not this slide's steps, because it uses" (code 'next!)))
   
   (slide/title/center
    "Alternatives"
@@ -295,7 +309,7 @@
           (blank)
           (page-item "An" (code 'alts) "in a sequence"
                      "must be followed by a list of lists")
-          (page-item "Each list is a different conclusion for the slide's sequence")))
+          (page-item "Each list is a sequence, a different conclusion for the slide's sequence")))
    (page-item "Anything after the list of lists is folded into the last alternative")
    'next
    (blank)
@@ -304,7 +318,7 @@
   
   (slide/title/center
    "Condensing Alternative"
-   (page-para "Condensing" (it "does not") "merge" (code 'alts) "in any way")
+   (page-para "Condensing" (it "does not") "merge" (code 'alts) "alternatives")
    (page-para "But sometimes you want condensing to just use the last alternative")
    'alts~
    (list (list (t "um..."))
@@ -312,14 +326,123 @@
                 (code 'alts~) "creates alternatives where only the last one"
                 "is used when condensing"))))
   
-  (define outline 
-    (make-outline
-     'one "Part I" #f
-     'two "Part II" (lambda (tag)
-                      (page-subitem "Oops, we did that already"))
-     'end "Conclusion" (lambda (tag)
-                         (page-subitem "This is the end"))))
-  (outline 'two)
+  ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Part III starts here
+  (outline 'three)
+
+  (slide/title
+   "Fancy Picts"
+   (page-para "In part I, we saw some basic pict constructors:" 
+	      (code t) "," (code vl-append) ", etc.")
+   (blank)
+   (page-para "The libraries")
+   (vr-append
+    line-sep
+    (code (lib "mrpict.ss" "texpict"))
+    (page-para* "and" (code (lib "utils.ss" "texpict"))))
+   (page-para "provide many more functions for creating picts")
+   (blank)
+   (colorize
+    (page-para/c "Slideshow re-exports all of those functions, and"
+		 "we'll look at some of the most useful ones in this part")
+    "blue"))
+
+  (slide/title
+   "Bitmaps"
+   (page-para "The" (code bitmap) "function loads a bitmap to display:")
+   (blank)
+   (bitmap (build-path (collection-path "icons") "plt.gif")))
+
+  (define (note . l)
+    (colorize (apply page-para/r l) "blue"))
+
+  (require (lib "math.ss")) ; to get pi
+  (define orientations 
+    (map (lambda (x) (* pi x)) '(0 1/4 1/2 3/4 1 5/4 6/4 7/4)))
+  (define (show-arrows code-arrow t-arrow arrow)
+    (slide/title
+     "Arrows"
+     (page-para "The" code-arrow "function creates an"
+		t-arrow "of a given size and orientation")
+     (blank)
+     (page-para "Simple: " (arrow gap-size pi))
+     (blank)
+     (page-para "Fun:")
+     (apply
+      vc-append
+      line-sep
+      (map (lambda (shift)
+	     (colorize
+	      (apply hc-append gap-size (map (lambda (o) 
+					       ;; Here's the other use of arrow
+					       (arrow gap-size (+ o (* shift pi 1/32))))
+					     orientations))
+	      (scale-color (add1 shift) "green")))
+	   '(0 1 2 3 4 5 6 7)))
+     (blank)
+     (note "(That's 64 uses of " code-arrow ")")))
+  (show-arrows (code arrow) (t "arrow") arrow)
+  (show-arrows (code arrowhead) (t "arrowhead") arrowhead)
+
+  (slide/title
+   "Frames"
+   (page-item "As we've already seen, the" (code frame)
+	      "function wraps a" (frame (t "frame"))
+	      "around a pict")
+   (page-item "The" (code color-frame)
+	      "function wraps a" (color-frame (t "colored frame") "red")
+	      "; compare to" (code frame) "followed by" (code colorize)
+	      "," (colorize (frame (t "like this")) "red"))
+   (page-item "One way to increase the" (linewidth 3 (frame (t "line thickness")))
+	      "is to use" (code linewidth))
+   (page-item "It's often useful to" (frame (inset (t "add space") 3))
+	      "around a pict with" (code inset) "before framing it"))
+
+  (slide/title
+   "Lines and Pict Dimensions"
+   (page-item "The" (code hline) "function creates a horizontal line, given a bounding width and height:")
+   (color-frame (hline (* 2 gap-size) gap-size) "green")
+   (note "(The" (code hline) "result is framed in green above)")
+   (page-item "Naturally, there's also" (code vline) ":")
+   (color-frame (vline (* 2 gap-size) gap-size) "green")
+   (blank)
+   (page-item "To" (let ([p (t "underline")])
+		     (vc-append p (hline (pict-width p) 1)))
+	      "a pict, get its width using" (code pict-width)
+	      ", then use" (code hline) "and" (code vc-append))
+   (page-item "If the pict is text, you can restore the"
+	      (let ([p (t "baseline")])
+		(lift
+		 (drop
+		  (vc-append p (hline (pict-width p) 1))
+		  (- (pict-ascent p)))
+		 (- 0 (pict-descent p) 1)))
+	      "using" (code pict-ascent) "," (code pict-ascent) ","
+	      (code drop) ", and" (code lift))
+   (note "(Granted, that's a little tricky)"))
+
+  (slide/title
+   "Tables"
+   (page-para "The" (code table) "function makes rows and columns")
+   (frame
+    (inset
+     (table 3 ; three columns
+	    (list (t "First") (standard-fish (* 2 gap-size) gap-size) (code cons)
+		  (t "Second") (jack-o-lantern (* 4 gap-size)) (code car)
+		  (t "Third") (cloud (* 3 gap-size) gap-size) (code cdr)
+		  (t "Fourth") (file-icon (* 2 gap-size) (* 3 gap-size) #t) (code null?))
+	    (list* lc-superimpose  ; left-align first column
+		   cc-superimpose) ; h-center the rest
+	    cc-superimpose ; v-center all rows
+	    gap-size  ; separate all columns by gap-size
+	    gap-size) ; separate all rows by gap-size
+     gap-size))
+   (note "The above also uses" (code standard-fish) ","
+	 (code jack-o-lantern) "," (code cloud) ", and"
+	 (code file-icon)))
+   
+  ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Conclusion starts here
   (outline 'end)
 
   (slide/title/center
@@ -330,18 +453,7 @@
    (page-item "Select the" (bt "(module ...)") "language from DrScheme's"
               (bt "Choose Language") "dialog")
    (page-item "Write your code:")
-   (scale/improve-new-text
-    (code (module _my-show (lib "slideshow-run.ss" "texpict")
-            ... #,(it "your code here") ...))
-    0.75))
-
-  (slide/title/center
-   "Where to Go From Here"
-   (page-para "Now you've seen the basics")
-   (page-item "There are" (it "many") "other functions for creating picts")
-   (page-subitem "See the docs")
-   (page-item "There are a few other slide features, such as comments and transitions")
-   (page-subitem "Again, see the docs"))
-  
+   (code (module _my-show (lib "run.ss" "slideshow")
+	   ... #,(it "your code here") ...)))  
   
   )

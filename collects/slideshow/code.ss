@@ -8,6 +8,8 @@
     #f
     code-params^)
 
+  (define-code code typeset-code)
+
   (provide code)
   (provide-signature-elements code^))
 

@@ -485,7 +485,7 @@
 	    (loop pre (car rest) (cdr rest)))]
        [(list? s) (loop pre (car s) (append (cdr s) rest))]
        [else
-	(let* ([sep? (and (string? s) (regexp-match "^[',. :;-?!]" s))]
+	(let* ([sep? (and (string? s) (regexp-match "^[',. :;-?!)]" s))]
 	       [p (if (string? s) (t s) s)])
 	  (cond
 	   [(< (+ (if pre (pict-width pre) 0)
@@ -1270,7 +1270,8 @@
                   (cond
                     [(null? slides) null]
                     [(and last-title
-                          (equal? last-title (slide-title (car slides))))
+                          (equal? last-title (or (slide-title (car slides))
+						 "(untitled)")))
                      (loop (cdr slides) (+ n (slide-page-count (car slides))) last-title)]
                     [else
                      (let ([title (or (slide-title (car slides))
