@@ -425,10 +425,14 @@ Procedure Reference
 > line-sep - Amount of seperating between paragraph lines.
 > title-size - Font size used for slide titles, derived from `font-size'.
 > main-font - Font specification used for `t' by default
-> current-main-font - Parameter for the font specification used for `t'
+> current-main-font - Parameter for the font specification
+  used for `t'. Its argument must be a text-style (see
+  texpict for details).
 > current-title-color - Parameter for the color used by titles/`titlet'
 
-> (with-font f thunk) - Calls `thunk' with `current-main-font' set to `f'.
+> (with-font f thunk) - Calls `thunk' with
+  `current-main-font' set to `f', which must be a
+  text-style (see texpict for details)
 
 > red - a color name like "red", possibiliy selected by the user.
 > green - a color name like "green"
