@@ -6,9 +6,6 @@
 
 (module example-show (lib "slideshow-run.ss" "texpict")
 
-  ;; Because we want to typeset Scheme code:
-  (require (lib "slide-code.ss" "texpict"))
-  
   ;; The first slide
   (slide
    (t "Part I: Basic Concepts"))
@@ -196,7 +193,8 @@
               (text "font" '(italic . modern) font-size) ","
               (text "size" main-font 24) ", and even"
               (text "angle" main-font font-size (/ 3.14159 4))))
-
+  
+  (require (lib "slide-code.ss" "texpict"))
   (slide/title/center
    "Scheme Code"
    (page-para "For Scheme code, the" (code (lib "slide-code.ss" "texpict"))
