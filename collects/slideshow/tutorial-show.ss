@@ -45,7 +45,7 @@
               "makes a slide-width picture with left-aligned text")
    (frame (page-para "The" (tt "frame") "function wraps a frame"
                      "around a pict to create a new pict,"
-                     "so you can easily this this individual pict")))
+                     "so you can easily see this individual pict")))
   
   (slide/title
    "Titles"
@@ -168,7 +168,7 @@
      (frame titleless-page)
      (page-para* "If you use a title, then" (tt "titleless-page")
                  "is the same size as the area left for the body"))
-    (t "Yes, it's useful")))
+    (t "It's useful")))
    
   (slide/title
    "More on Paragraphs"
@@ -186,7 +186,7 @@
    "Text and Styles"
    (page-para "Functions exist for" (bt "bold") ","
               (it "italic") ", and even" (bit "bold-italic") "text")
-   (page-para "The" (tt "text") "function lets you change the"
+   (page-para "The" (tt "text") "function give you more direct control over the"
               (text "font" '(italic . modern) font-size) ","
               (text "size" main-font 24) ", and even"
               (text "angle" main-font font-size (/ 3.14159 4))))
@@ -247,7 +247,7 @@
   
   (slide/title/center
    "Itemize"
-   (page-para "You could write" (code page-item) "yourself, of course:")
+   (page-para "You could write" (code page-item) "yourself:")
    (code (define (page-item . l)
            (htl-append
             (/ gap-size 2)
@@ -288,10 +288,10 @@
   
   (slide/title/center
    "Steps and Condensing"
-   (page-item "Condensing is often useful when printing slides:")
+   (page-item "When printing slides, somtimes you want to" (bit "condense") "them:")
    (tt "slideshow --print --condense ...")
    'next!
-   (page-item "If you" (bit "condense") "these slides,"
+   (page-item "If you condense these slides,"
               "the previous slide's steps will be skipped")
    'next!
    (page-item "Not this slide's steps, because it uses" (code 'next!)))
