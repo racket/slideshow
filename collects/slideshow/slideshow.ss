@@ -1473,18 +1473,18 @@
 	    (set! click-regions old-click-regions))
 	  (set! prefetched-page n)))
 
-      (define (schedule-slide-prefetch n)
+      (define (schedule-slide-prefetch n delay-msec)
 	(cancel-prefetch)
 	(when (and use-prefetch?
 		   (not (equal? n prefetched-page)))
 	  (let ([b (box #t)])
 	    (set! prefetch-schedule-cancel-box b)
-	    (new timer% [interval 500] [just-once? #t]
+	    (new timer% [interval delay-msec] [just-once? #t]
 		 [notify-callback (lambda ()
 				    (when (unbox b)
 				      (if (pair? current-transitions)
 					  ;; try again to wait for transition to end
-					  (schedule-slide-prefetch n)
+					  (schedule-slide-prefetch n delay-msec)
 					  ;; Build next slide...
 					  (prefetch-slide n))))]))))
 
@@ -1495,16 +1495,20 @@
       (define c (make-object c% f))
       (define c-both (make-object two-c% f-both))
       
-      (define (refresh-page)
-        (when (= current-page 0)
-          (set! start-time #f)
-          (unless start-time
-            (set! start-time (current-seconds))))
-        (send c redraw)
-        (when (and c-both (send f-both is-shown?))
-          (send c-both redraw))
-	(when (< current-page (- (length talk-slide-list) 1))
-	  (schedule-slide-prefetch (+ current-page 1))))
+      (define refresh-page
+	(opt-lambda ([immediate-prefetch? #f])
+	  (when (= current-page 0)
+	    (set! start-time #f)
+	    (unless start-time
+	      (set! start-time (current-seconds))))
+	  (send c redraw)
+	  (when (and c-both (send f-both is-shown?))
+	    (send c-both redraw))
+	  (when (< current-page (- (length talk-slide-list) 1))
+	    (schedule-slide-prefetch (+ current-page 1)
+				     (if immediate-prefetch?
+					 50
+					 500)))))
 
       (define current-transitions null)
       (define current-transitions-key #f)
@@ -1514,7 +1518,7 @@
 	  (set! current-transitions (map (lambda (mk) (mk offscreen)) transes))
 	  (set! current-transitions-key key)
 	  (if (null? transes)
-	      (refresh-page)
+	      (refresh-page #t)
 	      (let do-trans ()
 		(when (and (eq? current-transitions-key key)
 			   (pair? current-transitions))
@@ -1523,7 +1527,7 @@
 			(begin
 			  (set! current-transitions (cdr current-transitions))
 			  (if (null? current-transitions)
-			      (refresh-page)
+			      (refresh-page #t)
 			      (do-trans)))
 			(new timer% 
 			     [just-once? #t]
