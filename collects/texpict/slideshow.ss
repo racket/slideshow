@@ -29,7 +29,7 @@
   (define content
     (command-line
      "slideshow"
-     (namespace-variable-binding 'argv)
+     (current-command-line-arguments)
      [once-each
       (("--print") "print"
 		   (set! printing? #t))
