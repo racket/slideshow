@@ -21,6 +21,7 @@
   (define quad-view? #f)
   (define print-slide-seconds? #f)
   (define offscreen-transitions? #f)
+  (define talk-duration-minutes 25)
 
   (define base-font-size (get-preference 'slideshow:base-font-size (lambda () 32)))
   
@@ -55,6 +56,14 @@
 				      (positive? n))
 			   (error 'talk "argument to -f is not a positive exact integer: ~a" fs))
 			 (set! base-font-size n)))
+      (("-m" "--minutes") min "set talk duration in minutes"
+		       (let ([n (string->number min)])
+			 (unless (and n 
+				      (integer? n)
+				      (exact? n)
+				      (positive? n))
+			   (error 'talk "argument to -m is not a positive exact integer: ~a" min))
+			 (set! talk-duration-minutes n)))
       (("-s" "--smooth") "use an offscreen bitmap for slide transitions"
        (set! offscreen-transitions? #t))
       (("--comment") "display commentary"
@@ -583,7 +592,6 @@
                                  (- (+ (slide-page d) (slide-page-count d)) (slide-page a)))
                                 (loop (cddddr l))))]))))
       
-      (define TALK-MINUTES 60)
       (define GAUGE-WIDTH 100)
       (define GAUGE-HEIGHT 4)
 
@@ -674,7 +682,7 @@
       
       (define (calc-progress)
         (if start-time
-            (values (min 1 (/ (- (current-seconds) start-time) (* 60 TALK-MINUTES)))
+            (values (min 1 (/ (- (current-seconds) start-time) (* 60 talk-duration-minutes)))
                     (/ current-page (max 1 (sub1 (length talk-slide-list)))))
             (values 0 0)))
       
