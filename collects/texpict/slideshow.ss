@@ -516,7 +516,7 @@
 
   ;----------------------------------------
 
-  (define (item* w . s)
+  (define (item*/bullet bullet w . s)
     (htl-append (/ gap-size 2)
 		bullet 
 		(para* (- w
@@ -524,8 +524,15 @@
 			  (/ gap-size 2)) 
 		       s)))
 
+  (define (item* w . s)
+    (apply item*/bullet bullet w s))
+
   (define (item w . s)
     (lbl-superimpose (item* w s)
+		     (blank w 0)))
+
+  (define (item/bullet b w . s)
+    (lbl-superimpose (item*/bullet b w s)
 		     (blank w 0)))
 
   (define (page-item* . s)
@@ -533,6 +540,12 @@
 
   (define (page-item . s)
     (item client-w s))
+
+  (define (page-item*/bullet b . s)
+    (item*/bullet b client-w s))
+
+  (define (page-item/bullet b . s)
+    (item/bullet b client-w s))
 
   ;----------------------------------------
 
@@ -636,6 +649,7 @@
 	   most-recent-slide retract-most-recent-slide re-slide 
 	   comment make-outline
 	   item item* page-item page-item*
+	   item/bullet item*/bullet page-item/bullet page-item*/bullet
 	   subitem subitem* page-subitem page-subitem*
 	   itemize itemize* page-itemize page-itemize*
 	   para para* page-para page-para*
