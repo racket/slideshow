@@ -697,8 +697,6 @@
 		(unless offscreen
 		  (set! offscreen (make-object bitmap-dc% 
 					       (make-bitmap cw ch)))))
-	      #;
-	      (send offscreen set-smoothing 'smoothed)
 	      (send offscreen clear)
 	      (cond
 	       [(equal? prefetched-page current-page)
@@ -814,7 +812,7 @@
 	    (paint-letterbox dc cw ch usw ush)
 	    
             (when config:smoothing?
-              (send dc set-smoothing 'smoothed))
+              (send dc set-smoothing 'aligned))
             (send dc set-scale (* extra-scale-x sx) (* extra-scale-y sy))
 
 	    ;; Draw the slide
@@ -861,9 +859,7 @@
 	(set! prefetched-page #f)
 	
 	(unless prefetch-dc
-	  (set! prefetch-dc (new bitmap-dc%))
-	  #;
-	  (send prefetch-dc set-smoothing 'smoothed))
+	  (set! prefetch-dc (new bitmap-dc%)))
 
 	;; try to re-use existing bitmap
 	(unless (and (is-a? prefetch-bitmap bitmap%)
