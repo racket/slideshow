@@ -1098,7 +1098,7 @@
                                     0))
             (refresh-page))
           
-          (define/private (next)
+          (define/public (next)
             (if (pair? current-transitions)
                 (stop-transition)
                 (let ([old (list-ref talk-slide-list current-page)])
@@ -1245,6 +1245,7 @@
                  (send dc clear)
                  (paint-slide dc)])))
           
+          (inherit get-top-level-window)
           (define/override (on-event e)
             (cond
               [(send e button-down?)
@@ -1274,6 +1275,8 @@
                  (set! clicking #f)
                  (when hit?
                    ((click-region-thunk c))))]
+              [(send e button-up?)
+               (send (get-top-level-window) next)]
               [else 
                (when (and clicking clicking-hit?)
                  (invert-clicking!))
