@@ -331,7 +331,9 @@
   (define (slide/title s . x)
     (unless (or (string? s) (not s))
       (raise-type-error 'slide/title "string" s))
-    (apply slide/title/tall s (blank) x))
+    (if s
+	(apply slide/title/tall s (blank) x)
+	(apply slide/title/tall s x)))
 
   (define (slide/title/inset s inset . x)
     (unless (or (string? s) (not s))
