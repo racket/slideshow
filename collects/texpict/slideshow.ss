@@ -86,9 +86,12 @@
   (define ps-pre-scale 0.8)
 
   (define font-size base-font-size)
+  (define char-size 24)
   (define line-sep 2)
   (define title-size (+ font-size 4))
-  (define main-font 'swiss)
+  (define main-font (if (string=? (get-family-builtin-face 'default) " Sans")
+			'default
+			'swiss))
 
   (define red "red")
   (define green "forest green")
@@ -122,10 +125,10 @@
 
   (define (tt* . l) (apply vl-append line-sep (map tt l)))
 
-  (define bullet (cc-superimpose (disk (/ font-size 2)) 
-				 (blank 0 font-size)))
-  (define o-bullet (cc-superimpose (circle (/ font-size 2)) 
-				   (blank 0 font-size)))
+  (define bullet (cc-superimpose (disk (/ char-size 2)) 
+				 (blank 0 char-size)))
+  (define o-bullet (cc-superimpose (circle (/ char-size 2)) 
+				   (blank 0 char-size)))
 
   (dc-for-text-size
    (if printing?
@@ -154,7 +157,7 @@
 					     (- screen-h (* margin 2))))
   (define full-page (blank client-w client-h))
   (define (mk-titleless-page)
-    (inset full-page 0 (- 0 (pict-height (titlet "Hi")) (* 2 font-size)) 0 0))
+    (inset full-page 0 (- 0 (pict-height (titlet "Hi")) (* 2 char-size)) 0 0))
   (define titleless-page (mk-titleless-page))
 
   (define use-background-frame? #f)
@@ -262,12 +265,12 @@
       (raise-type-error 'slide/title/tall/inset "string" s))
     (unless (sinset? inset)
       (raise-type-error 'slide/title/tall/inset "slide-inset" inset))
-    (apply do-slide/title/tall/inset values font-size s inset x))
+    (apply do-slide/title/tall/inset values char-size s inset x))
 
   (define (slide/title/tall s . x)
     (unless (or (string? s) (not s))
       (raise-type-error 'slide/title/tall "string" s))
-    (apply do-slide/title/tall/inset values font-size s zero-inset x))
+    (apply do-slide/title/tall/inset values char-size s zero-inset x))
 
   (define (slide/title s . x)
     (unless (or (string? s) (not s))
@@ -289,7 +292,7 @@
 	     (list
 	      (cc-superimpose
 	       (apply-slide-inset inset (if s titleless-page full-page))
-	       (apply vc-append font-size
+	       (apply vc-append char-size
 		      (map
 		       evenize-width
 		       x)))))
@@ -333,8 +336,8 @@
     (set! page-number (+ page-number 1)))
 
   (define (make-outline . l)
-    (define ah (arrowhead font-size 0))
-    (define current-item (colorize (hc-append (- (/ font-size 2)) ah ah) blue))
+    (define ah (arrowhead char-size 0))
+    (define current-item (colorize (hc-append (- (/ char-size 2)) ah ah) blue))
     (define other-item (rc-superimpose (ghost current-item) (colorize ah "light gray")))
     (lambda (which)
       (slide/title
@@ -349,10 +352,10 @@
 				(and (list? (car l))
 				     (memq which (car l))))])
 	      (vc-append
-	       font-size
+	       char-size
 	       (page-para
 		(hbl-append
-		 (quotient font-size 2)
+		 (quotient char-size 2)
 		 (if current?
 		     current-item
 		     other-item)
@@ -366,7 +369,7 @@
 			  sub-items
 			  (not (null? sub-items)))
 		     (vc-append
-		      font-size
+		      char-size
 		      (sub-items which)
 		      rest)
 		     rest))))]))))))
@@ -471,17 +474,17 @@
   (define (l-combiner para w l)
     (apply
      vl-append
-     font-size
+     char-size
      (map (lambda (x) (para w x)) l)))
 
   ;----------------------------------------
 
   (define (item* w . s)
-    (htl-append (/ font-size 2)
+    (htl-append (/ char-size 2)
 		bullet 
 		(para* (- w
 			  (pict-width bullet) 
-			  (/ font-size 2)) 
+			  (/ char-size 2)) 
 		       s)))
 
   (define (item w . s)
@@ -497,14 +500,14 @@
   ;----------------------------------------
 
   (define (subitem* w . s)
-    (inset (htl-append (/ font-size 2)
+    (inset (htl-append (/ char-size 2)
 		       o-bullet 
 		       (para* (- w
-				 (* 2 font-size)
+				 (* 2 char-size)
 				 (pict-width bullet) 
-				 (/ font-size 2)) 
+				 (/ char-size 2)) 
 			      s))
-	   (* 2 font-size) 0 0 0))
+	   (* 2 char-size) 0 0 0))
 
   (define (subitem w . s)
     (lbl-superimpose (subitem* w s)
@@ -590,7 +593,7 @@
 	   itemize itemize* page-itemize page-itemize*
 	   para para* page-para page-para*
 	   para/c para/r para*/c para*/r page-para/c page-para/r page-para*/c page-para*/r
-	   font-size current-font-size line-sep title-size main-font
+	   font-size char-size current-font-size line-sep title-size main-font
 	   red green blue purple orange
 	   t it bt bit tt titlet tt*
 	   bullet o-bullet
