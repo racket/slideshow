@@ -822,7 +822,6 @@
   (define scroll-bm #f)
   (define scroll-dc (make-object bitmap-dc%))
 
-  ;; This code currently works only with negative displacements
   (define scroll-transition
     (opt-lambda (x y w h dx dy [duration 0.20] [steps 12])
       (add-transition! 'scroll-transition
@@ -830,6 +829,10 @@
 			 (let* ([steps-done 0]
 				[xs (/ use-screen-w screen-w)]
 				[ys (/ use-screen-h screen-h)]
+				[bcw (send (send offscreen-dc get-bitmap) get-width)]
+				[bch (send (send offscreen-dc get-bitmap) get-height)]
+				[mx (- margin (/ (- use-screen-w bcw) 2 xs))]
+				[my (- margin (/ (- use-screen-h bch) 2 ys))]
 				[x-in (if (positive? dx)
 					  (ceiling (* xs (/ dx steps)))
 					  0)]
@@ -838,12 +841,12 @@
 					  0)])
 			   (unless (and scroll-bm
 					(>= (send scroll-bm get-width) 
-					    (* xs (+ w (abs dx))))
+					    (+ x-in (* xs w)))
 					(>= (send scroll-bm get-height) 
-					    (* ys (+ h (abs dy)))))
+					    (+ y-in (* ys h))))
 			     (set! scroll-bm (make-object bitmap% 
-							  (inexact->exact (ceiling (* xs (+ w (abs dx)))))
-							  (inexact->exact (ceiling (* ys (+ h (abs dy)))))))
+							  (inexact->exact (ceiling (+ x-in (* xs w))))
+							  (inexact->exact (ceiling (+ y-in (* ys h))))))
 			     (if (send scroll-bm ok?)
 				 (send scroll-dc set-bitmap scroll-bm)
 				 (set! scroll-bm #f)))
@@ -852,27 +855,27 @@
 			     (send scroll-dc clear)
 			     (send scroll-dc draw-bitmap-section (send offscreen-dc get-bitmap)
 				   x-in y-in
-				   (* (+ margin x) xs) (* (+ margin y) ys)
+				   (* (+ x mx) xs) (* (+ y my) ys)
 				   (* w xs) (* h ys)))
 			   
 			   (lambda (canvas offscreen-dc)
 			     (if (or (not scroll-bm) (= steps-done steps))
 				 'done
-				 (let*-values ([(cw ch) (send canvas get-client-size)]
-					       [(xm) (- (/ (- use-screen-w cw) 2))]
-					       [(ym) (- (/ (- use-screen-h ch) 2))])
-				   (set! steps-done (add1 steps-done))
-				   (let ([draw
-					  (lambda (dc xm ym)
-					    (send dc draw-bitmap-section
-						  scroll-bm
-						  (+ (* xs (+ x margin (* dx (/ steps-done steps)) (- x-in))) xm)
-						  (+ (* ys (+ y margin (* dy (/ steps-done steps)) (- y-in))) ym)
-						  0 0 
-						  (ceiling (* xs (+ w (/ (abs dx) steps))))
-						  (ceiling (* ys (+ h (/ (abs dy) steps))))))])
-				     (draw (send canvas get-dc) xm ym)
-				     (draw offscreen-dc 0 0))
+				 (let*-values ([(cw ch) (send canvas get-client-size)])
+				   (let ([xm (- margin (/ (- use-screen-w bcw) 2 xs))]
+					 [ym (- margin (/ (- use-screen-h bch) 2 ys))])
+				     (set! steps-done (add1 steps-done))
+				     (let ([draw
+					    (lambda (dc xm ym)
+					      (send dc draw-bitmap-section
+						    scroll-bm
+						    (- (* (+ x xm (* dx (/ steps-done steps))) xs) x-in)
+						    (- (* (+ y ym (* dy (/ steps-done steps))) ys) y-in)
+						    0 0 
+						    (ceiling (* xs (+ w (/ (abs dx) steps))))
+						    (ceiling (* ys (+ h (/ (abs dy) steps))))))])
+				       (draw (send canvas get-dc) xm ym)
+				       (draw offscreen-dc mx my)))
 				   (/ duration steps)))))))))
 
   (define pause-transition
@@ -1495,7 +1498,7 @@
         (unless (and (is-a? prefetch-bitmap bitmap%)
                      (= use-screen-w (send prefetch-bitmap get-width))
                      (= use-screen-h (send prefetch-bitmap get-height)))
-          (set! prefetch-bitmap (make-object bitmap% use-screen-w use-screen-h))
+          (set! prefetch-bitmap (make-object bitmap% actual-screen-w actual-screen-h))
 	  (send prefetch-dc set-bitmap prefetch-bitmap))
 
 	(when (send prefetch-dc ok?)
