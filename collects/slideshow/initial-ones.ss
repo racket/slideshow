@@ -4,7 +4,6 @@
 ;; Only the main module should use "run.ss"
 (module initial-ones (lib "slideshow.ss" "slideshow")
   (require (lib "code.ss" "slideshow")
-	   (lib "etc.ss")
 	   (lib "package.ss"))
 
   (provide do-initial-slides)
@@ -101,7 +100,7 @@
        (sub-para "For example,")
        (code (slide (t "Hello")))
        (sub-para "registers a slide containing only" (colorize (t "Hello") "black")))
-      
+
       (slide/title/center
        "Slides versus Picts"
        (page-para "Technically, the pict concept comes from the"
@@ -118,13 +117,11 @@
 		  "be viewed while reading the program source")
        (blank)
        (page-para "The source is")
-       (let ([s (build-path (this-expression-source-directory)
-			    "tutorial-show.ss")])
+       (let ([s (build-path (collection-path "slideshow") "tutorial-show.ss")])
 	 (scale/improve-new-text
 	  (tt s)
 	  (min 1 (/ (* 0.8 client-w ) (pict-width (tt s)))))))
-      
-      
+
       )
     (void)))
 
