@@ -539,14 +539,16 @@
 			    (caddr m)
 			    rest)))]
 	       [(not pre)
-		(v-append
-		 line-sep
-		 p
-		 (loop #f rest null))]
+		(if (null? rest)
+		    p
+		    (v-append
+		     line-sep
+		     p
+		     (loop #f rest null)))]
 	       [else
 		(v-append
 		 line-sep
-		 (or pre (blank))
+		 pre
 		 (loop p rest null))]))])))
 
       (define (para* w . s)
