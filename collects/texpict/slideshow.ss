@@ -105,7 +105,7 @@
 				     comment)
 			 talk-slide-list)))
 
-(define (slide/title s . x) 
+(define (one-slide/title s . x) 
   (let-values ([(x c)
 		(let loop ([x x][c #f][r null])
 		  (cond
@@ -129,15 +129,13 @@
      s
      comment)))
 
-(define (slide . x) (apply slide/title #f x))
-
-(define (slide/title/stages s . x)
+(define (slide/title s . x)
   (let loop ([l x][r null][comment #f])
     (cond
-     [(null? l) (apply slide/title s (reverse r))]
+     [(null? l) (apply one-slide/title s (reverse r))]
      [(memq (car l) '(NEXT NEXT!))
       (unless (and printing? (eq? (car l) 'NEXT))
-	(apply slide/title s (reverse r)))
+	(apply one-slide/title s (reverse r)))
       (loop (cdr l) r comment)]
      [(memq (car l) '(ALTS ALTS~)) 
       (let ([rest (cddr l)])
@@ -149,6 +147,8 @@
 		  (loop (car al) r comment))
 		(aloop (cdr al))))))]
      [else (loop (cdr l) (cons (car l) r) comment)])))
+
+(define (slide . x) (apply slide/title #f x))
 
 (define (make-outline . l)
   (define a (colorize (arrow font-size 0) blue))
