@@ -39,6 +39,8 @@
 ;;                   Setup                      ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define ps-pre-scale 0.8)
+
 (define font-size 28)
 (define line-sep 2)
 (define title-size (+ font-size 4))
@@ -67,17 +69,18 @@
 (define o-bullet (cc-superimpose (circle (/ font-size 2)) 
 				 (blank 0 font-size)))
 
-(dc-for-text-size 
+(dc-for-text-size
  (if printing?
-     ;; Make a dummy ps file
+     ;; Make ps-dc%:
      (let ([pss (make-object ps-setup%)])
+       (send pss set-mode 'file)
+       (send pss set-scaling ps-pre-scale ps-pre-scale)
+       (send pss set-orientation 'landscape)
        (parameterize ([current-ps-setup pss])
-	 (send pss set-mode 'file)
-	 (send pss set-file "TMP.ps")
-	 (let ([p (make-object post-script-dc% #f)])
-	   (send p start-doc "tmp")
+	 (let ([p (make-object post-script-dc% #t)])
+	   (send p start-doc "Slides")
 	   (send p start-page)
-	   (set!-values (screen-h screen-w) (send p get-size))
+	   (set!-values (screen-w screen-h) (send p get-size))
 	   p)))
 
      ;; Bitmaps give same size as the screen:
@@ -547,20 +550,14 @@
                       ~nAll bindings work in both the display and commentary windows")))
 
 (when printing?
-  (unless (directory-exists? "ps")
-    (make-directory "ps"))
-  (send (current-ps-setup) set-orientation 'landscape)
-  (send (current-ps-setup) set-scaling 0.8 0.8)
-  (send (current-ps-setup) set-mode 'file)
-  (send (current-ps-setup) set-file "talk.ps")
-  (let ([ps-dc (make-object post-script-dc%)])
-    (send ps-dc start-doc "Talk")
-    (let loop ([l (list-tail talk-slide-list current-page)][n current-page])
+  (let ([ps-dc (dc-for-text-size)])
+    (let loop ([start? #f][l (list-tail talk-slide-list current-page)][n current-page])
       (unless (null? l)
 	(set! current-page n)
 	(refresh-page)
-	(send ps-dc start-page)
-	((slide-drawer (car l)) ps-dc 0 0)
+	(when start?
+	  (send ps-dc start-page))
+	((slide-drawer (car l)) ps-dc margin margin)
 	(send ps-dc end-page)
-	(loop (cdr l) (add1 n))))
+	(loop #t (cdr l) (add1 n))))
     (send ps-dc end-doc)))
