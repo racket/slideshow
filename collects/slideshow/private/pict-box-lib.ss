@@ -43,7 +43,10 @@
          (let ([ids subpicts] ...)
            send-back
            (let ([max-h (max 0 (+ y (pict-height ids)) ...)])
-             (panorama (picture 0 0 `((place ,x ,(- max-h y) ,ids) ...)))))))))
+             (panorama (picture 0 0 `((place ,(- x (/ (pict-height ids) 2))
+                                             ,(- max-h y (/ (pict-height ids) 2))
+                                             ,ids)
+                                      ...)))))))))
   
   (define (generate-ids pre lst)
     (let loop ([i 0]
