@@ -50,9 +50,11 @@
 (define green "medium sea green")
 (define blue "blue")
 (define purple "purple")
+(define orange "orange")
 
 (require-library "mrpict.ss" "texpict")
 (require-library "utils.ss" "texpict")
+(require-library "math.ss")
 
 (define (t s) (text s main-font font-size))
 (define (it s) (text s `(italic . ,main-font) font-size))
@@ -178,7 +180,7 @@
 
 ;----------------------------------------
 
-(define (para* w . s)
+(define (para*/align v-append w . s)
   (define space (t " "))
   (let loop ([pre #f][s s][rest null])
     (cond
@@ -209,25 +211,64 @@
 		      (caddr m)
 		      rest)))]
 	 [(not pre)
-	  (vl-append
+	  (v-append
 	   line-sep
 	   p
 	   (loop #f rest null))]
 	 [else
-	  (vl-append
+	  (v-append
 	   line-sep
 	   (or pre (blank))
 	   (loop p rest null))]))])))
 
-(define (para w . s)
-  (lbl-superimpose (para* w s)
+(define (para* w . s)
+  (para*/align vl-append w s))
+
+(define (para*/r w . s)
+  (para*/align vr-append w s))
+
+(define (para*/c w . s)
+  (para*/align vc-append w s))
+
+
+(define (para/align v-append w . s)
+  (lbl-superimpose (para*/align v-append w s)
 		   (blank w 0)))
 
+(define (para w . s)
+  (para/align vl-append w s))
+
+(define (para/r w . s)
+  (para/align vr-append w s))
+
+(define (para/c w . s)
+  (para/align vc-append w s))
+
+
+(define (page-para*/align v-append . s)
+  (para*/align v-append client-w s))
+
 (define (page-para* . s)
-  (para* client-w s))
+  (page-para*/align vl-append s))
+
+(define (page-para*/r . s)
+  (page-para*/align vr-append s))
+
+(define (page-para*/c . s)
+  (page-para*/align vc-append s))
+
+
+(define (page-para/align v-append . s)
+  (para v-append client-w s))
 
 (define (page-para . s)
-  (para client-w s))
+  (page-para/align vl-append s))
+
+(define (page-para/r . s)
+  (page-para/align vr-append s))
+
+(define (page-para/c . s)
+  (page-para/align vc-append s))
 
 ;----------------------------------------
 
