@@ -275,29 +275,43 @@
     (set! page-number (+ page-number 1)))
 
   (define (make-outline . l)
-    (define a (colorize (arrowhead font-size 0) blue))
+    (define ah (arrowhead font-size 0))
+    (define current-item (colorize (hc-append (- (/ font-size 2)) ah ah) blue))
+    (define other-item (rc-superimpose (ghost current-item) (colorize ah "light gray")))
     (lambda (which)
       (slide/title
        "Outline"
-       (inset
-	(lc-superimpose
-	 (blank (pict-width full-page) 0)
-	 (let loop ([l l])
-	   (cond
-	    [(null? l) (blank)]
-	    [else
-	     (vl-append
-	      font-size
-	      (hbl-append
-	       (quotient font-size 2)
-	       ((if (eq? which (car l)) values ghost) a)
-	       bullet
-	       (let ([p (cadr l)])
-		 (if (pict? p)
-		     p
-		     (bt p))))
-	      (loop (cdddr l)))])))
-	0 font-size 0 0))))
+       (lc-superimpose
+	(blank (pict-width full-page) 0)
+	(let loop ([l l])
+	  (cond
+	   [(null? l) (blank)]
+	   [else
+	    (let ([current? (or (eq? which (car l)) 
+				(and (list? (car l))
+				     (memq which (car l))))])
+	      (vc-append
+	       font-size
+	       (page-para
+		(hbl-append
+		 (quotient font-size 2)
+		 (if current?
+		     current-item
+		     other-item)
+		 (let ([p (cadr l)])
+		   (if (pict? p)
+		       p
+		       (bt p)))))
+	       (let ([rest (loop (cdddr l))]
+		     [sub-items (caddr l)])
+		 (if (and current?
+			  sub-items
+			  (not (null? sub-items)))
+		     (vc-append
+		      font-size
+		      (sub-items which)
+		      rest)
+		     rest))))]))))))
 
   (define (comment . s) (make-just-a-comment
 			 (apply string-append s)))
