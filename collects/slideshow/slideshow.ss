@@ -33,7 +33,8 @@
   (define talk-duration-minutes #f)
   (define no-squash? #f)
   (define two-frames? #f)
-  (define use-prefetch? #f)
+  (define use-prefetch? #t)
+  (define use-prefetch-in-preview? #f)
   
   (define current-page 0)
   
@@ -42,7 +43,7 @@
      "slideshow"
      (current-command-line-arguments)
      [once-each
-      (("-d" "--double") "show next slide (useful on a non-mirroring display)" 
+      (("-d" "--double") "show next-slide preview (useful on a non-mirroring display)" 
                          (set! two-frames? #t))
       (("-p" "--print") "print"
 		        (set! printing? #t))
@@ -88,8 +89,10 @@
 			 (set! talk-duration-minutes n)))
       (("-i" "--immediate") "no transitions"
        (set! use-transitions? #f))
-      (("--prefetch") "use next-slide prefetch"
-       (set! use-prefetch? #t))
+      (("--no-prefetch") "disable next-slide prefetch"
+       (set! use-prefetch? #f))
+      (("--double-prefetch") "use prefetch for next-slide preview"
+       (set! use-prefetch-in-preview? #t))
       (("--comment") "display commentary"
                      (set! commentary? #t))
       (("--time") "time seconds per slide" (set! print-slide-seconds? #t))]
@@ -1400,7 +1403,7 @@
               (send dc clear)
               (let*-values ([(cw ch) (send dc get-size)])
                 (cond
-		 [use-prefetch?
+		 [(and use-prefetch? use-prefetch-in-preview?)
 		  (let* ([now-bm (send (send c get-offscreen) get-bitmap)]
 			 [bw (send now-bm get-width)]
 			 [bh (send now-bm get-height)])
@@ -1503,7 +1506,8 @@
 	    (set! prefetched-click-regions click-regions)
 	    (set! click-regions old-click-regions))
 	  (set! prefetched-page n)
-	  (when (send f-both is-shown?)
+	  (when (and use-prefetch-in-preview?
+		     (send f-both is-shown?))
 	    (send c-both paint-prefetched))))
 
       (define (schedule-slide-prefetch n delay-msec)
