@@ -1569,6 +1569,9 @@
 	    (send l set-first-visible-item (max 0 (- now 3))))
           (send d show #t)))
       
+      (send f reflow-container)
+      (send f-both reflow-container)
+
       (refresh-page)
       
       (let ([bm (make-object bitmap% (build-path (collection-path "slideshow") "slideshow.bmp"))]

@@ -777,7 +777,7 @@
 		      (make-object color% "black")
 		      (make-object color% "white")
 		      draw-one
-		      #t #f)
+		      #t #t)
 		     (send dc set-brush inside)
 		     (draw-one margin)
 		     (send dc set-pen p)
