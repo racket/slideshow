@@ -490,6 +490,9 @@ Procedure Reference
   are active. The last enable/disable during slide creation takes
   effect once and for all.
 
+> (enable-click-advance! on?) - enables or disables slide advance
+  as a result of a mouse click.
+
 ------------------------------------------------------------
 _code.ss_
 ------------------------------------------------------------

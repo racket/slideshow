@@ -243,6 +243,11 @@
   (define (set-use-background-frame! on?)
     (set! use-background-frame? (and on? #t)))
 
+  (define click-to-advance? #t)
+    
+  (define (enable-click-advance! on?)
+    (set! click-to-advance? (and on? #t)))
+
   (define (set-page-numbers-visible! on?)
     (set! show-page-numbers? (and on? #t)))
 
@@ -956,6 +961,7 @@
 	   full-page titleless-page
 	   printing? condense? skip-slides
 	   set-use-background-frame!
+	   enable-click-advance!
 	   title-h set-title-h! current-slide-assembler
 	   current-page-number-font current-page-number-color 
 	   set-page-numbers-visible!
@@ -1227,7 +1233,7 @@
 			  [closeable? #t]
 			  [close-bg? #f]
 			  [label "Slideshow Preview"]
-			  [x (- screen-left-inset)] [y (- screen-top-inset)]
+			  [x 0] [y 0]
 			  [width (inexact->exact (floor actual-screen-w))]
 			  [height (inexact->exact (quotient (floor actual-screen-h) 2))]
 			  [style '()]))
@@ -1248,8 +1254,8 @@
 			  (floor (* (+ (sinset-t sinset) (sinset-b sinset))
 				    (/ actual-screen-h screen-h))))))
 	  (send f move 
-		(floor (* (sinset-l sinset) (/ actual-screen-w screen-w)))
-		(floor (* (sinset-t sinset) (/ actual-screen-h screen-h))))
+		(- (floor (* (sinset-l sinset) (/ actual-screen-w screen-w))) screen-left-inset)
+		(- (floor (* (sinset-t sinset) (/ actual-screen-h screen-h))) screen-top-inset))
 	  (set! current-sinset sinset)
 	  ;; FIXME: This yield is here so that the frame
 	  ;;  and its children can learn about their new
@@ -1367,7 +1373,8 @@
                  (when hit?
                    ((click-region-thunk c))))]
               [(send e button-up?)
-               (send (get-top-level-window) next)]
+	       (when click-to-advance?
+		 (send (get-top-level-window) next))]
               [else 
                (when (and clicking clicking-hit?)
                  (invert-clicking!))
