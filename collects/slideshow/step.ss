@@ -36,37 +36,48 @@
 		  ...
 		  (syntax/loc istx (func (quote arg) ...)))]))))]))
 
+  (define-syntax (define-predicate/vproc stx)
+    (syntax-case stx ()
+      [(_ pred pred/p vproc steps (arg ...) body)
+       #'(begin
+	   (define-step pred/p pred steps (arg ...) body)
+	   (define-step v vproc steps (arg ...)
+	     (if (pred/p arg ...) 
+		 (let ([vproc (lambda (x) x)]) vproc)
+		 (let ([vproc (lambda (x) (ghost x))]) vproc))))]))
+       
   (define-syntax (do-with-steps stx)
     (syntax-case stx ()
       [(_ condensing (step-name ...) expr)
        (let ([capturing (lambda (s)
 			  (datum->syntax-object #'expr s))])
-	 (with-syntax ([after (capturing 'after)]
+	 (with-syntax ([only? (capturing 'only?)]
+		       [vonly (capturing 'only)]
+		       [before? (capturing 'before?)]
+		       [vbefore (capturing 'vbefore)]
+		       [after? (capturing 'after?)]
 		       [vafter (capturing 'vafter)]
-		       [between (capturing 'between)]
+		       [between? (capturing 'between?)]
 		       [vbetween (capturing 'vbetween)]
-		       [between-excl (capturing 'between-excl)]
+		       [between-excl? (capturing 'between-excl?)]
 		       [vbetween-excl (capturing 'vbetween-excl)])
 	   #'(let ([steps '(step-name ...)])
 	       (map (lambda (step)
-		      (define-step after/p after (step-name ...)
+		      (define-predicate/vproc only? only?/p vonly (step-name ...)
+			(p)
+			(eq? step p))
+		      (define-predicate/vproc after? after?/p vafter (step-name ...)
 			(p)
 			(memq step (or (memq p steps) null)))
-		      (define-step vafter/p vafter (step-name ...)
+		      (define-predicate/vproc before? vbefore?/p vbefore (step-name ...)
 			(p)
-			(if (after/p p) (let ([vafter (lambda (x) x)]) vafter) ghost))
-		      (define-step between/p between (step-name ...)
+			(not (after?/p p)))
+		      (define-predicate/vproc between? between?/p vbetween (step-name ...)
 			(p1 p2)
-			(and (after/p p1) (or (eq? step p2) (not (after/p p2)))))
-		      (define-step vbetween/p vbetween(step-name ...)
+			(and (after?/p p1) (or (eq? step p2) (not (after?/p p2)))))
+		      (define-predicate/vproc between-excl? between-excl?/p vbetween-excl (step-name ...)
 			(p1 p2)
-			(if (between/p p1 p2) (let ([vbetween (lambda (x) x)]) vbetween) ghost))
-		      (define-step between-excl/p between-excl (step-name ...)
-			(p1 p2)
-			(and (after/p p1) (not (after/p p2))))
-		      (define-step vbetween-excl/p vbetween-excl (step-name ...)
-			(p1 p2)
-			(if (between-excl/p p1 p2) (let ([vbetween-excl (lambda (x) x)]) vbetween-excl) ghost))
+			(and (after?/p p1) (not (after?/p p2))))
 		      expr)
 		    (if (and condensing condense?)
 			(last-pair steps)
