@@ -103,7 +103,7 @@
 		     ((pict? (lambda (x)
 			       (and (procedure? x)
 				    (procedure-arity-includes? x 0))))
-		      (any?)
+		      (any/c)
 		      . opt-> .
 		      pict?)]
 		    [make-slide-inset
