@@ -554,23 +554,25 @@
     (opt-lambda (pict thunk [show-click? #t])
       (let ([w (pict-width pict)]
 	    [h (pict-height pict)])
-	(cc-superimpose
-	 (dc (lambda (dc x y)
-	       (let-values ([(sx sy) (send dc get-scale)]
-			    [(dx dy) (send dc get-origin)])
-		 (set! click-regions
-		       (cons
-			(make-click-region (+ (* x sx) dx)
-					   (+ (* y sy) dy)
-					   (+ (* (+ x w) sx) dx)
-					   (+ (* (+ y h) sy) dy)
-					   thunk
-					   show-click?)
-			click-regions))))
-	     w h
-	     (pict-ascent pict)
-	     (pict-descent pict))
-	 pict))))
+	(cons-picture*
+	 pict
+	 `((place 
+	    0 0
+	    ,(dc (lambda (dc x y)
+		   (let-values ([(sx sy) (send dc get-scale)]
+				[(dx dy) (send dc get-origin)])
+		     (set! click-regions
+			   (cons
+			    (make-click-region (+ (* x sx) dx)
+					       (+ (* y sy) dy)
+					       (+ (* (+ x w) sx) dx)
+					       (+ (* (+ y h) sy) dy)
+					       thunk
+					       show-click?)
+			    click-regions))))
+		 w h
+		 (pict-ascent pict)
+		 (pict-descent pict))))))))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                 Talk                          ;;
