@@ -19,6 +19,7 @@
   (define show-gauge? #f)
   (define show-page-numbers? #t)
   (define quad-view? #f)
+  (define print-slide-seconds? #f)
 
   (define base-font-size (get-preference 'slideshow:base-font-size (lambda () 32)))
   
@@ -54,7 +55,8 @@
 			   (error 'talk "argument to -f is not a positive exact integer: ~a" fs))
 			 (set! base-font-size n)))
       (("--comment") "display commentary"
-                     (set! commentary? #t))]
+                     (set! commentary? #t))
+      (("--time") "time seconds per slide" (set! print-slide-seconds? #t))]
      [args slide-module-file
 	   (cond
              [(null? slide-module-file) #f]
@@ -563,6 +565,9 @@
       (define TALK-MINUTES 60)
       (define GAUGE-WIDTH 100)
       (define GAUGE-HEIGHT 4)
+
+      (define talk-start-seconds (current-seconds))
+      (define slide-start-seconds (current-seconds))
       
       (define talk-frame%
         (class100 frame% (closeble?)
@@ -576,6 +581,11 @@
                    [(right #\space #\f #\n)
                     (set! current-page (min (add1 current-page)
                                             (sub1 (length talk-slide-list))))
+		    (when print-slide-seconds?
+		      (let ([slide-end-seconds (current-seconds)])
+			(printf "Slide ~a: ~a seconds~n" current-page
+			  (- slide-end-seconds slide-start-seconds))
+			(set! slide-start-seconds slide-end-seconds)))
                     (refresh-page)
                     #t]
                    [(left #\b)
