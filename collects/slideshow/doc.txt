@@ -12,7 +12,7 @@ collection's utilities for constructing images. More specifically,
 all of the functions provided by `(lib "mrpict.ss" "texpict")'
 are available for creating images.
 
-In addition to the "mrpict.ss" function, Slideshow provides functions
+In addition to the "mrpict.ss" functions, Slideshow provides functions
 for constructing paragraphs and bulleted lists, staging parts of a
 slide, managing fonts, viewing the slides, and scaling slides for a
 particular display.
@@ -26,7 +26,7 @@ Slideshow Modules
 =================
 
 The _run.ss_ module acts as a language (an extension of MzScheme) for
-defining a slide presentation. Roughly, "show build dialog" is
+defining a slide presentation. Roughly, "show startup dialog" is
 implicitly inserted before the body of a module in the _run.ss_
 language, and "show presentation window" is implicitly added to the
 end of the body.
@@ -34,19 +34,19 @@ end of the body.
 The _slideshow.ss_ module is like _run.ss_, except that it can be used
 by utility modules (i.e., other than the main module of a
 presentation) to get access to all of the Slideshow functions without
-the implicit begin/end wrapper.
+the implicit start-up actions.
 
   [The "slideshow.ss" module also checks the MzScheme paramater
-   `current-command-line-arguments'. If the command line is empty, it
-   loads the indicated modules and then shows the presentation
-   window. That's why "slideshow.ss" is the main module for the
-   "Slideshow" executable.]
+   `current-command-line-arguments'. If the command line is non-empty,
+   "slideshow.ss" loads the indicated modules and then shows the
+   presentation window. That's why "slideshow.ss" is the main module
+   for the "Slideshow" executable.]
 
 
 The "tutorial-show.ss" module in the "slideshow" collection is a
-Slideshow presentations that is a tutorial. The presentation starts
-from fundamentals and builds up towards realistic slides. Read the
-source as you step through the presentation.
+Slideshow presentation that is intended a tutorial. The presentation
+starts from fundamentals and builds up towards realistic slides. Read
+the source as you step through the presentation.
 
 
 The rest of this section repeats much of the information in the
