@@ -443,14 +443,23 @@
       (define c-frame (new (class talk-frame%
 			     (define/override (on-move x y)
 			       (super on-move x y)
-			       (put-preferences '(slideshow:commentary-x slideshow:commentary-y)
-						(list x y)
-						void))
+			       (parameterize ([current-security-guard original-security-guard])
+				 (with-handlers ([void raise]) ; prevents exn handler from grabbing security guard
+				   (put-preferences '(slideshow:commentary-x slideshow:commentary-y)
+						    (list x y)
+						    void))))
 			     (define/override (on-size w h)
 			       (super on-size w h)
-			       (put-preferences '(slideshow:commentary-width slideshow:commentary-height)
-						(list w h)
-						void))
+			       (parameterize ([current-security-guard original-security-guard])
+				 (with-handlers ([void raise]) ; prevents exn handler from grabbing security guard
+				   (put-preferences '(slideshow:commentary-width slideshow:commentary-height)
+						    (list w h)
+						    void))))
+			     (define/override (on-subwindow-event w e)
+			       (super on-subwindow-event w e)
+			       (when (and (send e button-up?)
+					  click-to-advance?)
+				 (send f next)))
 			     (super-new))
 			   [closeable? #t]
 			   [close-bg? #f]
