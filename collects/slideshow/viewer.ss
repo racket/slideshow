@@ -490,21 +490,21 @@
 		      (begin
 			(set! clicking c)
 			(set! clicking-hit? #t)
-			(invert-clicking!))
+			(invert-clicking! #t))
 		      ((click-region-thunk c)))))]
 	     [(and clicking (send e dragging?))
 	      (let ([hit? (click-hits? e clicking)])
 		(unless (eq? hit? clicking-hit?)
 		  (set! clicking-hit? hit?)
-		  (invert-clicking!)))]
+		  (invert-clicking! hit?)))]
 	     [(and clicking (send e button-up?))
 	      (let ([hit? (click-hits? e clicking)]
 		    [c clicking])
 		(unless (eq? hit? clicking-hit?)
 		  (set! clicking-hit? hit?)
-		  (invert-clicking!))
+		  (invert-clicking! hit?))
 		(when clicking-hit?
-		  (invert-clicking!))
+		  (invert-clicking! #f))
 		(set! clicking #f)
 		(when hit?
 		  ((click-region-thunk c))))]
@@ -513,7 +513,7 @@
 		(send (get-top-level-window) next))]
 	     [else 
 	      (when (and clicking clicking-hit?)
-		(invert-clicking!))
+		(invert-clicking! #f))
 	      (set! clicking #f)]))
 
 	  
@@ -522,19 +522,29 @@
 		  [y (send e get-y)])
 	      (and (<= (click-region-left c) x (click-region-right c))
 		   (<= (click-region-top c) y (click-region-bottom c)))))
-	  (define/private (invert-clicking!)
-	    (let* ([dc (get-dc)]
-		   [b (send dc get-brush)]
-		   [p (send dc get-pen)])
-	      (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
-	      (send dc set-brush  (send the-brush-list find-or-create-brush "black" 'hilite))
-	      (send dc draw-rectangle 
-		    (click-region-left clicking)
-		    (click-region-top clicking)
-		    (- (click-region-right clicking) (click-region-left clicking))
-		    (- (click-region-bottom clicking) (click-region-top clicking)))
-	      (send dc set-pen p)
-	      (send dc set-brush b)))
+	  (define/private (invert-clicking! on?)
+	    (let ([dc (get-dc)]
+		  [x (click-region-left clicking)]
+		  [y (click-region-top clicking)]
+		  [w (- (click-region-right clicking) (click-region-left clicking))]
+		  [h (- (click-region-bottom clicking) (click-region-top clicking))])
+	      (if (or on?
+		      (not config:use-offscreen?)
+		      (not offscreen))
+		  (let* ([b (send dc get-brush)]
+			 [p (send dc get-pen)])
+		    (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
+		    (send dc set-brush  (send the-brush-list find-or-create-brush "black" 
+					      (if config:use-offscreen?
+						  'hilite
+						  'xor)))
+		    (send dc draw-rectangle  x y w h)
+		    (send dc set-pen p)
+		    (send dc set-brush b))
+		  (send dc draw-bitmap-section
+			(send offscreen get-bitmap)
+			x y x y
+			w h))))
 	  
 	  (define offscreen #f)
 	  (define/public get-offscreen (lambda () offscreen))

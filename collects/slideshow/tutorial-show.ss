@@ -890,7 +890,7 @@
    (page-para "A Slideshow presentation is a Scheme program in a module,"
               "so to make your own:")
    (scale/improve-new-text ; a macro that improves font selection
-    (code (module mytalk (lib "slide.ss" "slideshow")
+    (code (module mytalk (lib "slideshow.ss" "slideshow")
 	    ... #,(it "your code here") ...))
     0.9)
    (blank)
