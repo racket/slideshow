@@ -185,6 +185,9 @@
       
       (define blank-cursor (make-object cursor% 'blank))
 
+      (application-quit-handler (lambda ()
+				  (send f stop-show)))
+
       (define talk-frame%
 	(class frame% 
 	  (init-field closeable?)
@@ -271,7 +274,7 @@
 		  [else
 		   #f]))))
 
-	  (define/private (stop-show)
+	  (define/public (stop-show)
 	    (send c-frame show #f)
 	    (send f-both show #f)
 	    (when use-background-frame?
