@@ -2,7 +2,8 @@
   
   (provide symbol
 	   sym:in sym:rightarrow sym:infinity sym:times 
-	   sym:implies sym:emdash)
+	   sym:implies sym:emdash 
+	   sym:therefore)
   
   (define (symbol n)
     (text (string (integer->char n)) 'symbol font-size))
@@ -12,7 +13,8 @@
   (define sym:infinity (symbol 165))
   (define sym:times (symbol 180))
   (define sym:implies (symbol 222))
-  (define sym:emdash (symbol 190)))
+  (define sym:emdash (symbol 190))
+  (define sym:therefore (symbol 92)))
 
 
 

@@ -188,11 +188,6 @@
 
   (define (tt* . l) (apply vl-append line-sep (map tt l)))
 
-  (define bullet (cc-superimpose (disk (/ gap-size 2)) 
-				 (blank 0 gap-size)))
-  (define o-bullet (cc-superimpose (circle (/ gap-size 2)) 
-				   (blank 0 gap-size)))
-
   (dc-for-text-size
    (if printing?
        ;; Make ps-dc%:
@@ -217,6 +212,14 @@
 
        ;; Bitmaps give same size as the screen:
        (make-object bitmap-dc% (make-object bitmap% 1 1))))
+
+  (define bullet (if (send (dc-for-text-size) glyph-exists? #\u2022)
+		     (t "\u2022")
+		     (cc-superimpose (disk (/ gap-size 2)) 
+				     (blank 0 gap-size))))
+  (define o-bullet (cc-superimpose (circle (/ gap-size 2)) 
+				   (blank 0 gap-size)))
+
 
   (define margin 20)
   (define-values (client-w client-h) (values (- screen-w (* margin 2))
@@ -389,17 +392,17 @@
 	    (begin
 	      (apply one-slide/title/inset do-add-slide! use-assem? process v-sep skipped s inset (reverse r))
 	      0))]
-       [(memq (car l) '(NOTHING))
+       [(memq (car l) '(nothing))
 	(loop (cdr l) r comment skip-all? skipped)]
-       [(memq (car l) '(NEXT NEXT!))
-	(let ([skip? (or skip-all? (and condense? skip-ok? (eq? (car l) 'NEXT)))])
+       [(memq (car l) '(next next!))
+	(let ([skip? (or skip-all? (and condense? skip-ok? (eq? (car l) 'next)))])
 	  (let ([skipped (if skip?
 			     (add1 skipped)
 			     (begin
 			       (apply one-slide/title/inset do-add-slide! use-assem? process v-sep skipped s inset (reverse r))
 			       0))])
 	    (loop (cdr l) r comment skip-all? skipped)))]
-       [(memq (car l) '(ALTS ALTS~)) 
+       [(memq (car l) '(alts alts~)) 
 	(let ([rest (cddr l)])
 	  (let aloop ([al (cadr l)][skipped skipped])
 	    (cond
@@ -408,7 +411,7 @@
 	     [(null? (cdr al))
 	      (loop (append (car al) rest) r comment skip-all? skipped)]
 	     [else
-	      (let ([skip? (or skip-all? (and condense? skip-ok? (eq? (car l) 'ALTS~)))])
+	      (let ([skip? (or skip-all? (and condense? skip-ok? (eq? (car l) 'alts~)))])
 		(let ([skipped (loop (car al) r comment skip? skipped)])
 		  (aloop (cdr al) skipped)))])))]
        [else (loop (cdr l) (cons (car l) r) comment skip-all? skipped)])))
