@@ -81,6 +81,7 @@
 (define margin 10)
 (define full-page (blank (- screen-w (* margin 2))
 			 (- screen-h (* margin 2))))
+(define titleless-page (inset full-page (- (* 2 font-size)) 0 0 0))
 
 (define talk-slide-list null)
 (define-struct slide (drawer title comment))
@@ -167,27 +168,36 @@
 		       (apply string-append s)))
 
 (define (para s w)
-  (let loop ([s s][r ""])
-    (let ([p (t s)])
-      (let ([m (if (< (pict-width p) w)
-		   #f
-		   (regexp-match "(.*) (.*)" s))])
-	(if m
-	    (loop (cadr m) (string-append
-			    (caddr m)
-			    (if (string=? r "") "" " ")
-			    r))
-	    (if (string=? r "")
-		p
-		(vl-append
-		 line-sep
-		 p
-		 (loop r ""))))))))
+  (let loop ([pre (blank)][s s][rest null][r ""])
+    (if (list? s)
+	(loop pre (car s) (append (cdr s) rest) "")
+	(let ([p (if (string? s) (t s) s)])
+	  (let ([m (if (< (+ (pict-width p) (pict-width pre)) w)
+		       #f
+		       (regexp-match "(.*) (.*)" s))])
+	    (if m
+		(loop pre
+		      (cadr m) 
+		      rest
+		      (string-append
+		       (caddr m)
+		       (if (string=? r "") "" " ")
+		       r))
+		(let ([p (hbl-append pre p)])
+		  (if (string=? r "")
+		      (if (null? rest)
+			  p
+			  (loop p rest null ""))
+		      (vl-append
+		       line-sep
+		       p
+		       (loop (blank) r rest ""))))))))))
 
 (define (item s)
   (htl-append (/ font-size 2)
 	      bullet 
 	      (para s (- screen-w 
+			 (* 2 margin)
 			 (pict-width bullet) 
 			 (/ font-size 2)))))
 
@@ -201,10 +211,10 @@
 		  (loop (cdr l)))]))))
 
 (define (page-item s)
-  (cc-superimpose (item s) (blank screen-w 0)))
+  (lc-superimpose (item s) (blank (- screen-w (* 2 margin)) 0)))
 
 (define (page-itemize . l)
-  (cc-superimpose (apply itemize l) (blank screen-w 0)))
+  (lc-superimpose (apply itemize l) (blank (- screen-w (* 2 margin)) 0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                Talk                          ;;
