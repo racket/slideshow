@@ -30,6 +30,7 @@
   (define print-slide-seconds? #f)
   (define use-transitions? #t)
   (define talk-duration-minutes #f)
+  (define no-squash? #f)
   (define two-frames? #f)
   
   (define current-page 0)
@@ -54,7 +55,7 @@
 	   (error 'slideshow "argument to -t is not a positive exact integer: ~a" page))
 	 (set! current-page (sub1 n))))
       (("-q" "--quad") "show four slides at a time"
-		       (set! quad-view? #t))
+       (set! quad-view? #t))
       (("-n" "--no-stretch") "don't stretch the slide window to fit this screen"
        (when (> actual-screen-w screen-w)
 	 (set! keep-titlebar? #t)
@@ -71,6 +72,10 @@
 	   (set! keep-titlebar? #t))
 	 (set! actual-screen-w nw)
 	 (set! actual-screen-h nh)))
+      (("-u" "--no-squash") "maintain 1024x768 proportion within show size"
+       (set! no-squash? #t))
+      ;; Disable --minutes, because it's not used
+      #;
       (("-m" "--minutes") min "set talk duration in minutes"
 		       (let ([n (string->number min)])
 			 (unless (and n 
@@ -101,6 +106,16 @@
     (set! actual-screen-w 1024)
     (set! actual-screen-h 768))
 
+  (define-values (use-screen-w use-screen-h)
+    (if no-squash?
+	(if (< (/ actual-screen-w screen-w)
+	       (/ actual-screen-h screen-h))
+	    (values actual-screen-w
+		    (* (/ actual-screen-w screen-w) screen-h))
+	    (values (* (/ actual-screen-h screen-h) screen-w)
+		    actual-screen-h))
+	(values actual-screen-w actual-screen-h)))
+
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                    Setup                      ;;
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -117,10 +132,10 @@
 			'swiss))
   (define current-main-font (make-parameter main-font))
 
-  (when (not (and (= actual-screen-w screen-w)
-		  (= actual-screen-h screen-h)))
-    (current-expected-text-scale (list (/ actual-screen-w screen-w)
-				       (/ actual-screen-h screen-h))))
+  (when (not (and (= use-screen-w screen-w)
+		  (= use-screen-h screen-h)))
+    (current-expected-text-scale (list (/ use-screen-w screen-w)
+				       (/ use-screen-h screen-h))))
 
   (define red "red")
   (define green "forest green")
@@ -748,11 +763,11 @@
   ;; ----------------------------------------
 
   (define (size-in-pixels p)
-    (if (not (and (= actual-screen-w screen-w)
-		  (= actual-screen-h screen-h)))
+    (if (not (and (= use-screen-w screen-w)
+		  (= use-screen-h screen-h)))
 	(scale p 
-	       (/ screen-w actual-screen-w)
-	       (/ screen-h actual-screen-h))
+	       (/ screen-w use-screen-w)
+	       (/ screen-h use-screen-h))
 	p))
 
   ;; ----------------------------------------
@@ -804,8 +819,8 @@
       (add-transition! 'scroll-transition
 		       (lambda (offscreen-dc)
 			 (let* ([steps-done 0]
-				[xs (/ actual-screen-w screen-w)]
-				[ys (/ actual-screen-h screen-h)]
+				[xs (/ use-screen-w screen-w)]
+				[ys (/ use-screen-h screen-h)]
 				[x-in (if (positive? dx)
 					  (ceiling (* xs (/ dx steps)))
 					  0)]
@@ -835,8 +850,8 @@
 			     (if (or (not scroll-bm) (= steps-done steps))
 				 'done
 				 (let*-values ([(cw ch) (send canvas get-client-size)]
-					       [(xm) (- (/ (- actual-screen-w cw) 2))]
-					       [(ym) (- (/ (- actual-screen-h ch) 2))])
+					       [(xm) (- (/ (- use-screen-w cw) 2))]
+					       [(ym) (- (/ (- use-screen-h ch) 2))])
 				   (set! steps-done (add1 steps-done))
 				   (let ([draw
 					  (lambda (dc xm ym)
@@ -1079,6 +1094,10 @@
 		   (set! show-page-numbers? (not show-page-numbers?))
 		   (stop-transition)
 		   (refresh-page)]
+                  [(#\d)
+		   (stop-transition)
+		   (send f-both show (not (send f-both is-shown?)))
+		   (refresh-page)]
                   [(#\c)
                    (stop-transition)
                    (when (or (send e get-meta-down)
@@ -1163,16 +1182,13 @@
                                 null
                                 '(no-caption no-resize-border hide-menu-bar))]))
       
-      (define f-both (and two-frames?
-                          (new talk-frame%
-                               [closeable? #f]
-                               [label "Slideshow Preview"]
-                               [x (- screen-left-inset)] [y (- screen-top-inset)]
-                               [width (inexact->exact (floor actual-screen-w))]
-                               [height (inexact->exact (quotient (floor actual-screen-h) 2))]
-                               [style (if keep-titlebar?
-                                          '()
-                                          '(no-caption no-resize-border hide-menu-bar))])))
+      (define f-both (new talk-frame%
+			  [closeable? #t]
+			  [label "Slideshow Preview"]
+			  [x (- screen-left-inset)] [y (- screen-top-inset)]
+			  [width (inexact->exact (floor actual-screen-w))]
+			  [height (inexact->exact (quotient (floor actual-screen-h) 2))]
+			  [style '()]))
       
       (define current-sinset zero-inset)
       (define (reset-display-inset! sinset)
@@ -1363,16 +1379,16 @@
           (define/override (on-paint)
             (let ([dc (get-dc)])
               (send dc clear)
-              (let-values ([(cw ch) (send dc get-size)])
+              (let*-values ([(cw ch) (send dc get-size)])
                 (send dc set-origin 0 0)
                 (send dc draw-line (/ cw 2) 0 (/ cw 2) ch)
-                (paint-slide dc current-page 1/2 1/2 cw (* 2 ch) #f)
+                (paint-slide dc current-page 1/2 1/2 cw (* 2 ch) cw (* 2 ch) #f)
                 (send dc set-origin (/ cw 2) 0)
 		(when (< (add1 current-page) (length talk-slide-list))
 		  (paint-slide dc
 			       (+ current-page 1)
-			       1/2 1/2 
-			       cw (* 2 ch)
+			       1/2 1/2
+			       cw (* 2 ch) cw (* 2 ch)
 			       #f)))))
           
           (inherit get-top-level-window)
@@ -1389,23 +1405,21 @@
           [(dc) (paint-slide dc current-page)]
           [(dc page) 
            (let-values ([(cw ch) (send dc get-size)])
-	     (paint-slide dc page 1 1 cw ch #t))]
-          [(dc page extra-scale-x extra-scale-y cw ch to-main?)
+	     (paint-slide dc page 1 1 cw ch use-screen-w use-screen-h #t))]
+          [(dc page extra-scale-x extra-scale-y cw ch usw ush to-main?)
            (let* ([slide (list-ref talk-slide-list page)]
-                  [set-scale? (not (and (= actual-screen-w screen-w)
-                                        (= actual-screen-h screen-h)))]
-		  [m (- margin (/ (- actual-screen-w cw) 2))])
+                  [mx (- margin (/ (- usw cw) 2))]
+		  [my (- margin (/ (- ush ch) 2))]
+		  [sx (/ usw screen-w)]
+		  [sy (/ ush screen-h)])
 
-             (cond
-               [set-scale?
-                (send dc set-scale 
-                      (* extra-scale-x (/ actual-screen-w screen-w))
-                      (* extra-scale-y (/ actual-screen-h screen-h)))]
-               [else
-                (send dc set-scale extra-scale-x extra-scale-y)])
-             
+	     (send dc set-scale (* extra-scale-x sx) (* extra-scale-y sy))
+	     
              ;; Draw the slide
-             ((slide-drawer slide) dc m m)
+             ((slide-drawer slide) dc (/ mx sx) (/ my sy))
+	     
+             ;; reset the scale
+             (send dc set-scale 1 1)
 
 	     ;; Slide number
 	     (when (and to-main? show-page-numbers?)
@@ -1415,12 +1429,9 @@
 		 (send dc set-font (current-page-number-font))
 		 (send dc set-text-foreground (current-page-number-color))
 		 (let-values ([(w h d a) (send dc get-text-extent s)])
-		   (send dc draw-text s (- cw w m) (- ch h m)))
+		   (send dc draw-text s (- cw w 5) (- ch h 5)))
 		 (send dc set-text-foreground c)
-		 (send dc set-font f)))
-	     
-             ;; reset the scale
-             (send dc set-scale 1 1))]))
+		 (send dc set-font f))))]))
 
       ;; cached-page : (union #f number)
       (define cached-page #f)
@@ -1442,7 +1453,7 @@
         (set! cached-page n))
       
       (define c (make-object c% f))
-      (define c-both (and two-frames? (make-object two-c% f-both)))
+      (define c-both (make-object two-c% f-both))
       
       (define (refresh-page)
         (when (= current-page 0)
@@ -1450,7 +1461,7 @@
           (unless start-time
             (set! start-time (current-seconds))))
         (send c redraw)
-        (when c-both
+        (when (and c-both (send f-both is-shown?))
           (send c-both redraw)))
 
       (define current-transitions null)
@@ -1561,7 +1572,7 @@
           (send f set-icon bm (and (send mbm ok?) mbm) 'both)))
       
       (send f show #t)
-      (when f-both 
+      (when two-frames?
         (send f-both show #t))
       
       (when commentary?
