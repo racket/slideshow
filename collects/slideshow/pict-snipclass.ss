@@ -11,16 +11,16 @@
         (build-lib-pict-stx 
          (lambda (ids) (syntax (void)))
          (get-snp/poss this)))
-      
       (super-new)))
   
   (define lib-pict-snipclass%
     (class snip-class%
       (define/override (read stream-in)
         (let* ([snip (new pict-snip%)]
-               [editor (send snip get-editor)]
+               [editor (new pasteboard%)]
                [show-picts? (not (zero? (send stream-in get-exact)))]
                [up-to-date? (not (zero? (send stream-in get-exact)))])
+          (send snip set-editor editor)
           (send editor read-from-file stream-in #f)
           snip))
       (super-new)))
