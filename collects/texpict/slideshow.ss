@@ -27,7 +27,7 @@
 
   (define content
     (command-line
-     "talk"
+     "slideshow"
      (namespace-variable-binding 'argv)
      [once-each
       (("--print") "print"
@@ -54,8 +54,8 @@
 			 (set! base-font-size n)))
       (("--comment") "display commentary"
                      (set! commentary? #t))]
-     [args (lecture-file)
-	   lecture-file]))
+     [args (slide-module-file)
+	   slide-module-file]))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                    Setup                      ;;
