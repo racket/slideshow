@@ -614,7 +614,7 @@
 	      (let ([dc (get-dc)])
 		(send dc clear)
 		(paint-slide dc))]))
-	  (super-new)))
+	  (super-new [style '(no-autoclear)])))
 
       (define two-c%
 	(class canvas%
