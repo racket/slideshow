@@ -1349,7 +1349,8 @@
             (send commentary lock #t)
 	    (set! click-regions null)
 	    (set! clicking #f)
-            (cond
+	    (stop-transition/no-refresh)
+	    (cond
               [use-offscreen?
                (let-values ([(cw ch) (get-client-size)])
                  (when (and offscreen
@@ -1361,7 +1362,6 @@
                    (set! offscreen (make-object bitmap-dc% 
                                      (make-object bitmap% cw ch)))))
                (send offscreen clear)
-	       (stop-transition/no-refresh)
 	       (cond
 		[(equal? prefetched-page current-page)
 		 (set! click-regions prefetched-click-regions)
@@ -1376,27 +1376,58 @@
               [else
                (let ([dc (get-dc)])
 		 (send dc clear)
-		 (stop-transition/no-refresh)
 		 (paint-slide dc))]))
           (super-new)))
 
       (define two-c%
         (class canvas%
           (inherit get-dc)
+
+	  (define/public (paint-prefetched)
+	    (let ([dc (get-dc)])
+	      (let*-values ([(cw ch) (send dc get-size)])
+		(send dc set-scale 
+		      (/ (/ cw 2) (send prefetch-bitmap get-width))
+		      (/ ch (send prefetch-bitmap get-height)))
+		(send dc set-origin (/ cw 2) 0)
+		(send dc draw-bitmap prefetch-bitmap 0 0)
+		(send dc set-origin 0 0)
+		(send dc set-scale 1 1)
+		(send dc draw-line (/ cw 2) 0 (/ cw 2) ch))))
+
           (define/override (on-paint)
             (let ([dc (get-dc)])
               (send dc clear)
               (let*-values ([(cw ch) (send dc get-size)])
+                (cond
+		 [use-prefetch?
+		  (let* ([now-bm (send (send c get-offscreen) get-bitmap)]
+			 [bw (send now-bm get-width)]
+			 [bh (send now-bm get-height)])
+		    (send dc set-scale (/ (/ cw 2) bw) (/ ch bh))
+		    (send dc draw-bitmap now-bm 0 0)
+		    (cond
+		     [(equal? prefetched-page (add1 current-page))
+		      (send dc set-origin (/ cw 2) 0)
+		      (send dc draw-bitmap prefetch-bitmap 0 0)]
+		     [else
+		      (when (< (add1 current-page) (length talk-slide-list))
+			(let ([b (send dc get-brush)])
+			  (send dc set-brush (send the-brush-list find-or-create-brush "gray" 'solid))
+			  (send dc draw-rectangle bw 0 bw bh)
+			  (send dc set-brush b)))])
+		    (send dc set-scale 1 1))]
+		 [else
+		  (paint-slide dc current-page 1/2 1/2 cw (* 2 ch) cw (* 2 ch) #f)
+		  (send dc set-origin (/ cw 2) 0)
+		  (when (< (add1 current-page) (length talk-slide-list))
+		    (paint-slide dc
+				 (+ current-page 1)
+				 1/2 1/2
+				 cw (* 2 ch) cw (* 2 ch)
+				 #f))])
                 (send dc set-origin 0 0)
-                (send dc draw-line (/ cw 2) 0 (/ cw 2) ch)
-                (paint-slide dc current-page 1/2 1/2 cw (* 2 ch) cw (* 2 ch) #f)
-                (send dc set-origin (/ cw 2) 0)
-		(when (< (add1 current-page) (length talk-slide-list))
-		  (paint-slide dc
-			       (+ current-page 1)
-			       1/2 1/2
-			       cw (* 2 ch) cw (* 2 ch)
-			       #f)))))
+		(send dc draw-line (/ cw 2) 0 (/ cw 2) ch))))
           
           (inherit get-top-level-window)
           (define/override (on-event e)
@@ -1471,7 +1502,9 @@
 	    (paint-slide prefetch-dc n)
 	    (set! prefetched-click-regions click-regions)
 	    (set! click-regions old-click-regions))
-	  (set! prefetched-page n)))
+	  (set! prefetched-page n)
+	  (when (send f-both is-shown?)
+	    (send c-both paint-prefetched))))
 
       (define (schedule-slide-prefetch n delay-msec)
 	(cancel-prefetch)
@@ -1540,11 +1573,12 @@
 						 #f))]))))))))
 
       (define (stop-transition)
-	(stop-transition/no-refresh)
-	(refresh-page))
+	(cancel-prefetch)
+	(unless (null? current-transitions)
+	  (stop-transition/no-refresh)
+	  (refresh-page)))
       
       (define (stop-transition/no-refresh)
-	(cancel-prefetch)
 	(set! current-transitions null)
 	(set! current-transitions-key #f))
       
