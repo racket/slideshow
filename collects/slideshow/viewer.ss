@@ -262,8 +262,10 @@
 
 	  (define/private (stop-show)
 	    (send c-frame show #f)
-	    (send f show #f)
 	    (send f-both show #f)
+	    (when use-background-frame?
+	      (send f show #f))
+	    (send f show #f)
 	    (when config:print-slide-seconds?
 	      (printf "Total Time: ~a seconds~n"
 		      (- (current-seconds) talk-start-seconds)))
@@ -342,8 +344,9 @@
 
       (define background-f
 	(make-object (class frame%
+		       (inherit is-shown?)
 		       (define/override (on-activate on?)
-			 (when on?
+			 (when (and on? (is-shown?))
 			   (send f show #t)))
 		       (super-new
 			[label "Slideshow Background"]

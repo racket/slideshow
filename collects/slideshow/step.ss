@@ -17,17 +17,25 @@
 
   (define-syntax (define-step stx)
     (syntax-case stx ()
-      [(_ func id steps (arg ...) extra-args body)
+      [(_ func id steps (arg ...) 
+	  (((extra-arg ...) (def-arg ...)) ... 
+	   ((all-extra-arg ...) ())) 
+	  body)
        (syntax/loc stx
 	 (begin
-	   (define (func arg ... . extra-args)
-	     body)
+	   (define func 
+	     (lambda (arg ... all-extra-arg ...)
+	       body))
 	   (define-syntax (id istx)
 	     (syntax-case istx ()
-	       [(_ arg ... . extra-args)
+	       [(_ arg ... extra-arg ...)
+		(syntax/loc istx (_ arg ... extra-arg ... def-arg ...))]
+	       ...
+	       [(_ arg ... all-extra-arg ...)
 		(begin
 		  (unless (ormap (lambda (i)
-				   (module-identifier=? i #'arg))
+				   (and (identifier? #'arg)
+					(module-identifier=? i #'arg)))
 				 (syntax->list (quote-syntax steps)))
 		    (raise-syntax-error
 		     #f
@@ -35,21 +43,22 @@
 		     istx
 		     #'arg))
 		  ...
-		  (syntax/loc istx (func (quote arg) ... . extra-args)))]))))]))
+		  (syntax/loc istx (func (quote arg) ... all-extra-arg ...)))]))))]))
 
   (define-syntax (define-predicate/vproc stx)
     (syntax-case stx ()
       [(_ pred pred/p vproc proc steps (arg ...) body)
        #'(begin
-	   (define-step pred/p pred steps (arg ...) () body)
-	   (define-step v vproc steps (arg ...) ()
+	   (define-step pred/p pred steps (arg ...) ((() ())) body)
+	   (define-step v proc steps (arg ...) (((f) (values))
+						((f else-f) ()))
+	     (if (pred/p arg ...) 
+		 f
+		 else-f))
+	   (define-step v2 vproc steps (arg ...) ((() ()))
 	     (if (pred/p arg ...) 
 		 (let ([vproc (lambda (x) x)]) vproc)
-		 (let ([vproc (lambda (x) (ghost x))]) vproc)))
-	   (define-step v2 proc steps (arg ...) xform
-	     (if (pred/p arg ...) 
-		 (let ([vproc (apply compose xform)]) vproc)
-		 (let ([vproc (lambda (x) x)]) vproc))))]))
+		 (let ([vproc (lambda (x) (ghost x))]) vproc))))]))
        
   (define-syntax (do-with-steps stx)
     (syntax-case stx ()

@@ -127,12 +127,12 @@ pict snip :
               (send pb get-snip-location snip x y)
               (values (unbox x) (unbox y))))
 
-          (define/public (read-one-special index file line col pos)
-            (pict-read-one-special this
-                                   file
-                                   line
-                                   col
-                                   pos))
+          (define/public (read-special file line col pos)
+            (pict-read-special this
+			       file
+			       line
+			       col
+			       pos))
           
           (define/override (write stream-out)
             (send (get-editor) write-to-file stream-out))
@@ -194,9 +194,9 @@ pict snip :
       
       (define drs-eventspace (current-eventspace))
       
-      ;; pict-read-one-special ... -> ...
+      ;; pict-read-special ... -> ...
       ;; thread: user's thread
-      (define (pict-read-one-special snip file line col pos)
+      (define (pict-read-special snip file line col pos)
         (let ([editor (send snip get-editor)]
               [old-locked #f])
           (dynamic-wind
@@ -216,21 +216,18 @@ pict snip :
                                [h h]
                                [drs-eventspace drs-eventspace]
                                [snip snip])
-                   (values
-                    (syntax
-                     (let ([ids subpicts] ...)
-                       (let ([drawer-ids (make-pict-drawer ids)] ...)
-                         (parameterize ([current-eventspace drs-eventspace])
-                           (queue-callback 
-                            (lambda () ;; drs eventspace
-                              (send snip set-subs 
-                                    (list drawer-ids ...) 
-                                    (list subsnips ...)
-                                    (list (pict-width ids) ...)
-                                    (list (pict-height ids) ...))))))
-                       (picture w h `((place ,x ,(- y (pict-height ids)) ,ids) ...))))
-                    1
-                    #t)))))
+		   (syntax
+		    (let ([ids subpicts] ...)
+		      (let ([drawer-ids (make-pict-drawer ids)] ...)
+			(parameterize ([current-eventspace drs-eventspace])
+			  (queue-callback 
+			   (lambda () ;; drs eventspace
+			     (send snip set-subs 
+				   (list drawer-ids ...) 
+				   (list subsnips ...)
+				   (list (pict-width ids) ...)
+				   (list (pict-height ids) ...))))))
+		      (picture w h `((place ,x ,(- y (pict-height ids)) ,ids) ...))))))))
            (lambda () (send editor lock old-locked)))))
 
       (define (generate-ids pre lst)
@@ -247,7 +244,7 @@ pict snip :
             (cond
               [(not snip) null]
               [(is-a? snip readable-snip<%>)
-               (let-values ([(stx n b) (send snip read-one-special 0 #f 0 0 0)])
+               (let ([stx (send snip read-special #f 0 0 0)])
                  (let ([x (box 0)]
                        [y (box 0)])
                    (send editor get-snip-location snip x y)
