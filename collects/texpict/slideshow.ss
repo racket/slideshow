@@ -2,6 +2,7 @@
 (module slideshow mzscheme
   (require (lib "class.ss")
 	   (lib "class100.ss")
+           (lib "unit.ss")
 	   (lib "file.ss"))
 
   (require (lib "mred.ss" "mred"))
@@ -65,8 +66,14 @@
 			 (set! base-font-size n)))
       (("--comment") "display commentary"
                      (set! commentary? #t))]
-     [args (slide-module-file)
-	   slide-module-file]))
+     [args slide-module-file
+	   (cond
+             [(null? slide-module-file) #f]
+             [(null? (cdr slide-module-file)) (car slide-module-file)]
+             [else (error 'slideshow
+                          "expects at most one module file, given ~a: ~s"
+                          (length slide-module-file)
+                          slide-module-file)])]))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                    Setup                      ;;
@@ -472,7 +479,7 @@
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (provide (all-from mzscheme)
-	   (rename :slide slide) slide/title slide/title/tall 
+           (rename :slide slide) slide/title slide/title/tall 
 	   slide/center slide/title/center
 	   most-recent-slide retract-most-recent-slide re-slide 
 	   comment make-outline
@@ -489,8 +496,9 @@
 	   full-page titleless-page
 	   printing? condense? skip-slides
 	   (all-from "mrpict.ss")
-	   (all-from "utils.ss"))
-
+	   (all-from "utils.ss")
+           start-making-slides done-making-slides)
+  
   (define-values (progress-window progress-display)
     (parameterize ([current-eventspace (make-eventspace)])
       (let* ([f (make-object (class frame% 
@@ -508,307 +516,332 @@
 	  (values f d)))))
 
   (send progress-window show #t)
+      
+  (define go@
+    (unit
+      (import)
+      (export)
+      
+      ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;                 Talk Viewer                   ;;
+      ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      
+      (set! talk-slide-list (reverse talk-slide-list))
+      
+      (when quad-view?
+        (set! talk-slide-list
+              (let loop ([l talk-slide-list])
+                (cond
+                  [(null? l) null]
+                  [(< (length l) 4)
+                   (loop (append l (vector->list
+                                    (make-vector
+                                     (- 4 (length l))
+                                     (make-slide void #f #f page-number 1)))))]
+                  [else (let ([a (car l)]
+                              [b (cadr l)]
+                              [c (caddr l)]
+                              [d (cadddr l)]
+                              [untitled "(untitled)"])
+                          (cons (make-slide
+                                 (lambda (dc x y)
+                                   (define scale (min (/ (- (/ client-h 2) margin) client-h)
+                                                      (/ (- (/ client-w 2) margin) client-w)))
+                                   (send dc set-scale scale scale)
+                                   (send dc set-origin x y)
+                                   ((slide-drawer a) dc 0 0)
+                                   (send dc set-origin (+ x (/ client-w 2) margin) y)
+                                   ((slide-drawer b) dc 0 0)
+                                   (send dc set-origin x (+ y (/ client-h 2) margin))
+                                   ((slide-drawer c) dc 0 0)
+                                   (send dc set-origin (+ x (/ client-w 2) margin) (+ y (/ client-h 2) margin))
+                                   ((slide-drawer d) dc 0 0)
+                                   (send dc set-scale 1 1)
+                                   (send dc set-origin x y)
+                                   (send dc draw-line (/ client-w 2) 0 (/ client-w 2) client-h)
+                                   (send dc draw-line 0 (/ client-h 2) client-w (/ client-h 2))
+                                   (send dc set-origin 0 0))
+                                 (format "~a | ~a | ~a | ~a"
+                                         (or (slide-title a) untitled)
+                                         (or (slide-title b) untitled)
+                                         (or (slide-title c) untitled)
+                                         (or (slide-title d) untitled))
+                                 #f
+                                 (slide-page a)
+                                 (- (+ (slide-page d) (slide-page-count d)) (slide-page a)))
+                                (loop (cddddr l))))]))))
+      
+      (define TALK-MINUTES 60)
+      (define GAUGE-WIDTH 100)
+      (define GAUGE-HEIGHT 4)
+      
+      (define talk-frame%
+        (class100 frame% (closeble?)
+          (private-field [closeable? closeble?])
+          (override
+            [can-close? (lambda () closeable?)]
+            [on-subwindow-char
+             (lambda (w e)
+               (let ([k (send e get-key-code)])
+                 (case k
+                   [(right #\space #\f #\n)
+                    (set! current-page (min (add1 current-page)
+                                            (sub1 (length talk-slide-list))))
+                    (refresh-page)
+                    #t]
+                   [(left #\b)
+                    (set! current-page (max (sub1 current-page)
+                                            0))
+                    (refresh-page)
+                    #t]
+                   [(#\g)
+                    (if (send e get-meta-down)
+                        (get-page-from-user)
+                        (begin
+                          (set! current-page (sub1 (length talk-slide-list)))
+                          (refresh-page)))
+                    #t]
+                   [(#\1)
+                    (set! current-page 0)
+                    (refresh-page)
+                    #t]
+                   [(#\q)
+                    (when (send e get-meta-down)
+                      (send c-frame show #f)
+                      (send f show #f))
+                    #f]
+                   [else
+                    #f])))])
+          (sequence
+            (super-init))))
+      
+      (define f (instantiate talk-frame% (#f)
+                  [label (if content
+                             (format "~a: slideshow" (file-name-from-path content))
+                             "Slideshow")]
+                  [x 0] [y 0]
+                  [width (inexact->exact (floor screen-w))]
+                  [height (inexact->exact (floor screen-h))]
+                  [style '(no-caption no-resize-border)]))
+      
+      (define c-frame (instantiate talk-frame% (#t) [label "Commentary"] [width 400] [height 100]))
+      (define commentary (make-object text%))
+      (send (make-object editor-canvas% c-frame commentary)
+            set-line-count 3)
+      
+      (define start-time #f)
+      
+      (define clear-brush (make-object brush% "WHITE" 'transparent))
+      (define gray-brush (make-object brush% "GRAY" 'solid))
+      (define green-brush (make-object brush% "GREEN" 'solid))
+      (define red-brush (make-object brush% "RED" 'solid))
+      (define black-pen (make-object pen% "BLACK" 1 'solid))
+      (define red-color (make-object color% "RED"))
+      (define green-color (make-object color% "GREEN"))
+      (define black-color (make-object color% "BLACK"))
+      
+      (define (slide-page-string slide)
+        (if (= 1 (slide-page-count slide))
+            (format "~a" (slide-page slide))
+            (format "~a-~a" (slide-page slide) (+ (slide-page slide)
+                                                  (slide-page-count slide)
+                                                  -1))))
+      
+      (define (calc-progress)
+        (if start-time
+            (values (min 1 (/ (- (current-seconds) start-time) (* 60 TALK-MINUTES)))
+                    (/ current-page (max 1 (sub1 (length talk-slide-list)))))
+            (values 0 0)))
+      
+      (define (show-time dc w h)
+        (let* ([left (- w GAUGE-WIDTH)]
+               [top (- h GAUGE-HEIGHT)]
+               [b (send dc get-brush)]
+               [p (send dc get-pen)])
+          (send dc set-pen black-pen)
+          (send dc set-brush (if start-time gray-brush clear-brush))
+          (send dc draw-rectangle left top GAUGE-WIDTH GAUGE-HEIGHT)
+          (when start-time
+            (let-values ([(duration distance) (calc-progress)])
+              (send dc set-brush (if (< distance duration)
+                                     red-brush
+                                     green-brush))
+              (send dc draw-rectangle left top (floor (* GAUGE-WIDTH distance)) GAUGE-HEIGHT)
+              (send dc set-brush clear-brush)
+              (send dc draw-rectangle left top (floor (* GAUGE-WIDTH duration)) GAUGE-HEIGHT)))
+          (send dc set-pen p)
+          (send dc set-brush b)))
+      
+      (define c% (class100 canvas% args
+                   (inherit get-dc get-client-size)
+                   (private-field
+                    [number-font (make-object font% 10 'default 'normal 'normal)])
+                   (override
+                     [on-paint
+                      (lambda ()
+                        (let* ([dc (get-dc)]
+                               [f (send dc get-font)]
+                               [c (send dc get-text-foreground)]
+                               [slide (list-ref talk-slide-list current-page)]
+                               [s (slide-page-string slide)])
+                          (let*-values ([(cw ch) (get-client-size)]
+                                        [(m) (- margin (/ (- screen-w cw) 2))])
+                            ((slide-drawer slide) (get-dc) m m))
+                          
+                          ;; Slide number
+                          (send dc set-font number-font)
+                          (let-values ([(duration distance) (calc-progress)])
+                            (send dc set-text-foreground 
+                                  (cond
+                                    [printing? black-color]
+                                    [(<= (- duration 0.1)
+                                         distance
+                                         (+ duration 0.1))
+                                     black-color]
+                                    [(< distance duration) red-color]
+                                    [else green-color])))
+                          (let-values ([(w h d a) (send dc get-text-extent s)]
+                                       [(cw ch) (if printing?
+                                                    (send dc get-size)
+                                                    (get-client-size))])
+                            (when show-page-numbers?
+                              (send dc draw-text s (- cw w 10) (- ch h 10))) ; 5+5 border
+                            (send dc set-font f)
+                            (send dc set-text-foreground c)
+                            
+                            ;; Progress gauge
+                            (when show-gauge?
+                              (unless printing?
+                                (show-time dc (- cw 10 w) (- ch 10)))))))])
+                   (public
+                     [redraw (lambda ()
+                               (let ([dc (get-dc)])
+                                 (send dc clear)
+                                 (on-paint)))])
+                   (sequence
+                     (apply super-init args))))
+      
+      (define c (make-object c% f))
+      
+      (define (refresh-page)
+        (when (= current-page 0)
+          (set! start-time #f)
+          (unless start-time
+            (set! start-time (current-seconds))))
+        (send c redraw))
+      
+      (define (get-page-from-user)
+        (let* ([d (make-object dialog% "Goto Page" f 200 250)]
+               [short-slide-list 
+                (let loop ([slides talk-slide-list][n 1][last-title #f])
+                  (cond
+                    [(null? slides) null]
+                    [(and last-title
+                          (equal? last-title (slide-title (car slides))))
+                     (loop (cdr slides) (+ n (slide-page-count (car slides))) last-title)]
+                    [else
+                     (let ([title (or (slide-title (car slides))
+                                      "(untitled)")])
+                       (cons (cons
+                              n
+                              (format "~a. ~a" 
+                                      (slide-page-string (car slides))
+                                      title))
+                             (loop (cdr slides) (add1 n) title)))]))]
+               [long-slide-list (let loop ([slides talk-slide-list][n 1])
+                                  (if (null? slides)
+                                      null
+                                      (cons (cons
+                                             n
+                                             (format "~a. ~a" 
+                                                     (slide-page-string (car slides))
+                                                     (or (slide-title (car slides))
+                                                         "(untitled)")))
+                                            (loop (cdr slides) (add1 n)))))]
+               [slide-list short-slide-list]
+               [l (make-object list-box% #f (map cdr slide-list)
+                    d void)]
+               [p (make-object horizontal-pane% d)])
+          (send d center)
+          (send p stretchable-height #f)
+          (make-object check-box% "All Pages" p
+            (lambda (c e)
+              (set! slide-list (if (send c get-value)
+                                   long-slide-list
+                                   short-slide-list))
+              (send l set (map cdr slide-list))))
+          (make-object pane% p)
+          (make-object button% "Cancel" p (lambda (b e) (send d show #f)))
+          (make-object button% "Ok" p 
+            (lambda (b e)
+              (send d show #f)
+              (let ([i (send l get-selection)])
+                (when i
+                  (set! current-page (sub1 (car (list-ref slide-list i))))
+                  (refresh-page))))
+            '(border))
+          (send l focus)
+          (send d show #t)))
+      
+      (refresh-page)
+      
+      (let ([bm (make-object bitmap% (build-path (collection-path "texpict") "slideshow.bmp"))]
+            [mbm (make-object bitmap% (build-path (collection-path "texpict") "mask.xbm"))])
+        (when (send bm ok?)
+          (send f set-icon bm (and (send mbm ok?) mbm) 'both)))
+      
+      (send f show #t)
+      
+      (when commentary?
+        (send c-frame show #t)
+        (message-box "Instructions"
+                     (format "Keybindings:~
+                     ~n  {Meta,Alt}-Q - quit  << IMPORTANT!~
+                     ~n  Right, Space, F or N - next page~
+                     ~n  Left, B - prev page~
+                     ~n  G - last page~
+                     ~n  1 - first page~
+                     ~n  {Meta,Alt}-G - select page~
+                     ~nAll bindings work in both the display and commentary windows")))
+      
+      (when printing?
+        (let ([ps-dc (dc-for-text-size)])
+          (let loop ([start? #f][l (list-tail talk-slide-list current-page)][n current-page])
+            (unless (null? l)
+              (set! current-page n)
+              (refresh-page)
+              (when start?
+                (send ps-dc start-page))
+              (let ([slide (car l)])
+                ((slide-drawer slide) ps-dc margin margin)
+                (when show-page-numbers?
+                  (let ([s (slide-page-string slide)])
+                    (let-values ([(w h) (send ps-dc get-size)]
+                                 [(sw sh sd sa) (send ps-dc get-text-extent s)]
+                                 [(hm vm) (values margin margin)])
+                      (send ps-dc draw-text s (- w hm sw) (- h vm sh))))))
+              (send ps-dc end-page)
+              (loop #t (cdr l) (add1 n))))
+          (send ps-dc end-doc)))))
 
-  (dynamic-require `(file ,content) #f)
-
-  (send progress-window show #f)
-
-  ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;                 Talk Viewer                   ;;
-  ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (set! talk-slide-list (reverse talk-slide-list))
-
-  (when quad-view?
-    (set! talk-slide-list
-	  (let loop ([l talk-slide-list])
-	    (cond
-	     [(null? l) null]
-	     [(< (length l) 4)
-	      (loop (append l (vector->list
-			       (make-vector
-				(- 4 (length l))
-				(make-slide void #f #f page-number 1)))))]
-	     [else (let ([a (car l)]
-			 [b (cadr l)]
-			 [c (caddr l)]
-			 [d (cadddr l)]
-			 [untitled "(untitled)"])
-		     (cons (make-slide
-			    (lambda (dc x y)
-			      (define scale (min (/ (- (/ client-h 2) margin) client-h)
-						 (/ (- (/ client-w 2) margin) client-w)))
-			      (send dc set-scale scale scale)
-			      (send dc set-origin x y)
-			      ((slide-drawer a) dc 0 0)
-			      (send dc set-origin (+ x (/ client-w 2) margin) y)
-			      ((slide-drawer b) dc 0 0)
-			      (send dc set-origin x (+ y (/ client-h 2) margin))
-			      ((slide-drawer c) dc 0 0)
-			      (send dc set-origin (+ x (/ client-w 2) margin) (+ y (/ client-h 2) margin))
-			      ((slide-drawer d) dc 0 0)
-			      (send dc set-scale 1 1)
-			      (send dc set-origin x y)
-			      (send dc draw-line (/ client-w 2) 0 (/ client-w 2) client-h)
-			      (send dc draw-line 0 (/ client-h 2) client-w (/ client-h 2))
-			      (send dc set-origin 0 0))
-			    (format "~a | ~a | ~a | ~a"
-				    (or (slide-title a) untitled)
-				    (or (slide-title b) untitled)
-				    (or (slide-title c) untitled)
-				    (or (slide-title d) untitled))
-			    #f
-			    (slide-page a)
-			    (- (+ (slide-page d) (slide-page-count d)) (slide-page a)))
-			   (loop (cddddr l))))]))))
+  (define done-once? #f)
+  (define making-nesting-depth 0)
   
-  (define TALK-MINUTES 60)
-  (define GAUGE-WIDTH 100)
-  (define GAUGE-HEIGHT 4)
-
-  (define talk-frame%
-    (class100 frame% (closeble?)
-      (private-field [closeable? closeble?])
-      (override
-	[can-close? (lambda () closeable?)]
-	[on-subwindow-char
-	 (lambda (w e)
-	   (let ([k (send e get-key-code)])
-	     (case k
-	       [(right #\space #\f #\n)
-		(set! current-page (min (add1 current-page)
-					(sub1 (length talk-slide-list))))
-		(refresh-page)
-		#t]
-	       [(left #\b)
-		(set! current-page (max (sub1 current-page)
-					0))
-		(refresh-page)
-		#t]
-	       [(#\g)
-		(if (send e get-meta-down)
-		    (get-page-from-user)
-		    (begin
-		      (set! current-page (sub1 (length talk-slide-list)))
-		      (refresh-page)))
-		#t]
-	       [(#\1)
-		(set! current-page 0)
-		(refresh-page)
-		#t]
-	       [(#\q)
-		(when (send e get-meta-down)
-		  (send c-frame show #f)
-		  (send f show #f))
-		#f]
-	       [else
-		#f])))])
-      (sequence
-	(super-init))))
-
-  (define f (instantiate talk-frame% (#f)
-			 [label (format "Slides: ~a" (file-name-from-path content))]
-			 [x 0] [y 0]
-			 [width (inexact->exact (floor screen-w))]
-			 [height (inexact->exact (floor screen-h))]
-			 [style '(no-caption no-resize-border)]))
-
-  (define c-frame (instantiate talk-frame% (#t) [label "Commentary"] [width 400] [height 100]))
-  (define commentary (make-object text%))
-  (send (make-object editor-canvas% c-frame commentary)
-	set-line-count 3)
-
-  (define start-time #f)
-
-  (define clear-brush (make-object brush% "WHITE" 'transparent))
-  (define gray-brush (make-object brush% "GRAY" 'solid))
-  (define green-brush (make-object brush% "GREEN" 'solid))
-  (define red-brush (make-object brush% "RED" 'solid))
-  (define black-pen (make-object pen% "BLACK" 1 'solid))
-  (define red-color (make-object color% "RED"))
-  (define green-color (make-object color% "GREEN"))
-  (define black-color (make-object color% "BLACK"))
-
-  (define (slide-page-string slide)
-    (if (= 1 (slide-page-count slide))
-	(format "~a" (slide-page slide))
-	(format "~a-~a" (slide-page slide) (+ (slide-page slide)
-					      (slide-page-count slide)
-					      -1))))
-
-  (define (calc-progress)
-    (if start-time
-	(values (min 1 (/ (- (current-seconds) start-time) (* 60 TALK-MINUTES)))
-		(/ current-page (max 1 (sub1 (length talk-slide-list)))))
-	(values 0 0)))
-
-  (define (show-time dc w h)
-    (let* ([left (- w GAUGE-WIDTH)]
-	   [top (- h GAUGE-HEIGHT)]
-	   [b (send dc get-brush)]
-	   [p (send dc get-pen)])
-      (send dc set-pen black-pen)
-      (send dc set-brush (if start-time gray-brush clear-brush))
-      (send dc draw-rectangle left top GAUGE-WIDTH GAUGE-HEIGHT)
-      (when start-time
-	(let-values ([(duration distance) (calc-progress)])
-	  (send dc set-brush (if (< distance duration)
-				 red-brush
-				 green-brush))
-	  (send dc draw-rectangle left top (floor (* GAUGE-WIDTH distance)) GAUGE-HEIGHT)
-	  (send dc set-brush clear-brush)
-	  (send dc draw-rectangle left top (floor (* GAUGE-WIDTH duration)) GAUGE-HEIGHT)))
-      (send dc set-pen p)
-      (send dc set-brush b)))
-
-  (define c% (class100 canvas% args
-	       (inherit get-dc get-client-size)
-	       (private-field
-		 [number-font (make-object font% 10 'default 'normal 'normal)])
-	       (override
-		 [on-paint
-		  (lambda ()
-		    (let* ([dc (get-dc)]
-			   [f (send dc get-font)]
-			   [c (send dc get-text-foreground)]
-			   [slide (list-ref talk-slide-list current-page)]
-			   [s (slide-page-string slide)])
-		      (let*-values ([(cw ch) (get-client-size)]
-				    [(m) (- margin (/ (- screen-w cw) 2))])
-			((slide-drawer slide) (get-dc) m m))
-		      
-		      ;; Slide number
-		      (send dc set-font number-font)
-		      (let-values ([(duration distance) (calc-progress)])
-			(send dc set-text-foreground 
-			      (cond
-			       [printing? black-color]
-			       [(<= (- duration 0.1)
-				    distance
-				    (+ duration 0.1))
-				black-color]
-			       [(< distance duration) red-color]
-			       [else green-color])))
-		      (let-values ([(w h d a) (send dc get-text-extent s)]
-				   [(cw ch) (if printing?
-						(send dc get-size)
-						(get-client-size))])
-			(when show-page-numbers?
-			  (send dc draw-text s (- cw w 10) (- ch h 10))) ; 5+5 border
-			(send dc set-font f)
-			(send dc set-text-foreground c)
-
-			;; Progress gauge
-			(when show-gauge?
-			  (unless printing?
-			    (show-time dc (- cw 10 w) (- ch 10)))))))])
-	       (public
-		 [redraw (lambda ()
-			   (let ([dc (get-dc)])
-			     (send dc clear)
-			     (on-paint)))])
-	       (sequence
-		 (apply super-init args))))
-
-  (define c (make-object c% f))
-
-  (define (refresh-page)
-    (when (= current-page 0)
-      (set! start-time #f)
-      (unless start-time
-	(set! start-time (current-seconds))))
-    (send c redraw))
-
-  (define (get-page-from-user)
-    (let* ([d (make-object dialog% "Goto Page" f 200 250)]
-	   [short-slide-list 
-	    (let loop ([slides talk-slide-list][n 1][last-title #f])
-	      (cond
-	       [(null? slides) null]
-	       [(and last-title
-		     (equal? last-title (slide-title (car slides))))
-		(loop (cdr slides) (+ n (slide-page-count (car slides))) last-title)]
-	       [else
-		(let ([title (or (slide-title (car slides))
-				 "(untitled)")])
-		  (cons (cons
-			 n
-			 (format "~a. ~a" 
-				 (slide-page-string (car slides))
-				 title))
-			(loop (cdr slides) (add1 n) title)))]))]
-	   [long-slide-list (let loop ([slides talk-slide-list][n 1])
-			      (if (null? slides)
-				  null
-				  (cons (cons
-					 n
-					 (format "~a. ~a" 
-						 (slide-page-string (car slides))
-						 (or (slide-title (car slides))
-						     "(untitled)")))
-					(loop (cdr slides) (add1 n)))))]
-	   [slide-list short-slide-list]
-	   [l (make-object list-box% #f (map cdr slide-list)
-			   d void)]
-	   [p (make-object horizontal-pane% d)])
-      (send d center)
-      (send p stretchable-height #f)
-      (make-object check-box% "All Pages" p
-		   (lambda (c e)
-		     (set! slide-list (if (send c get-value)
-					  long-slide-list
-					  short-slide-list))
-		     (send l set (map cdr slide-list))))
-      (make-object pane% p)
-      (make-object button% "Cancel" p (lambda (b e) (send d show #f)))
-      (make-object button% "Ok" p 
-		   (lambda (b e)
-		     (send d show #f)
-		     (let ([i (send l get-selection)])
-		       (when i
-			 (set! current-page (sub1 (car (list-ref slide-list i))))
-			 (refresh-page))))
-		   '(border))
-      (send l focus)
-      (send d show #t)))
-
-  (refresh-page)
-
-  (let ([bm (make-object bitmap% (build-path (collection-path "texpict") "slideshow.bmp"))]
-	[mbm (make-object bitmap% (build-path (collection-path "texpict") "mask.xbm"))])
-    (when (send bm ok?)
-      (send f set-icon bm (and (send mbm ok?) mbm) 'both)))
-
-  (send f show #t)
-
-  (when commentary?
-    (send c-frame show #t)
-    (message-box "Instructions"
-		 (format "Keybindings:~
-                      ~n  {Meta,Alt}-Q - quit  << IMPORTANT!~
-                      ~n  Right, Space, F or N - next page~
-                      ~n  Left, B - prev page~
-                      ~n  G - last page~
-                      ~n  1 - first page~
-                      ~n  {Meta,Alt}-G - select page~
-                      ~nAll bindings work in both the display and commentary windows")))
-
-  (when printing?
-    (let ([ps-dc (dc-for-text-size)])
-      (let loop ([start? #f][l (list-tail talk-slide-list current-page)][n current-page])
-	(unless (null? l)
-	  (set! current-page n)
-	  (refresh-page)
-	  (when start?
-	    (send ps-dc start-page))
-	  (let ([slide (car l)])
-	    ((slide-drawer slide) ps-dc margin margin)
-	    (when show-page-numbers?
-	      (let ([s (slide-page-string slide)])
-		(let-values ([(w h) (send ps-dc get-size)]
-			     [(sw sh sd sa) (send ps-dc get-text-extent s)]
-			     [(hm vm) (values margin margin)])
-		  (send ps-dc draw-text s (- w hm sw) (- h vm sh))))))
-	  (send ps-dc end-page)
-	  (loop #t (cdr l) (add1 n))))
-      (send ps-dc end-doc))))
+  (define (start-making-slides)
+    (set! making-nesting-depth (add1 making-nesting-depth)))
+  (define (done-making-slides)
+    (if done-once?
+        (message-box "Slideshow"
+                     "Is more than one module using the slideshow-run language?")
+        (begin
+          (set! making-nesting-depth (sub1 making-nesting-depth))
+          (when (zero? making-nesting-depth)
+            (set! done-once? #t)
+            (send progress-window show #f)
+            (unless (null? talk-slide-list)
+              (invoke-unit go@))))))
+  
+  (when content
+    (start-making-slides)
+    (dynamic-require `(file ,content) #f)
+    (done-making-slides)))
