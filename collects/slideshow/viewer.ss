@@ -697,6 +697,8 @@
 		(unless offscreen
 		  (set! offscreen (make-object bitmap-dc% 
 					       (make-bitmap cw ch)))))
+	      #;
+	      (send offscreen set-smoothing 'smoothed)
 	      (send offscreen clear)
 	      (cond
 	       [(equal? prefetched-page current-page)
@@ -857,7 +859,9 @@
 	(set! prefetched-page #f)
 	
 	(unless prefetch-dc
-	  (set! prefetch-dc (new bitmap-dc%)))
+	  (set! prefetch-dc (new bitmap-dc%))
+	  #;
+	  (send prefetch-dc set-smoothing 'smoothed))
 
 	;; try to re-use existing bitmap
 	(unless (and (is-a? prefetch-bitmap bitmap%)
