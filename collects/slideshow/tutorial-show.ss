@@ -347,14 +347,34 @@
 		 "we'll look at some of the most useful ones in this part")
     "blue"))
 
+  (define (note . l)
+    (colorize (apply page-para/r l) "blue"))
+
+  (slide/title
+   "Tables"
+   (page-para "The" (code table) "function makes rows and columns")
+   (frame
+    (inset
+     (table 3 ; three columns
+	    (list (t "First") (standard-fish (* 2 gap-size) gap-size) (code cons)
+		  (t "Second") (jack-o-lantern (* 4 gap-size)) (code car)
+		  (t "Third") (cloud (* 3 gap-size) gap-size) (code cdr)
+		  (t "Fourth") (file-icon (* 2 gap-size) (* 3 gap-size) #t) (code null?))
+	    (list* lc-superimpose  ; left-align first column
+		   cc-superimpose) ; h-center the rest
+	    cc-superimpose ; v-center all rows
+	    gap-size  ; separate all columns by gap-size
+	    gap-size) ; separate all rows by gap-size
+     gap-size))
+   (note "The above also uses" (code standard-fish) ","
+	 (code jack-o-lantern) "," (code cloud) ", and"
+	 (code file-icon)))
+
   (slide/title
    "Bitmaps"
    (page-para "The" (code bitmap) "function loads a bitmap to display:")
    (blank)
    (bitmap (build-path (collection-path "icons") "plt.gif")))
-
-  (define (note . l)
-    (colorize (apply page-para/r l) "blue"))
 
   (require (lib "math.ss")) ; to get pi
   (define orientations 
@@ -393,8 +413,10 @@
 	      "function wraps a" (color-frame (t "colored frame") "red")
 	      "; compare to" (code frame) "followed by" (code colorize)
 	      "," (colorize (frame (t "like this")) "red"))
+   (blank)
    (page-item "One way to increase the" (linewidth 3 (frame (t "line thickness")))
 	      "is to use" (code linewidth))
+   (blank)
    (page-item "It's often useful to" (frame (inset (t "add space") 3))
 	      "around a pict with" (code inset) "before framing it"))
 
@@ -422,24 +444,25 @@
    (note "(Granted, that's a little tricky)"))
 
   (slide/title
-   "Tables"
-   (page-para "The" (code table) "function makes rows and columns")
-   (frame
-    (inset
-     (table 3 ; three columns
-	    (list (t "First") (standard-fish (* 2 gap-size) gap-size) (code cons)
-		  (t "Second") (jack-o-lantern (* 4 gap-size)) (code car)
-		  (t "Third") (cloud (* 3 gap-size) gap-size) (code cdr)
-		  (t "Fourth") (file-icon (* 2 gap-size) (* 3 gap-size) #t) (code null?))
-	    (list* lc-superimpose  ; left-align first column
-		   cc-superimpose) ; h-center the rest
-	    cc-superimpose ; v-center all rows
-	    gap-size  ; separate all columns by gap-size
-	    gap-size) ; separate all rows by gap-size
-     gap-size))
-   (note "The above also uses" (code standard-fish) ","
-	 (code jack-o-lantern) "," (code cloud) ", and"
-	 (code file-icon)))
+   "Placing Picts"
+   (page-item "Another" (let ([p (t "underline strategy")])
+			  (place-over p 0 (pict-height p) (hline (pict-width p) 1)))
+	      "is to use" (code place-over) ", which places one pict on"
+	      "top of another to generate a new pict")
+   (page-item "The new pict has the"
+	      (color-frame
+	       (let ([p (t "original")])
+		 (place-over p 0 (pict-height p) (hline (pict-width p) 1)))
+	       "green")
+	      "pict's bounding box and baselines")
+   (note "(The green frame is the \"bounding box\" of the result)")
+   (blank)
+   (page-item "The" (code place-over) "function is useful with" (code arrow-line)
+	      "to draw an"
+	      (let ([p (frame (inset (t "outgoing arrow") 2))])
+		(place-over p (/ (pict-width p) 2)  (/ (pict-height p) 2) 
+			    (linewidth 3 (colorize (arrow-line 50 -50 gap-size) "orange"))))
+	      "without changing the layout"))
    
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Conclusion starts here
