@@ -1,15 +1,6 @@
-(module slideshow-run "slideshow.ss"
-  (provide (all-from-except "slideshow.ss" #%module-begin)
-           (rename slideshow-module-begin #%module-begin))
-  
-  (define-syntax (slideshow-module-begin stx)
-    (syntax-case stx ()
-      [(_ e ...)
-       (datum->syntax-object
-	stx
-	(syntax-e
-	 (syntax (#%module-begin
-		  (start-making-slides)
-		  e ...
-		  (done-making-slides)))))])))
 
+(module slideshow-run "slideshow.ss"
+  (require (prefix slideshow: (lib "run.ss" "slideshow")))
+
+  (provide (all-from-except "slideshow.ss" #%module-begin)
+           (rename slideshow:#%module-begin #%module-begin)))

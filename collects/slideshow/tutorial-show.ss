@@ -1,10 +1,7 @@
 ;; This example slideshow code is meant to be read while
 ;;  running the example show.
-;; The code doesn't try to show itself in the slides, because
-;;  that would be tricky (defeating the point of having
-;;  a simple tutorial)
 
-(module example-show (lib "slideshow-run.ss" "texpict")
+(module tutorial-show (lib "run.ss" "slideshow")
 
   ;; The first slide
   (slide
@@ -19,7 +16,7 @@
    (t "This slide shows how four picts")
    (t "get vertically appended by the")
    (tt "slide")
-   (t "function to create a slide"))
+   (t "function to create and install a slide"))
   
   (slide
    (t "See how the")
