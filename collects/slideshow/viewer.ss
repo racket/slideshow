@@ -60,6 +60,7 @@
       (define (given->main!)
 	(if config:quad-view?
 	    (begin
+	      ;; WARNING: This make slide creation O(n^2) for n slides
 	      (set! talk-slide-list (make-quad given-talk-slide-list))
 	      (set! slide-count (length talk-slide-list)))
 	    (begin
@@ -74,8 +75,12 @@
 	  (set! talk-slide-reverse-cell-list (cons p talk-slide-reverse-cell-list)))
 	(set! given-slide-count (add1 given-slide-count))
 	(given->main!)
-	(send f slide-changed (sub1 slide-count))
-	(yield))
+	(if config:printing?
+	    (send progress-display set-label (number->string slide-count))
+	    (begin
+	      (send f slide-changed (sub1 slide-count))
+	      (yield))))
+
       (define (retract-talk-slide!)
 	(unless (null? talk-slide-reverse-cell-list)
 	  (set! talk-slide-reverse-cell-list (cdr talk-slide-reverse-cell-list))
@@ -84,11 +89,10 @@
 	      (set-cdr! (car talk-slide-reverse-cell-list) null)))
 	(set! given-slide-count (sub1 given-slide-count))
 	(given->main!)
-	(if config:printing?
-	    (send progress-display set-label (number->string slide-count))
-	    (begin
-	      (send f slide-changed slide-count)
-	      (yield))))
+	(unless config:printing?
+	  (send f slide-changed slide-count)
+	  (yield)))
+
       (define (most-recent-talk-slide)
 	(and (pair? talk-slide-reverse-cell-list)
 	     (caar talk-slide-reverse-cell-list)))
