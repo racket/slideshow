@@ -927,7 +927,8 @@
 	   set-page-numbers-visible!
 	   (all-from (lib "mrpict.ss" "texpict"))
 	   (all-from (lib "utils.ss" "texpict"))
-           start-making-slides done-making-slides)
+           start-making-slides done-making-slides
+	   started-from-launcher)
   (provide/contract [clickback 
 		     (pict? (lambda (x)
 			      (and (procedure? x)
@@ -1616,7 +1617,66 @@
             (unless (null? talk-slide-list)
               (invoke-unit go@))))))
   
-  (when content
+  (define (load-content content)
+    (send progress-window show #t)
     (start-making-slides)
     (dynamic-require `(file ,content) #f)
-    (done-making-slides)))
+    (done-making-slides))
+
+  (when content
+    (load-content content))
+
+  (define (started-from-launcher)
+    (unless done-once?
+      ;; GUI front-end when no slides are provided
+      (let ()
+	(define f (new dialog%
+		       [label "Slideshow"]))
+	(define msg-panel (new vertical-panel%
+			       [parent f]
+			       [alignment '(left center)]))
+	(define button-panel (new horizontal-pane%
+				  [parent f]
+				  [stretchable-height #f]))
+	(let ([t (lambda strs
+		   (map (lambda (s)
+			  (new message%
+			       [label s]
+			       [parent msg-panel]))
+			strs))])
+	  (t "To run a slide presentation, either"
+	     " * provide the path of the main file on the Slideshow comamnd line,"
+	     " * develop the talk in DrScheme using the (lib \"run.ss\" \"slideshow\") language, or"
+	     " * click the Load button below to select a slide module"
+	     " "
+	     "Click the Tutorial button below for more information."
+	     " "))
+	(new button% 
+	     [label "Tutorial"]
+	     [parent button-panel]
+	     [callback (lambda (b e)
+			 (send f show #f)
+			 (load-content
+			  (build-path (collection-path "slideshow")
+				      "tutorial-show.ss")))])
+	(new pane% [parent button-panel]) ; spacer
+	(new button%
+	     [label "Load..."]
+	     [parent button-panel]
+	     [style '(border)]
+	     [callback (lambda (b e)
+			 (let ([file (get-file)])
+			   (when file
+			     (let-values ([(base name dir?) (split-path file)])
+			       (current-directory base))
+			     (send f show #f)
+			     (load-content file))))])
+	(new button%
+	     [label "Quit"]
+	     [parent button-panel]
+	     [callback (lambda (b e)
+			 (send f show #f))])
+
+	(send progress-window show #f)
+	(send f center)
+	(send f show #t)))))

@@ -476,8 +476,12 @@ Procedure Reference
 
 > (start-making-slides)
 > (done-making-slides)
-  Called implicitly by "slideshow-run.ss", and not to be called
+  Called implicitly by "run.ss", and not to be called
   directly.
+
+> (started-from-launcher)
+  Call by "start.ss". It pops up a GUI interface if no talk has
+  started already.
 
 > (set-use-background-frame! on?) - enables or disables the creation
   of a background frame, which is typically useful only when insets
