@@ -19,12 +19,12 @@
   ;;  namespace. Such namespace games are not necessary if talks are
   ;;  written as units and linked to the core.ss unit.
 
-  (define-values/invoke-unit/sig ((open core^) (unit config : cmdline^) (unit viewer : viewer^))
+  (define-values/invoke-unit/sig ((open core^) (unit config : cmdline^) (unit viewer : main-viewer^))
     (compound-unit/sig
      (import)
      (link [CONFIG : cmdline^ ((current-config))]
-	   [CORE : core^ (core@ (CONFIG : config^) VIEWER)]
-	   [VIEWER : viewer^ ((current-viewer) CONFIG CORE)])
+	   [CORE : core^ (core@ (CONFIG : config^) (VIEWER : viewer^))]
+	   [VIEWER : main-viewer^ ((current-viewer) CONFIG CORE)])
      (export (open CORE) (unit CONFIG config) (unit VIEWER viewer))))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -2,57 +2,32 @@
 (module sig mzscheme
   (require (lib "unitsig.ss"))
 
-  (provide config^ cmdline^ viewer^ core^)
+  (provide config^ viewer^ core^
+	   cmdline^ main-viewer^)
 
-  ;; Main inputs to the core unit:
+  ;; Configuration inputs to the core unit:
   (define-signature config^
-    (file-to-load
+    (base-font-size             ; normally 32
+     screen-w screen-h          ; logical size, normally 1024x768
+     use-screen-w use-screen-h  ; "pixel" size
+     condense? printing?))      ; mode
 
-     base-font-size
-     screen-w screen-h          ; logical size
-     use-screen-w use-screen-h  ; pixel size
-     
-     condense?
-     printing?
-     use-transitions? 
-     init-page))
-
-  (define-signature cmdline^
-    ((open config^)
-     print-slide-seconds?
-     show-page-numbers?
-     commentary?
-     use-offscreen?
-     actual-screen-w actual-screen-h ; actual size (center use- within here)
-     trust-me?
-     quad-view?
-     keep-titlebar?
-     two-frames?
-     use-prefetch?
-     use-prefetch-in-preview?
-     print-target
-     talk-duration-minutes))
-
-  ;; Viewer inputs to the core:
+  ;; Viewer inputs to the core unit:
   (define-signature viewer^
     (;; Registering slides:
      set-talk-slide-list!
      get-talk-slide-list
      display-progress
-     ;; Pass-through of user-program requests:
+     ;; Pass-through of slide-program requests:
      set-init-page!
      set-use-background-frame!
      enable-click-advance!
      set-page-numbers-visible!
      ;; Called when a clickback-containing slide is rendered:
-     add-click-region!
+     add-click-region!))
 
-     ;; Not for the core; exported by "slideshow.ss", instead:
-     start-making-slides
-     done-making-slides
-     started-from-launcher))
-
-  ;; The functions used by a slideshow program:
+  ;; The core unit's exports, which are the functions used by a 
+  ;; Slideshow program:
   (define-signature core^
     (slide
      slide/title
@@ -97,4 +72,33 @@
      make-slide-inset
      apply-slide-inset
      condense?
-     printing?)))
+     printing?))
+
+  ;; ----------------------------------------
+
+  ;; Extra cmdline inputs to a viewer:
+  (define-signature cmdline^
+    ((open config^)
+     file-to-load ; #f or a path/string
+     init-page
+     use-transitions? 
+     print-slide-seconds?
+     show-page-numbers?
+     commentary?
+     use-offscreen?
+     actual-screen-w actual-screen-h ; actual size (center use- within here)
+     trust-me?
+     quad-view?
+     keep-titlebar?
+     two-frames?
+     use-prefetch?
+     use-prefetch-in-preview?
+     print-target
+     talk-duration-minutes))
+
+  ;; Extra viewer stuff exported by "slideshow.ss":
+  (define-signature main-viewer^
+    ((open viewer^)
+     start-making-slides
+     done-making-slides
+     started-from-launcher)))

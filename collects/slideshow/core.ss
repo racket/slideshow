@@ -692,8 +692,7 @@
       ;; ----------------------------------------
 
       (define (add-transition! who trans)
-	(unless (or (null? (viewer:get-talk-slide-list))
-		    (not use-transitions?))
+	(unless (null? (viewer:get-talk-slide-list))
 	  (let ([slide (car (viewer:get-talk-slide-list))])
 	    (set-sliderec-transitions! slide 
 				       (append! (sliderec-transitions slide)

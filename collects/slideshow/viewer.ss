@@ -18,7 +18,7 @@
   (provide viewer@)
 
   (define viewer@
-    (unit/sig viewer^
+    (unit/sig main-viewer^
       (import (config : cmdline^) core^)
       (rename (viewer:set-use-background-frame! set-use-background-frame!)
 	      (viewer:enable-click-advance! enable-click-advance!)
@@ -253,7 +253,10 @@
 			  (printf "Slide ~a: ~a seconds~n" current-page
 				  (- slide-end-seconds slide-start-seconds))
 			  (set! slide-start-seconds slide-end-seconds)))
-		      (do-transitions (sliderec-transitions old) (send c get-offscreen)))))
+		      (do-transitions (if config:use-transitions?
+					  (sliderec-transitions old)
+					  null)
+				      (send c get-offscreen)))))
 
 	      (super-new)))
 	  
