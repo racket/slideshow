@@ -5,10 +5,11 @@
   (define-syntax (slideshow-module-begin stx)
     (syntax-case stx ()
       [(_ e ...)
-       (syntax (#%module-begin
-                (start-making-slides)
-                e ...
-                (done-making-slides)))])))
+       (datum->syntax-object
+	stx
+	(syntax-e
+	 (syntax (#%module-begin
+		  (start-making-slides)
+		  e ...
+		  (done-making-slides)))))])))
 
-
-  
