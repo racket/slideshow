@@ -89,7 +89,8 @@
   (define char-size 24)
   (define line-sep 2)
   (define title-size (+ font-size 4))
-  (define main-font (if (string=? (get-family-builtin-face 'default) " Sans")
+  (define main-font (if (and (not printing?)
+			     (string=? (get-family-builtin-face 'default) " Sans"))
 			'default
 			'swiss))
 
