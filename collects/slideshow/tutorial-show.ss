@@ -1,7 +1,7 @@
 ;; This example slideshow code is meant to be read while
 ;;  running the example show.
 
-(module tutorial-show (lib "run.ss" "slideshow")
+(module tutorial-show (lib "slideshow.ss" "slideshow")
   
   ;; The first few slides are not to be read
   ;; until you have seen the rest of the tutorial,
@@ -889,8 +889,10 @@
    "Your Own Slides"
    (page-para "A Slideshow presentation is a Scheme program in a module,"
               "so to make your own:")
-   (code (module mytalk (lib "run.ss" "slideshow")
-	   ... #,(it "your code here") ...))
+   (scale/improve-new-text ; a macro that improves font selection
+    (code (module mytalk (lib "slide.ss" "slideshow")
+	    ... #,(it "your code here") ...))
+    0.9)
    (blank)
    (page-para "For further information, search for"
 	      (tt "slideshow") "and" (tt "texpict")

@@ -47,7 +47,7 @@
 			     (load-content
 			      (build-path (collection-path "slideshow")
 					  "tutorial-show.ss")))))
-	 (page-para* (link "Open Talk..."
+	 (page-para* (link "Open File..."
 			   (lambda ()
 			     (let ([file (get-file)])
 			       (when file

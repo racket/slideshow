@@ -1,9 +1,9 @@
 
-;; Note that this module uses the "slideshow.ss" language
-;;   instead of the "run.ss" language
-;; Only the main module should use "run.ss"
-(module initial-ones (lib "slideshow.ss" "slideshow")
-  (require (lib "code.ss" "slideshow")
+(module initial-ones mzscheme
+  ;; Instead of using the "slideshow.ss" language module,
+  ;;  we can use mzscheme and import "slide.ss"
+  (require (lib "slide.ss" "slideshow")
+	   (lib "code.ss" "slideshow")
 	   (lib "mred.ss" "mred")
 	   (lib "class.ss")
 	   (lib "etc.ss"))
@@ -75,15 +75,17 @@
       (slide/title
        "Slideshow Programs"
        (page-para "A Slideshow program has the form")
-       (code (module mytalk (lib "run.ss" "slideshow")
-	       ... #,(it "code to generate slide content") ...))
+       (scale/improve-new-text
+	(code (module mytalk (lib "slideshow.ss" "slideshow")
+		... #,(it "code to generate slide content") ...))
+	0.9)
        (page-para "in a file named" mytalk.scm)
        (colorize (hline (* 3/4 client-w) gap-size) "green")
        'alts
        (list (list (page-para "To run a Slideshow program,")
 		   (page-item "Double-click the" (bt "Slideshow") "executable or run" 
 			      (tt "slideshow") "on the command line")
-		   (page-item "Click the" (bt "Load...") "button and select the"
+		   (page-item "Click the" (bt "Open File...") "link and select the"
 			      "Slideshow program file, such as" mytalk.scm))
 	     (list (page-para "Alternately, run a Slideshow program in DrScheme:")
 		   (page-item "Open" mytalk.scm "in DrScheme")
