@@ -19,7 +19,18 @@
   (define show-page-numbers? #t)
   (define quad-view? #f)
 
-  (define base-font-size 32)
+  (define pref
+    (let ([p (with-handlers ([not-break-exn? (lambda (x) '())])
+	       (with-input-from-file* (build-path
+				       (find-system-path 'home-dir)
+				       ".slideshow")
+		 read))])
+      (lambda (key default)
+	(with-handlers ([not-break-exn? (lambda (x) default)])
+	  (cadr (assoc key p))))))
+      
+
+  (define base-font-size (pref 'base-font-size 32))
   
   (define current-page 0)
   
