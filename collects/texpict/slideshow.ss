@@ -1,6 +1,7 @@
 
 (module slideshow mzscheme
-  (require (lib "class.ss"))
+  (require (lib "class.ss")
+	   (lib "class100.ss"))
 
   (require (lib "mred.ss" "mred"))
 
@@ -51,7 +52,7 @@
   (define main-font 'swiss)
 
   (define red "red")
-  (define green "medium sea green")
+  (define green "forest green")
   (define blue "blue")
   (define purple "purple")
   (define orange "orange")
@@ -429,7 +430,8 @@
   (define GAUGE-HEIGHT 4)
 
   (define talk-frame%
-    (class frame% (closeable? . args)
+    (class100 frame% (closeble? . args)
+      (private-field [closeable? closeble?])
       (override
 	[can-close? (lambda () closeable?)]
 	[on-subwindow-char
@@ -513,9 +515,9 @@
       (send dc set-pen p)
       (send dc set-brush b)))
 
-  (define c% (class canvas% args
+  (define c% (class100 canvas% args
 	       (inherit get-dc get-client-size)
-	       (private
+	       (private-field
 		 [number-font (make-object font% 10 'default 'normal 'normal)])
 	       (override
 		 [on-paint
