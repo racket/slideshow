@@ -33,7 +33,7 @@
   (define talk-duration-minutes #f)
   (define no-squash? #f)
   (define two-frames? #f)
-  (define use-prefetch? #t)
+  (define use-prefetch? #f)
   
   (define current-page 0)
   
@@ -88,8 +88,8 @@
 			 (set! talk-duration-minutes n)))
       (("-i" "--immediate") "no transitions"
        (set! use-transitions? #f))
-      (("--no-prefetch") "disable next-slide prefetch"
-       (set! use-prefetch? #f))
+      (("--prefetch") "use next-slide prefetch"
+       (set! use-prefetch? #t))
       (("--comment") "display commentary"
                      (set! commentary? #t))
       (("--time") "time seconds per slide" (set! print-slide-seconds? #t))]
