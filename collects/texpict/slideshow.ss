@@ -133,7 +133,7 @@
        s
        comment)))
 
-  (define (slide/title s . x)
+  (define (slide/title/tall s . x)
     (let loop ([l x][r null][comment #f])
       (cond
        [(null? l) (apply one-slide/title s (reverse r))]
@@ -151,6 +151,9 @@
 		    (loop (car al) r comment))
 		  (aloop (cdr al))))))]
        [else (loop (cdr l) (cons (car l) r) comment)])))
+
+  (define (slide/title s . x)
+    (apply slide/title/tall s (blank) x))
 
   (define (slide . x) (apply slide/title #f x))
 
@@ -357,7 +360,9 @@
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (provide (all-from mzscheme)
-	   slide slide/title comment make-outline
+	   slide slide/title slide/title/tall comment make-outline
+	   item item* page-item page-item*
+	   subitem subitem* page-subitem page-subitem*
 	   itemize itemize* page-itemize page-itemize*
 	   para para* page-para page-para*
 	   para/c para/r para*/c para*/r page-para/c page-para/r page-para*/c page-para*/r
