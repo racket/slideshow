@@ -11,6 +11,7 @@
 
   (define-values (screen-w screen-h) (values 1024 768))
 
+  (define condense? #f)
   (define printing? #f)
   (define commentary? #f)
   (define show-gauge? #f)
@@ -30,6 +31,8 @@
      [once-each
       (("--print") "print"
 		   (set! printing? #t))
+      (("-c" "--condense") "condense"
+			   (set! condense? #t))
       (("-p") page "set the starting page"
 	      (let ([n (string->number page)])
 		(unless (and n 
@@ -180,7 +183,7 @@
 	      (apply one-slide/title process v-sep skipped s (reverse r))
 	      0))]
        [(memq (car l) '(NEXT NEXT!))
-	(let ([skip? (or skip-all? (and printing? (eq? (car l) 'NEXT)))])
+	(let ([skip? (or skip-all? (and condense? (eq? (car l) 'NEXT)))])
 	  (let ([skipped (if skip?
 			     (add1 skipped)
 			     (begin
@@ -192,7 +195,7 @@
 	  (let aloop ([al (cadr l)][skipped skipped])
 	    (if (null? (cdr al))
 		(loop (append (car al) rest) r comment skip-all? skipped)
-		(let ([skip? (or skip-all? (and printing? (eq? (car l) 'ALTS~)))])
+		(let ([skip? (or skip-all? (and condense? (eq? (car l) 'ALTS~)))])
 		  (let ([skipped (loop (car al) r comment skip? skipped)])
 		    (aloop (cdr al) skipped))))))]
        [else (loop (cdr l) (cons (car l) r) comment skip-all? skipped)])))
@@ -248,9 +251,9 @@
 				 (slide-title s)
 				 (slide-comment s)
 				 page-number
-				 (slide-page-count s))
+				 1)
 				talk-slide-list))
-    (set! page-number (+ page-number (slide-page-count s))))
+    (set! page-number (+ page-number 1)))
 
   (define (make-outline . l)
     (define a (colorize (arrow font-size 0) blue))
@@ -470,13 +473,17 @@
 	   bullet o-bullet
 	   margin client-w client-h
 	   full-page titleless-page
-	   printing? skip-slides
+	   printing? condense? skip-slides
 	   (all-from "mrpict.ss")
 	   (all-from "utils.ss"))
 
   (define-values (progress-window progress-display)
     (parameterize ([current-eventspace (make-eventspace)])
-      (let* ([f (make-object frame% "Progress")]
+      (let* ([f (make-object (class frame% 
+			       (override on-close)
+			       (define (on-close) (exit))
+			       (super-instantiate ()))
+			     "Progress")]
 	     [h (instantiate horizontal-panel% (f)
 			     (stretchable-width #f)
 			     (stretchable-height #f))])
@@ -541,7 +548,7 @@
 			    (- (+ (slide-page d) (slide-page-count d)) (slide-page a)))
 			   (loop (cddddr l))))]))))
   
-  (define TALK-MINUTES 25)
+  (define TALK-MINUTES 60)
   (define GAUGE-WIDTH 100)
   (define GAUGE-HEIGHT 4)
 
