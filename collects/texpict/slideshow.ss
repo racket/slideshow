@@ -561,6 +561,16 @@
 
   ;----------------------------------------
 
+  (define (size-in-pixels p)
+    (if (not (and (= actual-screen-w screen-w)
+		  (= actual-screen-h screen-h)))
+	(scale p 
+	       (/ screen-w actual-screen-w)
+	       (/ screen-h actual-screen-h))
+	p))
+
+  ;----------------------------------------
+
   (define-struct click-region (left top right bottom thunk show-click?))
 
   (define click-regions null)
@@ -607,7 +617,7 @@
 	   para/c para/r para*/c para*/r page-para/c page-para/r page-para*/c page-para*/r
 	   font-size gap-size current-font-size line-sep title-size 
 	   main-font current-main-font with-font
-	   red green blue purple orange
+	   red green blue purple orange size-in-pixels
 	   t it bt bit tt titlet tt* rt
 	   bullet o-bullet
 	   margin client-w client-h
