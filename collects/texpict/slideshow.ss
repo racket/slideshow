@@ -137,7 +137,8 @@
 				       page-number
 				       page-count)
 			   talk-slide-list))
-    (set! page-number (+ page-number page-count)))
+    (set! page-number (+ page-number page-count))
+    (send progress-display set-label (number->string page-number)))
 
   (define (skip-slides n)
     (set! page-number (+ page-number n)))
@@ -473,7 +474,23 @@
 	   (all-from "mrpict.ss")
 	   (all-from "utils.ss"))
 
+  (define-values (progress-window progress-display)
+    (parameterize ([current-eventspace (make-eventspace)])
+      (let* ([f (make-object frame% "Progress")]
+	     [h (instantiate horizontal-panel% (f)
+			     (stretchable-width #f)
+			     (stretchable-height #f))])
+	(make-object message% "Building slide: " h)
+	(let ([d (make-object message% "0000" h)])
+	  (send d set-label "1")
+	  (send f center)
+	  (values f d)))))
+
+  (send progress-window show #t)
+
   (dynamic-require `(file ,content) #f)
+
+  (send progress-window show #f)
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                 Talk Viewer                   ;;
