@@ -61,6 +61,8 @@
 
 (define bullet (cc-superimpose (disk (/ font-size 2)) 
 			       (blank 0 font-size)))
+(define o-bullet (cc-superimpose (circle (/ font-size 2)) 
+				 (blank 0 font-size)))
 
 (dc-for-text-size 
  (if printing?
@@ -248,6 +250,28 @@
 
 (define (page-item . s)
   (item client-w s))
+
+;----------------------------------------
+
+(define (subitem* w . s)
+  (inset (htl-append (/ font-size 2)
+		     o-bullet 
+		     (para* (- w
+			       (* 2 font-size)
+			       (pict-width bullet) 
+			       (/ font-size 2)) 
+			    s))
+	 (* 2 font-size) 0 0 0))
+
+(define (subitem w . s)
+  (lbl-superimpose (subitem* w s)
+		   (blank w 0)))
+
+(define (page-subitem* . s)
+  (subitem* client-w s))
+
+(define (page-subitem . s)
+  (subitem client-w s))
 
 ;----------------------------------------
 
