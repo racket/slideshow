@@ -276,7 +276,9 @@ pict snip :
         (unless (pict? pict) 
           (error 'pict-snip "expected a pict to be the result of each embedded snip, got ~e"
                  pict))
-        (let* ([bm (make-object bitmap% w h)]
+        (let* ([bm (make-object bitmap% 
+                     (inexact->exact (ceiling w))
+                     (inexact->exact (ceiling h)))]
                [bdc (make-object bitmap-dc% bm)])
           (send bdc clear)
           (draw-pict pict bdc 0 0)
