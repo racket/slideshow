@@ -1,4 +1,7 @@
 
+;; Note that this module uses the "slideshow.ss" language
+;;   instead of the "run.ss" language
+;; Only the main module should use "run.ss"
 (module initial-ones (lib "slideshow.ss" "slideshow")
   (require (lib "code.ss" "slideshow")
 	   (lib "etc.ss")

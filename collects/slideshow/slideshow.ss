@@ -736,12 +736,18 @@
 		       (lambda (offscreen-dc)
 			 (let ([steps-done 0]
 			       [xs (/ actual-screen-w screen-w)]
-			       [ys (/ actual-screen-h screen-h)])
+			       [ys (/ actual-screen-h screen-h)]
+			       [x-in (if (positive? dx)
+					 (ceiling (/ dx steps))
+					 0)]
+			       [y-in (if (positive? dy)
+					 (ceiling (/ dy steps))
+					 0)])
 			   (unless (and scroll-bm
 					(>= (send scroll-bm get-width) 
-					    (+ w dx))
+					    (+ w (abs dx)))
 					(>= (send scroll-bm get-height) 
-					    (+ h dy)))
+					    (+ h (abs dy))))
 			     (set! scroll-bm (make-object bitmap% 
 							  (inexact->exact (ceiling (+ w (abs dx))))
 							  (inexact->exact (ceiling (+ h (abs dy))))))
@@ -752,7 +758,7 @@
 			   (when scroll-bm
 			     (send scroll-dc clear)
 			     (send scroll-dc draw-bitmap-section (send offscreen-dc get-bitmap)
-				   0 0
+				   x-in y-in
 				   (* (+ margin x) xs) (* (+ margin y) ys)
 				   (* w xs) (* h ys)))
 			   
@@ -767,8 +773,8 @@
 					  (lambda (dc xm ym)
 					    (send dc draw-bitmap-section
 						  scroll-bm
-						  (+ (* xs (+ x margin (* dx (/ steps-done steps)))) xm)
-						  (+ (* ys (+ y margin (* dy (/ steps-done steps)))) ym)
+						  (+ (* xs (+ x margin (* dx (/ steps-done steps)))) xm (- x-in))
+						  (+ (* ys (+ y margin (* dy (/ steps-done steps)))) ym (- y-in))
 						  0 0 
 						  (ceiling (* xs (+ w (/ (abs dx) steps))))
 						  (ceiling (* ys (+ h (/ (abs dy) steps))))))])

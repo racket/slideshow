@@ -52,7 +52,7 @@
        (let ([capturing (lambda (s)
 			  (datum->syntax-object #'expr s))])
 	 (with-syntax ([only? (capturing 'only?)]
-		       [vonly (capturing 'only)]
+		       [vonly (capturing 'vonly)]
 		       [before? (capturing 'before?)]
 		       [vbefore (capturing 'vbefore)]
 		       [after? (capturing 'after?)]

@@ -1,9 +1,7 @@
 
-(module interlocking-components (lib "slideshow.ss" "slideshow")
+(module interlocking-components (lib "run.ss" "slideshow")
   (require (lib "class.ss")
            (lib "mred.ss" "mred"))
-  
-  (provide interlocking-components)
   
   (define-struct posn (x y) (make-inspector))
   
@@ -328,4 +326,6 @@
              0)])
       (cc-superimpose bkg pict)))
   
-  (define (ident x) x))
+  (define (ident x) x)
+
+  (interlocking-components))
