@@ -78,16 +78,18 @@ default font and style.
 Executing the above module pops up a slide-presentation window. Type
 Alt-q (or Meta-q) to end the slides. More controls:
 
-    Alt-q or Meta-q               :  end slide show
-    Right arrow, Space, f, or n   :  next slide
-    Left arrow or b               :  previous slide
-    g                             :  last slide
-    1                             :  first slide
-    Alt-g or Meta-g               :  select a slide
-    p                             :  show/hide slide number
-    Alt-c or Meta-c               :  show/hide commentary
-    Shift with arrow              :  move window 1 pixel
-    Alt or Meta with arrow        :  move window 10 pixels
+   Alt-q, Meta-q, or Cmd-q             :  end slide show
+   Esc                                 :  if confirmed, end show
+   Right arrow, Space, f, n, or click  :  next slide
+   Left arrow or b                     :  previous slide
+   g                                   :  last slide
+   1                                   :  first slide
+   Alt-g, Cmd-g, or Meta-g             :  select a slide
+   Alt-p, Cmd-p, or Meta-p             :  show/hide slide number
+   Alt-c, Cmd-c, or Meta-c             :  show/hide commentary
+   Alt-d, Cmd-d, or Meta-d             :  show/hide preview
+   Shift with arrow                    :  move window 1 pixel
+   Alt, Meta, or Cmd with arrow        :  move window 10 pixels
 
 In general, each element after the title string for `slide/title' is a
 pict that will be centered on the slide. The picts are stacked

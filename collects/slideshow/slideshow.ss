@@ -1070,11 +1070,11 @@
                                                    (when (and close-bg? background-f)
                                                      (send background-f show #f)))))
 
-          (define/override on-subwindow-char
+	  (define/override on-subwindow-char
             (lambda (w e)
               (let ([k (send e get-key-code)])
                 (case k
-                  [(right)
+		  [(right)
 		   (shift e 1 0 (lambda () (next)))]
 		  [(left)
 		   (shift e -1 0 (lambda () (prev)))]
@@ -1105,31 +1105,50 @@
                    (stop-transition)
                    (when (or (send e get-meta-down)
                              (send e get-alt-down))
-                     (send c-frame show #f)
-                     (send f show #f)
-                     (when f-both
-                       (send f-both show #f)))
-                   (when print-slide-seconds?
-                     (printf "Total Time: ~a seconds~n"
-                             (- (current-seconds) talk-start-seconds)))
-                   #f]
-		  [(#\p)
-		   (set! show-page-numbers? (not show-page-numbers?))
-		   (stop-transition)
-		   (refresh-page)]
+                     (stop-show))
+                   #t]
+		  [(escape)
+		   (when (equal? 1 (message-box/custom
+				    "Quit"
+				    "Really quit the slide show?"
+				    "&Quit"
+				    "&Cancel"
+				    #f
+				    this
+				    '(default=1 caution)))
+		     (stop-show))
+		   #t]
+                  [(#\p)
+		   (when (or (send e get-meta-down)
+                             (send e get-alt-down))
+		     (set! show-page-numbers? (not show-page-numbers?))
+		     (stop-transition)
+		     (refresh-page))
+		   #t]
                   [(#\d)
-		   (stop-transition)
-		   (send f-both show (not (send f-both is-shown?)))
-		   (refresh-page)]
+		   (when (or (send e get-meta-down)
+                             (send e get-alt-down))
+		     (stop-transition)
+		     (send f-both show (not (send f-both is-shown?)))
+		     (refresh-page))
+		   #t]
                   [(#\c)
-                   (stop-transition)
                    (when (or (send e get-meta-down)
                              (send e get-alt-down))
+		     (stop-transition)
                      (send c-frame show (not (send c-frame is-shown?))))
                    #t]
                   [else
                    #f]))))
 
+	  (define/private (stop-show)
+	    (send c-frame show #f)
+	    (send f show #f)
+	    (send f-both show #f)
+	    (when print-slide-seconds?
+	      (printf "Total Time: ~a seconds~n"
+		      (- (current-seconds) talk-start-seconds))))
+	  
 	  (define/private (shift e xs ys otherwise)
 	    (cond
 	     [(or (send e get-meta-down)

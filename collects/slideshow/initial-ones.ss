@@ -4,7 +4,9 @@
 ;; Only the main module should use "run.ss"
 (module initial-ones (lib "slideshow.ss" "slideshow")
   (require (lib "code.ss" "slideshow")
-	   (lib "package.ss"))
+	   (lib "package.ss")
+	   (lib "mred.ss" "mred")
+	   (lib "class.ss"))
 
   (provide do-initial-slides)
 
@@ -38,25 +40,29 @@
       (define (meta key)
 	(hbl-append (t "Alt-") 
 		    (if (pict? key) key (tt key))
-		    (t " or Meta-") 
+		    (t ", Cmd-") 
+		    (if (pict? key) key (tt key))
+		    (t ", or Meta-") 
 		    (if (pict? key) key (tt key))))
 
-      (slide/title/center
+      (slide/title
        "How to Control this Viewer"
        (table 3
 	      (apply
 	       append
 	       (map (lambda (s)
 		      (list (apply page-para* (car s)) (t ":") (t (cadr s))))
-		    `(((,(meta "q")) "ends show")
-		      ((,sym:rightarrow ", Space," ,(tt "f") ", or" ,(tt "n")) "next slide")
+		    `(((,(meta "q")) "end show")
+		      (("Esc") "if confirmed, end show")
+		      ((,sym:rightarrow ", Space," ,(tt "f") "," ,(tt "n") ", or click") "next slide")
 		      ((,sym:leftarrow "or" ,(tt "b")) "previous slide")
 		      ((,(tt "g")) "last slide")
 		      ((,(tt "1")) "first slide")
 		      ((,(meta "g")) "select a slide")
-		      ((,(tt "p")) "show/hide slide number")
+		      ((,(meta "p")) "show/hide slide number")
 		      ((,(meta "c")) "show/hide commentary")
-		      (("Shift-" ,sym:rightarrow ", etc.") "move window 1 pixel")
+		      ((,(meta "d")) "show/hide preview")
+		      ((,(hbl-append (t "Shift-") sym:rightarrow) ", etc.") "move window 1 pixel")
 		      ((,(meta sym:rightarrow) ", etc.") "move window 10 pixels"))))
 	      lbl-superimpose lbl-superimpose
 	      gap-size (/ gap-size 2))
@@ -124,10 +130,28 @@
        (blank)
        (page-para "The source is")
        (let ([s (build-path (collection-path "slideshow") "tutorial-show.ss")])
-	 (scale/improve-new-text
-	  (tt s)
-	  (min 1 (/ (* 0.8 client-w ) (pict-width (tt s)))))))
-
+	 (clickback
+	  (scale/improve-new-text
+	   (let ([p (tt s)])
+	     (colorize
+	      (place-over p 0 (pict-height p)
+			  (linewidth 2 (hline (pict-width p) 2)))
+	      "blue"))
+	   (min 1 (/ (* 0.8 client-w ) (pict-width (tt s)))))
+	  (lambda ()
+	    (let* ([f (new frame% 
+			   [label "tutorial-show.ss"]
+			   [width 600]
+			   [height 400])]
+		   [e (new text%)]
+		   [c (new editor-canvas% 
+			   [parent f]
+			   [editor e])])
+	      (send e load-file s)
+	      (send e change-style 
+		    (make-object style-delta% 'change-family 'modern)
+		    0 'end)
+	      (send f show #t))))))
       )
     (void)))
 

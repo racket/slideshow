@@ -191,7 +191,7 @@
    "Text and Styles"
    (page-para "Functions exist for" (bt "bold") ","
               (it "italic") ", and even" (bit "bold-italic") "text")
-   (page-para "The" (tt "text") "function give you more direct control over the"
+   (page-para "The" (tt "text") "function gives you more direct control over the"
               (text "font" '(italic . modern) font-size) ","
               (text "size" main-font 24) ", and even"
               (text "angle" main-font font-size (/ 3.14159 4))))
@@ -713,7 +713,7 @@
        (page-para "In the body expression, use"
 		  (code ((vonly _step-name) _pict-expr))
 		  "to make" (code _pict-expr)
-		  "visibly only during" (code _step-name))
+		  "visible only during" (code _step-name))
        (page-para "The expression" (code (vonly _step-name))
 		  "produces either" (code ghost)
 		  "or the identity function")))
@@ -728,7 +728,7 @@
 
   (define smiley (face 'happy))
   (define desc (page-para "The" (code scroll-transition)
-			  "function slides some part of the current slide"
+			  "function scrolls some part of the current slide"
 			  "before shifting to the next slide."))
   
   (define (scroll-slide right?)
