@@ -77,7 +77,7 @@
 	 (let ([p (make-object post-script-dc% #f)])
 	   (send p start-doc "tmp")
 	   (send p start-page)
-	   (set-values! (screen-h screen-w) (send p get-size))
+	   (set!-values (screen-h screen-w) (send p get-size))
 	   p)))
 
      ;; Bitmaps give same size as the screen:
@@ -400,7 +400,10 @@
     (sequence
       (apply super-init args))))
 
-(define f (make-object talk-frame% #f "Talk" #f screen-w screen-h 0 0 '(no-caption)))
+(define f (make-object talk-frame% #f "Talk" #f 
+		       (inexact->exact (floor screen-w))
+		       (inexact->exact (floor screen-h))
+		       0 0 '(no-caption)))
 
 (define c-frame (make-object talk-frame% #t "Commentary" #f 400 100))
 (define commentary (make-object text%))
