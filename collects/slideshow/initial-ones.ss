@@ -4,7 +4,6 @@
 ;; Only the main module should use "run.ss"
 (module initial-ones (lib "slideshow.ss" "slideshow")
   (require (lib "code.ss" "slideshow")
-	   (lib "package.ss")
 	   (lib "mred.ss" "mred")
 	   (lib "class.ss")
 	   (lib "etc.ss"))
@@ -12,9 +11,7 @@
   (provide do-initial-slides)
 
   (define (do-initial-slides)
-    ;; We use package just to support a top-level-like sequence of
-    ;; definitions and expressions
-    (package p ()
+    (begin-with-definitions
       (slide/name/center
        "Title Slide"
        (titlet "Slideshow Tutorial")
