@@ -426,7 +426,7 @@
 	    (loop pre (car rest) (cdr rest)))]
        [(list? s) (loop pre (car s) (append (cdr s) rest))]
        [else
-	(let* ([sep? (and (string? s) (regexp-match "^[',. :;-]" s))]
+	(let* ([sep? (and (string? s) (regexp-match "^[',. :;-?!]" s))]
 	       [p (if (string? s) (t s) s)])
 	  (cond
 	   [(< (+ (if pre (pict-width pre) 0)
