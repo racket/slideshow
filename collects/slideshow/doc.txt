@@ -515,18 +515,11 @@ Procedure Reference
 > (skip-slides n) - increment the slide counter by `n' without adding
   any slides.
 
-> (start-making-slides)
 > (done-making-slides)
-  Called implicitly by "run.ss" --- and not to be called directly
-  except to replicate the behavior of "run.ss".  The
-  `start-making-slides' procedure is called before any other
-  definition or expression in a "run.ss"-based module is evaluated,
-  and the `start-making-slides' procedure is called at the end of the
-  "run.ss"-based module.
-
-> (started-from-launcher)
-  Call by "start.ss". It pops up a GUI interface if no talk has
-  started already.
+  Notifies the slide viewer that no further slides will be registered,
+  which is mainly useful in printing mode. This procedure is called
+  automatically after loading a file when Slideshow is run as a
+  application.
 
 > (set-use-background-frame! on?) - enables or disables the creation
   of a background frame, which is typically useful only when insets

@@ -10,7 +10,8 @@
 	   (lib "mrpict.ss" "texpict")
 	   (lib "utils.ss" "texpict")
 	   (lib "math.ss")
-	   "sig.ss")
+	   "sig.ss"
+	   (prefix start: "start-param.ss"))
 
   (provide cmdline@)
 
@@ -51,6 +52,7 @@
 	(define keep-titlebar? #f)
 	(define show-page-numbers? #t)
 	(define quad-view? #f)
+	(define pixel-scale (if quad-view? 1/2 1))
 	(define print-slide-seconds? #f)
 	(define use-offscreen? #t)
 	(define use-transitions? use-offscreen?)
@@ -86,7 +88,8 @@
 		 (error 'slideshow "argument to -t is not a positive exact integer: ~a" page))
 	       (set! init-page (sub1 n))))
 	    (("-q" "--quad") "show four slides at a time"
-	     (set! quad-view? #t))
+	     (set! quad-view? #t)
+	     (set! pixel-scale 1/2))
 	    (("-n" "--no-stretch") "don't stretch the slide window to fit the screen"
 	     (when (> actual-screen-w screen-w)
 	       (set! actual-screen-w screen-w)
@@ -167,6 +170,9 @@
 
 	     ;; Bitmaps give same size as the screen:
 	     (make-object bitmap-dc% (make-object bitmap% 1 1))))
+
+	(start:trust-me? trust-me?)
+	(start:file-to-load file-to-load)
 
 	(set!-values (use-screen-w use-screen-h)
 		     (if no-squash?

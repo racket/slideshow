@@ -35,6 +35,7 @@
 				       (define screen-h 768)
 				       (define use-screen-w w)
 				       (define use-screen-h h)
+				       (define pixel-scale 1/4)
 				       (define condense? c?)
 				       (define printing? #f)))]
 		  [CORE : core^ (core@ CONFIG (VIEWER : viewer^))]
@@ -45,7 +46,7 @@
 					 (when (and stop-after
 						    ((length slides) . >= . stop-after))
 					   (escape (void))))
-				       (define (retract-talk-slide! s)
+				       (define (retract-talk-slide!)
 					 (set! slides (cdr slides)))
 				       (define (most-recent-talk-slide)
 					 (and (pair? slides) (car slides)))
@@ -54,7 +55,8 @@
 				       (define set-use-background-frame! void)
 				       (define enable-click-advance! void)
 				       (define set-page-numbers-visible! void)
-				       (define add-click-region! void)))])
+				       (define add-click-region! void)
+				       (define done-making-slides void)))])
 	    (export (open CORE) (unit CONFIG config) (unit VIEWER viewer)))))
 	(parameterize ([current-namespace ns])
 	  (let/ec k

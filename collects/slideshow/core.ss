@@ -54,9 +54,10 @@
       (define current-main-font (make-parameter main-font))
 
       (when (not (and (= use-screen-w screen-w)
-		      (= use-screen-h screen-h)))
-	(current-expected-text-scale (list (/ use-screen-w screen-w)
-					   (/ use-screen-h screen-h))))
+		      (= use-screen-h screen-h)
+		      (= pixel-scale 1)))
+	(current-expected-text-scale (list (* (/ use-screen-w screen-w) pixel-scale)
+					   (* (/ use-screen-h screen-h) pixel-scale))))
 
       (define red "red")
       (define green "forest green")
@@ -416,6 +417,9 @@
 
       (define (start-at-recent-slide)
 	(viewer:set-init-page! (max 0 (- page-number 2))))
+
+      (define (done-making-slides)
+	(viewer:done-making-slides))
 
       (define (make-outline . l)
 	(define ah (arrowhead gap-size 0))

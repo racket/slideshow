@@ -10,6 +10,7 @@
     (base-font-size             ; normally 32
      screen-w screen-h          ; logical size, normally 1024x768
      use-screen-w use-screen-h  ; "pixel" size
+     pixel-scale                ; amount the "pixels" are scaled (e.g., for quad)
      condense? printing?))      ; mode
 
   ;; Viewer inputs to the core unit:
@@ -23,6 +24,7 @@
      set-use-background-frame!
      enable-click-advance!
      set-page-numbers-visible!
+     done-making-slides
      ;; Called when a clickback-containing slide is rendered:
      add-click-region!))
 
@@ -67,7 +69,7 @@
      enable-click-advance!
      get-title-h set-title-h! current-slide-assembler
      current-page-number-font current-page-number-color
-     set-page-numbers-visible!
+     set-page-numbers-visible! done-making-slides
      clickback 
      make-slide-inset
      apply-slide-inset

@@ -17,12 +17,16 @@
 
   (provide viewer@)
 
+  ;; Needed for browsing
+  (define original-security-guard (current-security-guard))
+      
   (define viewer@
     (unit/sig viewer^
       (import (config : cmdline^) core^)
       (rename (viewer:set-use-background-frame! set-use-background-frame!)
 	      (viewer:enable-click-advance! enable-click-advance!)
-	      (viewer:set-page-numbers-visible! set-page-numbers-visible!))
+	      (viewer:set-page-numbers-visible! set-page-numbers-visible!)
+	      (viewer:done-making-slides done-making-slides))
 
       (define-accessor margin get-margin)
       (define-accessor client-w get-client-w)
@@ -34,68 +38,56 @@
       (define click-to-advance? #t)
       (define click-regions null)
       (define talk-slide-list null)
+      (define given-talk-slide-list null)
       (define talk-slide-reverse-cell-list null)
+      (define given-slide-count 0)
+      (define slide-count 0)
 
-      (define empty-slide (make-sliderec (make-pict-drawer
-					  (let ([link (lambda (label thunk)
-							(clickback (colorize 
-								    (let ([p (t label)])
-								      (refocus (vc-append p
-											  (linewidth 2 (hline (pict-width p) 2)))
-									       p))
-								    "blue")
-								   thunk))])
-					    (cc-superimpose
-					     (get-titleless-page)
-					     (vl-append
-					      gap-size
-					      (bt "Slideshow")
-					      (page-item "If you supplied a talk, it is loading...")
-					      (page-item "Or " 
-							 (link "run tutorial"
-							       (lambda ()
-								 (load-content
-								  (build-path (collection-path "slideshow")
-									      "tutorial-show.ss")))))
-					      (page-item "Or " 
-							 (link "choose talk"
-							       (lambda ()
-								 (let ([file (get-file)])
-								   (when file
-								     (let-values ([(base name dir?) (split-path file)])
-								       (current-directory base))
-								     (send f show #f)
-								     (load-content file))))))))))
-					 "<Empty>"
-					 #f
-					 0
-					 1
-					 zero-inset
-					 null))
+      (define empty-slide
+	(make-sliderec (lambda (dc x y) (void))
+		       "<Empty>"
+		       #f
+		       0
+		       1
+		       zero-inset
+		       null))
 
       (define (talk-list-ref n)
-	(if (null? talk-slide-list)
-	    empty-slide
-	    (list-ref talk-slide-list n)))
+	(if (n . < . slide-count)
+	    (list-ref talk-slide-list n)
+	    empty-slide))
+
+      (define (given->main!)
+	(if config:quad-view?
+	    (begin
+	      (set! talk-slide-list (make-quad given-talk-slide-list))
+	      (set! slide-count (length talk-slide-list)))
+	    (begin
+	      (set! talk-slide-list given-talk-slide-list)
+	      (set! slide-count given-slide-count))))
 
       (define (add-talk-slide! s)
 	(let ([p (cons s null)])
 	  (if (null? talk-slide-reverse-cell-list)
-	      (set! talk-slide-list p)
+	      (set! given-talk-slide-list p)
 	      (set-cdr! (car talk-slide-reverse-cell-list) p))
 	  (set! talk-slide-reverse-cell-list (cons p talk-slide-reverse-cell-list)))
-	(send f slide-changed (sub1 (length talk-slide-list)))
+	(set! given-slide-count (add1 given-slide-count))
+	(given->main!)
+	(send f slide-changed (sub1 slide-count))
 	(yield))
       (define (retract-talk-slide!)
 	(unless (null? talk-slide-reverse-cell-list)
 	  (set! talk-slide-reverse-cell-list (cdr talk-slide-reverse-cell-list))
 	  (if (null? talk-slide-reverse-cell-list)
-	      (set! talk-slide-list null)
+	      (set! given-talk-slide-list null)
 	      (set-cdr! (car talk-slide-reverse-cell-list) null)))
+	(set! given-slide-count (sub1 given-slide-count))
+	(given->main!)
 	(if config:printing?
-	    (send progress-display set-label (number->string (length talk-slide-list)))
+	    (send progress-display set-label (number->string slide-count))
 	    (begin
-	      (send f slide-changed (length talk-slide-list))
+	      (send f slide-changed slide-count)
 	      (yield))))
       (define (most-recent-talk-slide)
 	(and (pair? talk-slide-reverse-cell-list)
@@ -118,64 +110,61 @@
       (define (add-click-region! cr)
 	(set! click-regions (cons cr click-regions)))
 
+      (define (make-quad l)
+	(cond
+	 [(null? l) null]
+	 [(< (length l) 4)
+	  (make-quad (append l (vector->list
+				(make-vector
+				 (- 4 (length l))
+				 (make-sliderec void #f #f 
+						(sliderec-page (car (last-pair l)))
+						1 
+						zero-inset 
+						null)))))]
+	 [else (let ([a (car l)]
+		     [b (cadr l)]
+		     [c (caddr l)]
+		     [d (cadddr l)]
+		     [untitled "(untitled)"])
+		 (cons (make-sliderec
+			(lambda (dc x y)
+			  (define-values (orig-sx orig-sy) (send dc get-scale))
+			  (define-values (orig-ox orig-oy) (send dc get-origin))
+			  (define scale (min (/ (- (/ client-h 2) margin) client-h)
+					     (/ (- (/ client-w 2) margin) client-w)))
+			  (define (set-origin x y)
+			    (send dc set-origin (+ orig-ox (* x orig-sx)) (+ orig-oy (* y orig-sy))))
+			  (send dc set-scale (* orig-sx scale) (* orig-sy scale))
+			  (set-origin x y)
+			  ((sliderec-drawer a) dc 0 0)
+			  (set-origin (+ x (/ client-w 2) margin) y)
+			  ((sliderec-drawer b) dc 0 0)
+			  (set-origin x (+ y (/ client-h 2) margin))
+			  ((sliderec-drawer c) dc 0 0)
+			  (set-origin (+ x (/ client-w 2) margin) (+ y (/ client-h 2) margin))
+			  ((sliderec-drawer d) dc 0 0)
+			  (send dc set-scale orig-sx orig-sy)
+			  (set-origin x y)
+			  (send dc draw-line (/ client-w 2) 0 (/ client-w 2) client-h)
+			  (send dc draw-line 0 (/ client-h 2) client-w (/ client-h 2))
+			  (send dc set-origin orig-ox orig-oy))
+			(format "~a | ~a | ~a | ~a"
+				(or (sliderec-title a) untitled)
+				(or (sliderec-title b) untitled)
+				(or (sliderec-title c) untitled)
+				(or (sliderec-title d) untitled))
+			#f
+			(sliderec-page a)
+			(- (+ (sliderec-page d) (sliderec-page-count d)) (sliderec-page a))
+			zero-inset
+			null)
+		       (make-quad (list-tail l 4))))]))
+
       ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                   Main GUI                    ;;
       ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       
-      #;
-      (when config:quad-view?
-	(set! talk-slide-list
-	      (let loop ([l talk-slide-list])
-		(cond
-		 [(null? l) null]
-		 [(< (length l) 4)
-		  (loop (append l (vector->list
-				   (make-vector
-				    (- 4 (length l))
-				    (make-sliderec void #f #f 
-						   (sliderec-page (car (last-pair l)))
-						   1 
-						   zero-inset 
-						   null)))))]
-		 [else (let ([a (car l)]
-			     [b (cadr l)]
-			     [c (caddr l)]
-			     [d (cadddr l)]
-			     [untitled "(untitled)"])
-			 (cons (make-sliderec
-				(lambda (dc x y)
-				  (define-values (orig-sx orig-sy) (send dc get-scale))
-				  (define-values (orig-ox orig-oy) (send dc get-origin))
-				  (define scale (min (/ (- (/ client-h 2) margin) client-h)
-						     (/ (- (/ client-w 2) margin) client-w)))
-				  (define (set-origin x y)
-				    (send dc set-origin (+ orig-ox (* x orig-sx)) (+ orig-oy (* y orig-sy))))
-				  (send dc set-scale (* orig-sx scale) (* orig-sy scale))
-				  (set-origin x y)
-				  ((sliderec-drawer a) dc 0 0)
-				  (set-origin (+ x (/ client-w 2) margin) y)
-				  ((sliderec-drawer b) dc 0 0)
-				  (set-origin x (+ y (/ client-h 2) margin))
-				  ((sliderec-drawer c) dc 0 0)
-				  (set-origin (+ x (/ client-w 2) margin) (+ y (/ client-h 2) margin))
-				  ((sliderec-drawer d) dc 0 0)
-				  (send dc set-scale orig-sx orig-sy)
-				  (set-origin x y)
-				  (send dc draw-line (/ client-w 2) 0 (/ client-w 2) client-h)
-				  (send dc draw-line 0 (/ client-h 2) client-w (/ client-h 2))
-				  (send dc set-origin orig-ox orig-oy))
-				(format "~a | ~a | ~a | ~a"
-					(or (sliderec-title a) untitled)
-					(or (sliderec-title b) untitled)
-					(or (sliderec-title c) untitled)
-					(or (sliderec-title d) untitled))
-				#f
-				(sliderec-page a)
-				(- (+ (sliderec-page d) (sliderec-page-count d)) (sliderec-page a))
-				zero-inset
-				null)
-			       (loop (cddddr l))))]))))
-	  
       (define GAUGE-WIDTH 100)
       (define GAUGE-HEIGHT 4)
 
@@ -215,7 +204,7 @@
 		   (if (send e get-meta-down)
 		       (get-page-from-user)
 		       (begin
-			 (set! current-page (max 0 (sub1 (length talk-slide-list))))
+			 (set! current-page (max 0 (sub1 slide-count)))
 			 (refresh-page)))
 		   #t]
 		  [(#\1)
@@ -269,7 +258,8 @@
 	    (send f-both show #f)
 	    (when config:print-slide-seconds?
 	      (printf "Total Time: ~a seconds~n"
-		      (- (current-seconds) talk-start-seconds))))
+		      (- (current-seconds) talk-start-seconds)))
+	    (exit))
 	  
 	  (define/private (shift e xs ys otherwise)
 	    (cond
@@ -305,13 +295,23 @@
 			       (send f-both is-shown?))
 			   (= pos (add1 current-page))))
 	      (stop-transition)
-	      (change-slide 0)))
+	      (set! prefetched-page #f)
+	      (change-slide 0)
+	      (when (and (= pos 0)
+			 (not config:printing?))
+		(when use-background-frame?
+		  (send f show #f)
+		  (yield)
+		  (send background-f show #t))
+		(send f show #t)
+		(when config:two-frames?
+		  (send f-both show #t)))))
 
 	  (define/private (change-slide n)
 	    (let ([old (talk-list-ref current-page)])
 	      (set! current-page (max 0
 				      (min (+ n current-page)
-					   (sub1 (length talk-slide-list)))))
+					   (sub1 slide-count))))
 	      (when config:print-slide-seconds?
 		(let ([slide-end-seconds (current-seconds)])
 		  (printf "Slide ~a: ~a seconds~n" current-page
@@ -331,22 +331,18 @@
 	    (get-display-left-top-inset)))
 
       (define background-f
-	(and use-background-frame?
-	     (make-object (class frame%
-			    (define/override (on-activate on?)
-			      (when on?
-				(send f show #t)))
-			    (super-instantiate 
-			     ()
-			     [label "Slidsehow Background"]
-			     [x (- screen-left-inset)] [y (- screen-top-inset)]
-			     [width (inexact->exact (floor config:actual-screen-w))]
-			     [height (inexact->exact (floor config:actual-screen-h))]
-			     [style '(no-caption no-resize-border hide-menu-bar)])))))
+	(make-object (class frame%
+		       (define/override (on-activate on?)
+			 (when on?
+			   (send f show #t)))
+		       (super-new
+			[label "Slideshow Background"]
+			[x (- screen-left-inset)] [y (- screen-top-inset)]
+			[width (inexact->exact (floor config:actual-screen-w))]
+			[height (inexact->exact (floor config:actual-screen-h))]
+			[style '(no-caption no-resize-border hide-menu-bar)]))))
 
-      (when background-f
-	(send background-f enable #f)
-	(send background-f show #t))
+      (send background-f enable #f)
 
       (define f (new talk-frame%
 		     [closeable? config:keep-titlebar?]
@@ -438,7 +434,7 @@
       (define (calc-progress)
 	(if (and start-time config:talk-duration-minutes)
 	    (values (min 1 (/ (- (current-seconds) start-time) (* 60 config:talk-duration-minutes)))
-		    (/ current-page (max 1 (sub1 (length talk-slide-list)))))
+		    (/ current-page (max 1 (sub1 slide-count))))
 	    (values 0 0)))
       
       (define (show-time dc w h)
@@ -527,7 +523,7 @@
 		   [b (send dc get-brush)]
 		   [p (send dc get-pen)])
 	      (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
-	      (send dc set-brush  (send the-brush-list find-or-create-brush "black" 'xor))
+	      (send dc set-brush  (send the-brush-list find-or-create-brush "black" 'hilite))
 	      (send dc draw-rectangle 
 		    (click-region-left clicking)
 		    (click-region-top clicking)
@@ -632,7 +628,7 @@
 		      (send dc set-origin (/ cw 2) 0)
 		      (send dc draw-bitmap prefetch-bitmap 0 0)]
 		     [else
-		      (when (< (add1 current-page) (length talk-slide-list))
+		      (when (< (add1 current-page) slide-count)
 			(let ([b (send dc get-brush)])
 			  (send dc set-brush gray-brush)
 			  (send dc draw-rectangle bw 0 bw bh)
@@ -641,7 +637,7 @@
 		 [else
 		  (paint-slide dc current-page 1/2 1/2 cw (* 2 ch) cw (* 2 ch) #f)
 		  (send dc set-origin (/ cw 2) 0)
-		  (when (< (add1 current-page) (length talk-slide-list))
+		  (when (< (add1 current-page) slide-count)
 		    (paint-slide dc
 				 (+ current-page 1)
 				 1/2 1/2
@@ -798,7 +794,7 @@
 	  (send c redraw)
 	  (when (and c-both (send f-both is-shown?))
 	    (send c-both redraw))
-	  (when (< current-page (- (length talk-slide-list) 1))
+	  (when (< current-page (- slide-count 1))
 	    (schedule-slide-prefetch (+ current-page 1)
 				     (if immediate-prefetch?
 					 50
@@ -844,67 +840,68 @@
 	(set! current-transitions-key #f))
       
       (define (get-page-from-user)
-	(let* ([d (make-object dialog% "Goto Page" f 200 250)]
-	       [short-slide-list 
-		(let loop ([slides talk-slide-list][n 1][last-title #f])
-		  (cond
-		   [(null? slides) null]
-		   [(and last-title
-			 (equal? last-title (or (sliderec-title (car slides))
-						"(untitled)")))
-		    (loop (cdr slides) (+ n 1) last-title)]
-		   [else
-		    (let ([title (or (sliderec-title (car slides))
-				     "(untitled)")])
-		      (cons (cons
-			     n
-			     (format "~a. ~a" 
-				     (slide-page-string (car slides))
-				     title))
-			    (loop (cdr slides) (add1 n) title)))]))]
-	       [long-slide-list (let loop ([slides talk-slide-list][n 1])
-				  (if (null? slides)
-				      null
-				      (cons (cons
-					     n
-					     (format "~a. ~a" 
-						     (slide-page-string (car slides))
-						     (or (sliderec-title (car slides))
-							 "(untitled)")))
-					    (loop (cdr slides) (add1 n)))))]
-	       [slide-list short-slide-list]
-	       [l (make-object list-box% #f (map cdr slide-list)
-			       d void)]
-	       [p (make-object horizontal-pane% d)])
-	  (send d center)
-	  (send p stretchable-height #f)
-	  (make-object check-box% "All Pages" p
-		       (lambda (c e)
-			 (set! slide-list (if (send c get-value)
-					      long-slide-list
-					      short-slide-list))
-			 (send l set (map cdr slide-list))))
-	  (make-object pane% p)
-	  (make-object button% "Cancel" p (lambda (b e) (send d show #f)))
-	  (make-object button% "Ok" p 
-		       (lambda (b e)
-			 (send d show #f)
-			 (let ([i (send l get-selection)])
-			   (when i
-			     (set! current-page (sub1 (car (list-ref slide-list i))))
-			     (refresh-page))))
-		       '(border))
-	  (send l focus)
-	  (send d reflow-container)
-	  (let ([now (let loop ([l slide-list][n 0])
-		       (if (null? l)
-			   (sub1 n)
-			   (if (> (sub1 (caar l)) current-page)
-			       (sub1 n)
-			       (loop (cdr l) (add1 n)))))])
-	    (send l set-selection (max 0 now))
-	    (send l set-first-visible-item (max 0 (- now 3))))
-	  (send d show #t)))
+	(unless (zero? slide-count)
+	  (let* ([d (make-object dialog% "Goto Page" f 200 250)]
+		 [short-slide-list 
+		  (let loop ([slides talk-slide-list][n 1][last-title #f])
+		    (cond
+		     [(null? slides) null]
+		     [(and last-title
+			   (equal? last-title (or (sliderec-title (car slides))
+						  "(untitled)")))
+		      (loop (cdr slides) (+ n 1) last-title)]
+		     [else
+		      (let ([title (or (sliderec-title (car slides))
+				       "(untitled)")])
+			(cons (cons
+			       n
+			       (format "~a. ~a" 
+				       (slide-page-string (car slides))
+				       title))
+			      (loop (cdr slides) (add1 n) title)))]))]
+		 [long-slide-list (let loop ([slides talk-slide-list][n 1])
+				    (if (null? slides)
+					null
+					(cons (cons
+					       n
+					       (format "~a. ~a" 
+						       (slide-page-string (car slides))
+						       (or (sliderec-title (car slides))
+							   "(untitled)")))
+					      (loop (cdr slides) (add1 n)))))]
+		 [slide-list short-slide-list]
+		 [l (make-object list-box% #f (map cdr slide-list)
+				 d void)]
+		 [p (make-object horizontal-pane% d)])
+	    (send d center)
+	    (send p stretchable-height #f)
+	    (make-object check-box% "All Pages" p
+			 (lambda (c e)
+			   (set! slide-list (if (send c get-value)
+						long-slide-list
+						short-slide-list))
+			   (send l set (map cdr slide-list))))
+	    (make-object pane% p)
+	    (make-object button% "Cancel" p (lambda (b e) (send d show #f)))
+	    (make-object button% "Ok" p 
+			 (lambda (b e)
+			   (send d show #f)
+			   (let ([i (send l get-selection)])
+			     (when i
+			       (set! current-page (sub1 (car (list-ref slide-list i))))
+			       (refresh-page))))
+			 '(border))
+	    (send l focus)
+	    (send d reflow-container)
+	    (let ([now (let loop ([l slide-list][n 0])
+			 (if (null? l)
+			     (sub1 n)
+			     (if (> (sub1 (caar l)) current-page)
+				 (sub1 n)
+				 (loop (cdr l) (add1 n)))))])
+	      (send l set-selection (max 0 now))
+	      (send l set-first-visible-item (max 0 (- now 3))))
+	    (send d show #t))))
       
       (send f reflow-container)
       (send f-both reflow-container)
@@ -915,10 +912,6 @@
 	     [mbm (make-object bitmap% (build-path (collection-path "slideshow") "mask.xbm"))])
 	(when (send bm ok?)
 	  (send f set-icon bm (and (send mbm ok?) mbm) 'both)))
-      
-      (send f show (not config:printing?))
-      (when config:two-frames?
-	(send f-both show #t))
       
       (when config:commentary?
 	(send c-frame show #t)
@@ -961,6 +954,7 @@
 	      (loop #t (cdr l) (add1 n))))
 	  (parameterize ([current-security-guard original-security-guard])
 	    (send ps-dc end-doc))
+	  ;; In case slides are still building, exit explicitly:
 	  (exit)))
 
 
@@ -986,35 +980,16 @@
 		  (values f d))))
 	    (values #f #f)))
 
-      ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      ;;                Talk Loading                   ;;
-      ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      
-      (define original-security-guard (current-security-guard))
-      
-      (define (load-content content)
-	(unless config:trust-me?
-	  (current-security-guard
-	   (make-security-guard original-security-guard
-				(lambda (who what mode)
-				  (when (memq 'write mode)
-				    (error 'slideshow
-					   "slide program attempted to write to filesystem: ~e"
-					   what))
-				  (when (memq 'execute mode)
-				    (error 'slideshow
-					   "slide program attempted to execute external code: ~e"
-					   what)))
-				(lambda (who where-name where-port-num mode)
-				  (error 'slideshow
-					 "slide program attempted to make a network connection")))))
-	(unless config:printing?
-	  (send f show #t))
-	(dynamic-require (path->complete-path content) #f))
+      (define (viewer:done-making-slides)
+	(when config:printing?
+	  (do-print)))
 
-      (when config:file-to-load
-	(queue-callback
-	 (lambda ()
-	   (load-content (string->path config:file-to-load))
-	   (when config:printing?
-	     (do-print))))))))
+      (let ([eh (current-exception-handler)])
+	(current-exception-handler
+	 (lambda (exn)
+	   (send f show #f)
+	   (when f-both
+	     (send f-both show #f))
+	   (when background-f
+	     (send background-f show #f))
+	   (eh exn)))))))
