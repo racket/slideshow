@@ -851,9 +851,9 @@
 					    (+ x-in (* xs w)))
 					(>= (send scroll-bm get-height) 
 					    (+ y-in (* ys h))))
-			     (set! scroll-bm (make-object bitmap% 
-							  (inexact->exact (ceiling (+ x-in (* xs w))))
-							  (inexact->exact (ceiling (+ y-in (* ys h))))))
+			     (set! scroll-bm (make-bitmap
+					      (inexact->exact (ceiling (+ x-in (* xs w))))
+					      (inexact->exact (ceiling (+ y-in (* ys h))))))
 			     (if (send scroll-bm ok?)
 				 (send scroll-dc set-bitmap scroll-bm)
 				 (set! scroll-bm #f)))
@@ -1266,7 +1266,7 @@
       (define red-color (make-object color% "RED"))
       (define green-color (make-object color% "GREEN"))
       (define black-color (make-object color% "BLACK"))
-      
+
       (define (slide-page-string slide)
         (if (= 1 (slide-page-count slide))
             (format "~a" (slide-page slide))
@@ -1409,10 +1409,11 @@
                             (let ([bm (send offscreen get-bitmap)])
                               (not (and (= cw (send bm get-width))
                                         (= ch (send bm get-height))))))
+		   (send offscreen set-bitmap #f)
                    (set! offscreen #f))
                  (unless offscreen
                    (set! offscreen (make-object bitmap-dc% 
-                                     (make-object bitmap% cw ch)))))
+                                     (make-bitmap cw ch)))))
                (send offscreen clear)
 	       (cond
 		[(equal? prefetched-page current-page)
@@ -1579,8 +1580,10 @@
         (unless (and (is-a? prefetch-bitmap bitmap%)
                      (= use-screen-w (send prefetch-bitmap get-width))
                      (= use-screen-h (send prefetch-bitmap get-height)))
-          (set! prefetch-bitmap (make-object bitmap% use-screen-w use-screen-h))
-	  (send prefetch-dc set-bitmap prefetch-bitmap))
+          (send prefetch-dc set-bitmap #f)
+          (set! prefetch-bitmap (make-bitmap use-screen-w use-screen-h))
+	  (when (send prefetch-bitmap ok?)
+	    (send prefetch-dc set-bitmap prefetch-bitmap)))
 
 	(when (send prefetch-dc ok?)
           (send prefetch-dc clear)
@@ -1782,6 +1785,19 @@
               (loop #t (cdr l) (add1 n))))
           (send ps-dc end-doc)
           (exit)))))
+
+  ;; If bitmap creation fails, try an explicit GC.
+  ;; (This loop should be built into MrEd, but it wasn't
+  ;; at the time this code was written.)
+  (define (make-bitmap w h)
+    (let loop ([n 0])
+      (let ([bm (make-object bitmap% w h)])
+	(if (or (= n 4)
+		(send bm ok?))
+	    bm
+	    (begin
+	      (collect-garbage)
+	      (loop (add1 n)))))))
 
   (define done-once? #f)
   (define making-nesting-depth 0)
