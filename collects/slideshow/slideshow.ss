@@ -232,8 +232,8 @@
 
   (define (set-margin! m)
     (set! margin m)
-    (set! client-w (+ client-w (* 2 margin)))
-    (set! client-h (+ client-h (* 2 margin)))
+    (set! client-w (- screen-w (* 2 margin)))
+    (set! client-h (- screen-h (* 2 margin)))
     (set! full-page (blank client-w client-h))
     (set! titleless-page (mk-titleless-page)))
 
