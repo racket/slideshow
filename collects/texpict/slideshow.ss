@@ -194,6 +194,8 @@
 	    (begin
 	      (apply one-slide/title process v-sep skipped s (reverse r))
 	      0))]
+       [(memq (car l) '(NOTHING))
+	(loop (cdr l) r comment skip-all? skipped)]
        [(memq (car l) '(NEXT NEXT!))
 	(let ([skip? (or skip-all? (and condense? (eq? (car l) 'NEXT)))])
 	  (let ([skipped (if skip?
