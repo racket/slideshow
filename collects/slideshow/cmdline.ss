@@ -34,10 +34,10 @@
 	       (values id ...))))]))
 
   (define cmdline@
-    (unit/sig config^
+    (unit/sig cmdline^
       (import)
       
-      (define-at-end config^
+      (define-at-end cmdline^
 	(define-values (screen-w screen-h) (values 1024 768))
 	(define base-font-size 32)
 

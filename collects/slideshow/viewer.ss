@@ -19,7 +19,7 @@
 
   (define viewer@
     (unit/sig viewer^
-      (import (config : config^) core^)
+      (import (config : cmdline^) core^)
       (rename (viewer:set-use-background-frame! set-use-background-frame!)
 	      (viewer:enable-click-advance! enable-click-advance!)
 	      (viewer:set-page-numbers-visible! set-page-numbers-visible!))

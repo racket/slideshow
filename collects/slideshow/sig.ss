@@ -2,44 +2,49 @@
 (module sig mzscheme
   (require (lib "unitsig.ss"))
 
-  (provide config^ viewer^ core^)
+  (provide config^ cmdline^ viewer^ core^)
 
   ;; Main inputs to the core unit:
   (define-signature config^
     (file-to-load
 
      base-font-size
-     screen-w screen-h
-     actual-screen-w actual-screen-h
-     use-screen-w use-screen-h
+     screen-w screen-h          ; logical size
+     use-screen-w use-screen-h  ; pixel size
      
      condense?
      printing?
-     commentary?
-     show-gauge?
-     keep-titlebar?
-     show-page-numbers?
-     quad-view?
+     use-transitions? 
+     init-page))
+
+  (define-signature cmdline^
+    ((open config^)
      print-slide-seconds?
-     use-transitions? use-offscreen?
-     talk-duration-minutes
+     show-page-numbers?
+     commentary?
+     use-offscreen?
+     actual-screen-w actual-screen-h ; actual size (center use- within here)
      trust-me?
-     no-squash?
+     quad-view?
+     keep-titlebar?
      two-frames?
      use-prefetch?
      use-prefetch-in-preview?
      print-target
-     init-page))
+     talk-duration-minutes))
 
   ;; Viewer inputs to the core:
   (define-signature viewer^
-    (display-progress
-     get-talk-slide-list
+    (;; Registering slides:
      set-talk-slide-list!
+     get-talk-slide-list
+     display-progress
+     ;; Pass-through of user-program requests:
      set-init-page!
      set-use-background-frame!
      enable-click-advance!
      set-page-numbers-visible!
+     ;; Called when a clickback-containing slide is rendered:
      add-click-region!
 
      ;; Not for the core; exported by "slideshow.ss", instead:
