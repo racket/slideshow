@@ -1496,8 +1496,8 @@
 
         ;; try to re-use existing bitmap
         (unless (and (is-a? prefetch-bitmap bitmap%)
-                     (= use-screen-w (send prefetch-bitmap get-width))
-                     (= use-screen-h (send prefetch-bitmap get-height)))
+                     (= actual-screen-w (send prefetch-bitmap get-width))
+                     (= actual-screen-h (send prefetch-bitmap get-height)))
           (set! prefetch-bitmap (make-object bitmap% actual-screen-w actual-screen-h))
 	  (send prefetch-dc set-bitmap prefetch-bitmap))
 
