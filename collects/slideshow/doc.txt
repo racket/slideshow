@@ -422,7 +422,8 @@ Procedure Reference
   drawing effect.   See also "Transition Animations", above.
 
 > (comment string-or-pict ...) - Combines strings and picts to be used
-  as a slide element for (usually hidden) commentary.
+  as a slide element for (usually hidden) commentary. Use the result
+  as an argument to `slide', `slide/title', etc.
 
 > (make-outline { symbol/s string-or-pict subitems } ...)  - Returns a
   function that takes a symbol and generates an outline slide. Each

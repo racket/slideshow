@@ -440,12 +440,25 @@
 	  (set! resizing-frame? #f)))
       
 
-      (define c-frame (new talk-frame%
+      (define c-frame (new (class talk-frame%
+			     (define/override (on-move x y)
+			       (super on-move x y)
+			       (put-preferences '(slideshow:commentary-x slideshow:commentary-y)
+						(list x y)
+						void))
+			     (define/override (on-size w h)
+			       (super on-size w h)
+			       (put-preferences '(slideshow:commentary-width slideshow:commentary-height)
+						(list w h)
+						void))
+			     (super-new))
 			   [closeable? #t]
 			   [close-bg? #f]
 			   [label "Commentary"]
-			   [width 400]
-			   [height 100]))
+			   [width (get-preference 'slideshow:commentary-width (lambda () 400))]
+			   [height (get-preference 'slideshow:commentary-height (lambda () 100))]
+			   [x (get-preference 'slideshow:commentary-x (lambda () #f))]
+			   [y (get-preference 'slideshow:commentary-y (lambda () #f))]))
       (define commentary (make-object text%))
       (send (make-object editor-canvas% c-frame commentary)
 	    set-line-count 3)
