@@ -1,44 +1,31 @@
-(module xml-snipclass mzscheme
+(module pict-snipclass mzscheme
   (require (lib "class.ss")
            (lib "mred.ss" "mred"))
   
   (provide snip-class)
+  (require "private/pict-box-lib.ss")
 
-  (car) ;; do this later!
-  
   (define pict-snip%
-    (class* editor-snip% (xml-snip<%> readable-snip<%>)
-      (init-field eliminate-whitespace-in-empty-tags?)
+    (class* editor-snip% (readable-snip<%>)
+      (define/public (read-special file line col pos)
+        (build-lib-pict-stx 
+         (lambda (ids) (syntax (void)))
+         (get-snp/poss this)))
       
-      (define/public (read-one-special index file line col pos)
-        (xml-read-one-special eliminate-whitespace-in-empty-tags?
-                              translate-xml-exn-to-rep-exn
-                              this
-                              file
-                              line
-                              col
-                              pos))
-      
-      (super-instantiate ())))
+      (super-new)))
   
-  ;; this simpler version of translate-...-exn 
-  ;; doesn't allow for showing the red highlighting
-  ;; (but this code doesn't run inside DrScheme anyways)
-  (define (translate-xml-exn-to-rep-exn editor)
-    (lambda (exn)
-      (raise exn)))
-  
-  (define xml-snipclass%
+  (define lib-pict-snipclass%
     (class snip-class%
       (define/override (read stream-in)
-        (let* ([eliminate-whitespace-in-empty-tags? (zero? (send stream-in get-exact))]
-               [snip (instantiate xml-snip% ()
-                       (eliminate-whitespace-in-empty-tags? eliminate-whitespace-in-empty-tags?))])
-          (send (send snip get-editor) read-from-file stream-in #f)
+        (let* ([snip (new pict-snip%)]
+               [editor (send snip get-editor)]
+               [show-picts? (not (zero? (send stream-in get-exact)))]
+               [up-to-date? (not (zero? (send stream-in get-exact)))])
+          (send editor read-from-file stream-in #f)
           snip))
-      (super-instantiate ())))
+      (super-new)))
   
-  (define snip-class (make-object xml-snipclass%))
-  (send snip-class set-version 1)
-  (send snip-class set-classname (format "~s" '(lib "xml-snipclass.ss" "xml")))
+  (define snip-class (make-object lib-pict-snipclass%))
+  (send snip-class set-version 2)
+  (send snip-class set-classname (format "~s" '(lib "pict-snipclass.ss" "slideshow")))
   (send (get-the-snip-class-list) add snip-class))
