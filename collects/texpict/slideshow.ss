@@ -21,9 +21,9 @@
 
   (define pref
     (let ([p (with-handlers ([not-break-exn? (lambda (x) '())])
-	       (with-input-from-file* (build-path
-				       (find-system-path 'home-dir)
-				       ".slideshow")
+	       (with-input-from-file (build-path
+				      (find-system-path 'home-dir)
+				      ".slideshow")
 		 read))])
       (lambda (key default)
 	(with-handlers ([not-break-exn? (lambda (x) default)])
