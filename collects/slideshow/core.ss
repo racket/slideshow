@@ -104,10 +104,12 @@
 
       (define bullet (if (send (dc-for-text-size) glyph-exists? #\u2022)
 			 (t "\u2022")
-			 (cc-superimpose (disk (/ gap-size 2)) 
-					 (blank 0 gap-size))))
-      (define o-bullet (cc-superimpose (circle (/ gap-size 2)) 
-				       (blank 0 gap-size)))
+			 (baseless
+			  (cc-superimpose (disk (/ gap-size 2)) 
+					  (blank 0 gap-size)))))
+      (define o-bullet (baseless
+			(cc-superimpose (circle (/ gap-size 2)) 
+					(blank 0 gap-size))))
 
 
       (define margin 20)

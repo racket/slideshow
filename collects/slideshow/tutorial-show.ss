@@ -489,14 +489,10 @@
 	      ", then use" (code hline) "and" (code vc-append))
    (page-item "If the pict is text, you can restore the"
 	      (let ([p (t "baseline")])
-		(lift
-		 (drop
-		  (vc-append p (hline (pict-width p) 1))
-		  (- (pict-ascent p)))
-		 (- 0 (pict-descent p) 1)))
-	      "using" (code pict-ascent) "," (code pict-ascent) ","
-	      (code drop) ", and" (code lift))
-   (note "(Granted, that's a little tricky)"))
+		(refocus 
+		 (vc-append p (hline (pict-width p) 1))
+		 p))
+	      "using" (code refocus)))
 
   (slide/title
    "Placing Picts"
@@ -663,10 +659,12 @@
   (in-picture-slide ident ident ident)
 
   (define (encloud p)
-    (cc-superimpose
-     (cloud (* 9/8 (pict-width p))
-	    (* 3/2 (pict-height p))
-	    "light gray")
+    (refocus
+     (cc-superimpose
+      (cloud (* 9/8 (pict-width p))
+	     (* 3/2 (pict-height p))
+	     "light gray")
+      p)
      p))
 
   (require (lib "step.ss" "slideshow"))
