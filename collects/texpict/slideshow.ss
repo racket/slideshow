@@ -211,7 +211,17 @@
 	   (- (sinset-r sinset))
 	   (- (sinset-b sinset))))
 
-  (define (one-slide/title/inset process v-sep skipped-pages s inset . x) 
+  (define (do-add-slide! content title comment page-count inset)
+    (add-slide!
+     (ct-superimpose
+      (apply-slide-inset inset full-page)
+      content)
+     title
+     comment
+     page-count
+     inset))
+
+  (define (one-slide/title/inset do-add-slide! process v-sep skipped-pages s inset . x) 
     (let-values ([(x c)
 		  (let loop ([x x][c #f][r null])
 		    (cond
@@ -220,37 +230,36 @@
 		      (loop (cdr x) (car x) r)]
 		     [else
 		      (loop (cdr x) c (cons (car x) r))]))])
-      (add-slide!
-       (ct-superimpose
-	(apply-slide-inset inset full-page)
-	(apply vc-append v-sep
-	       (map
-		evenize-width
-		(if s
-		    (cons (titlet s) (process x))
-		    (process x)))))
-       s
-       c
-       (+ 1 skipped-pages)
-       inset)))
+      (let ([content (apply vc-append v-sep
+			    (map
+			     evenize-width
+			     (if s
+				 (cons (titlet s) (process x))
+				 (process x))))])
+	(do-add-slide!
+	 content
+	 s
+	 c
+	 (+ 1 skipped-pages)
+	 inset))))
 
-  (define (do-slide/title/tall/inset process v-sep s inset . x)
+  (define (do-slide/title/tall/inset do-add-slide! skip-ok? process v-sep s inset . x)
     (let loop ([l x][r null][comment #f][skip-all? #f][skipped 0])
       (cond
        [(null? l) 
 	(if skip-all?
 	    (add1 skipped)
 	    (begin
-	      (apply one-slide/title/inset process v-sep skipped s inset (reverse r))
+	      (apply one-slide/title/inset do-add-slide! process v-sep skipped s inset (reverse r))
 	      0))]
        [(memq (car l) '(NOTHING))
 	(loop (cdr l) r comment skip-all? skipped)]
        [(memq (car l) '(NEXT NEXT!))
-	(let ([skip? (or skip-all? (and condense? (eq? (car l) 'NEXT)))])
+	(let ([skip? (or skip-all? (and condense? skip-ok? (eq? (car l) 'NEXT)))])
 	  (let ([skipped (if skip?
 			     (add1 skipped)
 			     (begin
-			       (apply one-slide/title/inset process v-sep skipped s inset (reverse r))
+			       (apply one-slide/title/inset do-add-slide! process v-sep skipped s inset (reverse r))
 			       0))])
 	    (loop (cdr l) r comment skip-all? skipped)))]
        [(memq (car l) '(ALTS ALTS~)) 
@@ -258,7 +267,7 @@
 	  (let aloop ([al (cadr l)][skipped skipped])
 	    (if (null? (cdr al))
 		(loop (append (car al) rest) r comment skip-all? skipped)
-		(let ([skip? (or skip-all? (and condense? (eq? (car l) 'ALTS~)))])
+		(let ([skip? (or skip-all? (and condense? skip-ok? (eq? (car l) 'ALTS~)))])
 		  (let ([skipped (loop (car al) r comment skip? skipped)])
 		    (aloop (cdr al) skipped))))))]
        [else (loop (cdr l) (cons (car l) r) comment skip-all? skipped)])))
@@ -277,12 +286,12 @@
       (raise-type-error 'slide/title/tall/inset "string" s))
     (unless (sinset? inset)
       (raise-type-error 'slide/title/tall/inset "slide-inset" inset))
-    (apply do-slide/title/tall/inset values gap-size s inset x))
+    (apply do-slide/title/tall/inset do-add-slide! #t values gap-size s inset x))
 
   (define (slide/title/tall s . x)
     (unless (or (string? s) (not s))
       (raise-type-error 'slide/title/tall "string" s))
-    (apply do-slide/title/tall/inset values gap-size s zero-inset x))
+    (apply do-slide/title/tall/inset do-add-slide! #t values gap-size s zero-inset x))
 
   (define (slide/title s . x)
     (unless (or (string? s) (not s))
@@ -299,16 +308,32 @@
       (raise-type-error 'slide/title/center "string" s))
     (unless (sinset? inset)
       (raise-type-error 'slide/title/center/inset "slide-inset" inset))
-    (apply do-slide/title/tall/inset
-	   (lambda (x)
-	     (list
-	      (cc-superimpose
-	       (apply-slide-inset inset (if s titleless-page full-page))
-	       (apply vc-append gap-size
-		      (map
-		       evenize-width
-		       x)))))
-	   0 s inset x))
+    (let ([max-width 0]
+	  [max-height 0]
+	  [combine (lambda (x)
+		     (apply vc-append gap-size
+			    (map
+			     evenize-width
+			     x)))])
+      ;; Run through all the slides once to measure (don't actually create slides):
+      (apply do-slide/title/tall/inset
+	     (lambda (content title comment page-count inset)
+	       (set! max-width (max max-width (pict-width content)))
+	       (set! max-height (max max-height (pict-height content))))
+	     #f
+	     (lambda (x) (list (combine x)))
+	     0 #f inset x)
+      (apply do-slide/title/tall/inset
+	     do-add-slide!
+	     #t
+	     (lambda (x)
+	       (list
+		(cc-superimpose
+		 (apply-slide-inset inset (if s titleless-page full-page))
+		 (ct-superimpose
+		  (blank max-width max-height)
+		  (combine x)))))
+	     0 s inset x)))
 
   (define (slide/title/center s . x)
     (apply slide/title/center/inset s zero-inset x))
