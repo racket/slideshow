@@ -763,6 +763,9 @@
           (sequence
             (super-init))))
       
+      (define-values (screen-left-inset screen-top-inset)
+	(get-display-left-top-inset))
+
       (define background-f
 	(and use-background-frame?
 	     (make-object (class frame%
@@ -772,10 +775,10 @@
 			    (super-instantiate 
 			     ()
 			     [label "Slidsehow Background"]
-			     [x 0] [y 0]
+			     [x (- screen-left-inset)] [y (- screen-top-inset)]
 			     [width (inexact->exact (floor actual-screen-w))]
 			     [height (inexact->exact (floor actual-screen-h))]
-			     [style '(no-caption no-resize-border)])))))
+			     [style '(no-caption no-resize-border hide-menu-bar)])))))
 
       (when background-f
 	(send background-f enable #f)
@@ -785,10 +788,10 @@
                   [label (if content
                              (format "~a: slideshow" (file-name-from-path content))
                              "Slideshow")]
-                  [x 0] [y 0]
+                  [x (- screen-left-inset)] [y (- screen-top-inset)]
                   [width (inexact->exact (floor actual-screen-w))]
                   [height (inexact->exact (floor actual-screen-h))]
-                  [style '(no-caption no-resize-border)]))
+                  [style '(no-caption no-resize-border hide-menu-bar)]))
       
       (define current-sinset zero-inset)
       (define (reset-display-inset! sinset)
