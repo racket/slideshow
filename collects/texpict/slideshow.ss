@@ -52,8 +52,8 @@
 				      (positive? n))
 			   (error 'talk "argument to -f is not a positive exact integer: ~a" fs))
 			 (set! base-font-size n)))
-      (("-c") "display commentary"
-	      (set! commentary? #t))]
+      (("--comment") "display commentary"
+                     (set! commentary? #t))]
      [args (lecture-file)
 	   lecture-file]))
 
