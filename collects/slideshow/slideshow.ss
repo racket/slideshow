@@ -1109,7 +1109,7 @@
                    (set! current-page 0)
                    (refresh-page)
                    #t]
-                  [(#\q #\S)  ; #\S is for Mac OS
+                  [(#\q #\u0153)  ; #\u0153 is for Mac OS
                    (stop-transition)
                    (when (or (send e get-meta-down)
                              (send e get-alt-down))
