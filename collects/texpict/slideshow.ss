@@ -78,9 +78,10 @@
      ;; Bitmaps give same size as the screen:
      (make-object bitmap-dc% (make-object bitmap% 1 1))))
 
-(define margin 10)
-(define full-page (blank (- screen-w (* margin 2))
-			 (- screen-h (* margin 2))))
+(define margin 20)
+(define-values (client-w client-h) (values (- screen-w (* margin 2))
+					   (- screen-h (* margin 2))))
+(define full-page (blank client-w client-h))
 (define titleless-page (inset full-page (- (* 2 font-size)) 0 0 0))
 
 (define talk-slide-list null)
@@ -167,54 +168,114 @@
 (define (comment . s) (make-comment
 		       (apply string-append s)))
 
-(define (para s w)
-  (let loop ([pre (blank)][s s][rest null][r ""])
-    (if (list? s)
-	(loop pre (car s) (append (cdr s) rest) "")
-	(let ([p (if (string? s) (t s) s)])
-	  (let ([m (if (< (+ (pict-width p) (pict-width pre)) w)
-		       #f
-		       (regexp-match "(.*) (.*)" s))])
-	    (if m
-		(loop pre
-		      (cadr m) 
-		      rest
-		      (string-append
-		       (caddr m)
-		       (if (string=? r "") "" " ")
-		       r))
-		(let ([p (hbl-append pre p)])
-		  (if (string=? r "")
-		      (if (null? rest)
-			  p
-			  (loop p rest null ""))
-		      (vl-append
-		       line-sep
-		       p
-		       (loop (blank) r rest ""))))))))))
+;----------------------------------------
 
-(define (item s)
-  (htl-append (/ font-size 2)
-	      bullet 
-	      (para s (- screen-w 
-			 (* 2 margin)
-			 (pict-width bullet) 
-			 (/ font-size 2)))))
+(define (para* w . s)
+  (define space (t " "))
+  (let loop ([pre #f][s s][rest null])
+    (cond
+     [(null? s)
+      (if (null? rest)
+	  (or pre (blank))
+	  (loop pre (car rest) (cdr rest)))]
+     [(list? s) (loop pre (car s) (append (cdr s) rest))]
+     [else
+      (let* ([sep? (and (string? s) (regexp-match "^[,. :;-]" s))]
+	     [p (if (string? s) (t s) s)])
+	(cond
+	 [(< (+ (if pre (pict-width pre) 0)
+		(if pre (if sep? 0 (pict-width space)) 0)
+		(pict-width p)) 
+	     w)
+	  ; small enough
+	  (loop (if pre 
+		    (hbl-append pre (if sep? (blank) space) p) 
+		    p)
+		rest null)]
+	 [(and (string? s) (regexp-match "(.*) (.*)" s))
+	  ; can break on string
+	  => (lambda (m)
+	       (loop pre
+		     (cadr m) 
+		     (cons
+		      (caddr m)
+		      rest)))]
+	 [(not pre)
+	  (vl-append
+	   line-sep
+	   p
+	   (loop #f rest null))]
+	 [else
+	  (vl-append
+	   line-sep
+	   (or pre (blank))
+	   (loop p rest null))]))])))
 
-(define (itemize . l)
+(define (para w . s)
+  (lbl-superimpose (para* w s)
+		   (blank w 0)))
+
+(define (page-para* . s)
+  (para* client-w s))
+
+(define (page-para . s)
+  (para client-w s))
+
+;----------------------------------------
+
+(define (l-combiner para w l)
   (apply
    vl-append
-   (let loop ([l l])
-     (cond
-      [(null? l) null]
-      [else (cons (item (car l))
-		  (loop (cdr l)))]))))
+   font-size
+   (map (lambda (x) (para w x)) l)))
 
-(define (page-item s)
-  (lc-superimpose (item s) (blank (- screen-w (* 2 margin)) 0)))
+;----------------------------------------
+
+(define (item* w . s)
+  (htl-append (/ font-size 2)
+	      bullet 
+	      (para* (- w
+			(pict-width bullet) 
+			(/ font-size 2)) 
+		     s)))
+
+(define (item w . s)
+  (lbl-superimpose (item* w s)
+		   (blank w 0)))
+
+(define (page-item* . s)
+  (item* client-w s))
+
+(define (page-item . s)
+  (item client-w s))
+
+;----------------------------------------
+
+(define (paras* w . l)
+  (l-combiner para* w l))
+
+(define (paras w . l)
+  (l-combiner para w l))
+
+(define (page-paras* . l)
+  (l-combiner (lambda (x y) (page-para* x)) w l))
+
+(define (page-paras . l)
+  (l-combiner (lambda (x y) (page-para x)) w l))
+
+;----------------------------------------
+
+(define (itemize w . l)
+  (l-combiner item w l))
+
+(define (itemize* w . l)
+  (l-combiner item* w l))
 
 (define (page-itemize . l)
-  (lc-superimpose (apply itemize l) (blank (- screen-w (* 2 margin)) 0)))
+  (l-combiner (lambda (x y) (page-item x)) w l))
+
+(define (page-itemize* . l)
+  (l-combiner (lambda (x y) (page-item* x)) w l))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                Talk                          ;;
