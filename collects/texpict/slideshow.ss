@@ -178,7 +178,7 @@
     (set! use-background-frame? (and on? #t)))
 
   (define talk-slide-list null)
-  (define-struct slide (drawer title comment page page-count inset))
+  (define-struct slide (drawer title comment page page-count inset transitions))
   (define-struct just-a-comment (text))
   (define-struct sinset (l t r b))
 
@@ -191,7 +191,8 @@
 				       comment
 				       page-number
 				       page-count
-				       inset)
+				       inset
+				       null)
 			   talk-slide-list))
     (set! page-number (+ page-number page-count))
     (send progress-display set-label (number->string page-number)))
@@ -409,7 +410,8 @@
 				   (slide-comment s)
 				   page-number
 				   1
-				   (slide-inset s))
+				   (slide-inset s)
+				   null)
 				  talk-slide-list))
       (set! page-number (+ page-number 1))))
 
@@ -455,7 +457,7 @@
   (define (comment . s) (make-just-a-comment
 			 (apply string-append s)))
 
-  ;----------------------------------------
+  ;; ----------------------------------------
 
   (define (para*/align v-append w . s)
     (define space (t " "))
@@ -547,7 +549,7 @@
   (define (page-para/c . s)
     (page-para/align cbl-superimpose vc-append s))
 
-  ;----------------------------------------
+  ;; ----------------------------------------
 
   (define (l-combiner para w l)
     (apply
@@ -555,7 +557,7 @@
      gap-size
      (map (lambda (x) (para w x)) l)))
 
-  ;----------------------------------------
+  ;; ----------------------------------------
 
   (define (item*/bullet bullet w . s)
     (htl-append (/ gap-size 2)
@@ -588,7 +590,7 @@
   (define (page-item/bullet b . s)
     (item/bullet b client-w s))
 
-  ;----------------------------------------
+  ;; ----------------------------------------
 
   (define (subitem* w . s)
     (inset (htl-append (/ gap-size 2)
@@ -610,7 +612,7 @@
   (define (page-subitem . s)
     (subitem client-w s))
 
-  ;----------------------------------------
+  ;; ----------------------------------------
 
   (define (paras* w . l)
     (l-combiner para* w l))
@@ -624,7 +626,7 @@
   (define (page-paras . l)
     (l-combiner (lambda (x y) (page-para y)) client-w l))
 
-  ;----------------------------------------
+  ;; ----------------------------------------
 
   (define (itemize w . l)
     (l-combiner item w l))
@@ -638,7 +640,7 @@
   (define (page-itemize* . l)
     (l-combiner (lambda (x y) (page-item* y)) client-w l))
 
-  ;----------------------------------------
+  ;; ----------------------------------------
 
   (define (size-in-pixels p)
     (if (not (and (= actual-screen-w screen-w)
@@ -648,7 +650,7 @@
 	       (/ screen-h actual-screen-h))
 	p))
 
-  ;----------------------------------------
+  ;; ----------------------------------------
 
   (define-struct click-region (left top right bottom thunk show-click?))
 
@@ -678,6 +680,88 @@
 		 (pict-ascent pict)
 		 (pict-descent pict))))))))
 
+  ;; ----------------------------------------
+
+  (define (add-transition! who trans)
+    (unless (or (null? talk-slide-list)
+		printing? condense?)
+      (let ([slide (car talk-slide-list)])
+	(set-slide-transitions! slide 
+				(append! (slide-transitions slide)
+					 (list trans))))))
+
+  (define scroll-bm #f)
+  (define scroll-dc (make-object bitmap-dc%))
+
+  (define scroll-transition
+    (opt-lambda (x y w h dx dy [duration 0.20] [steps 12])
+      (add-transition! 'scroll-transition
+		       (lambda (old-slide)
+			 (let ([steps-done 0]
+			       [clear-pen (make-object pen% "WHITE" 1 'transparent)]
+			       [white-brush (make-object brush% "WHITE" 'solid)])
+			   (unless (and scroll-bm
+					(>= (send scroll-bm get-width) 
+					    (+ w dx))
+					(>= (send scroll-bm get-height) 
+					    (+ h dy)))
+			     (set! scroll-bm (make-object bitmap% 
+							  (inexact->exact (ceiling (+ w (abs dx))))
+							  (inexact->exact (ceiling (+ h (abs dy))))))
+			     (if (send scroll-bm ok?)
+				 (send scroll-dc set-bitmap scroll-bm)
+				 (set! scroll-bm #f)))
+
+			   (when scroll-bm
+			     (send scroll-dc clear)
+			     (let ([xs (/ actual-screen-w screen-w)]
+				   [ys (/ actual-screen-h screen-h)]
+				   [p (send scroll-dc get-pen)]
+				   [b (send scroll-dc get-brush)])
+			       (send scroll-dc set-scale xs ys)
+			       ((slide-drawer old-slide) scroll-dc (- x) (- y))
+			       ;; Erase the part that we won't use:
+			       (send scroll-dc set-brush white-brush)
+			       (send scroll-dc set-pen clear-pen)
+			       (send scroll-dc draw-rectangle
+				     x (+ y (abs dy)) (+ x w (abs dx)) (+ y h (abs dy)))
+			       (send scroll-dc draw-rectangle
+				     x (+ y (abs dy)) (+ x w) (+ y h (abs dy)))
+			       (send scroll-dc set-pen p)
+			       (send scroll-dc set-brush b)))
+			   
+			   (lambda (canvas)
+			     (if (or (not scroll-bm) (= steps-done steps))
+				 'done
+				 (let*-values ([(cw ch) (send canvas get-client-size)]
+					       [(m) (- margin (/ (- actual-screen-w cw) 2))])
+				   (set! steps-done (add1 steps-done))
+				   #;
+				   (when (= 1 steps-done)
+				     (send (send canvas get-dc) draw-rectangle
+					   (+ x m)
+					   (+ y m)
+					   w h))
+				   (send (send canvas get-dc) draw-bitmap-section
+					 scroll-bm
+					 (+ x m (* dx (/ steps-done steps)))
+					 (+ y m (* dy (/ steps-done steps)))
+					 0 0 
+					 (ceiling (+ w (/ (abs dx) steps))) 
+					 (ceiling (+ h (/ (abs dy) steps))))
+				   (/ duration steps)))))))))
+
+  (define pause-transition
+    (lambda (time)
+      (add-transition! 'pause-transition
+		       (lambda (old-slide)
+			 (let ([done? #f])
+			   (lambda (canvas)
+			     (if done?
+				 'done
+				 (begin
+				   (set! done? #t)
+				   time))))))))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                Contracts                      ;;
@@ -715,6 +799,7 @@
 		    [slide/center/inset slide/inset-contract]
 		    [slide/title/center/inset slide/title/inset-contract])
   (provide most-recent-slide retract-most-recent-slide re-slide 
+	   scroll-transition pause-transition
 	   comment make-outline
 	   item item* page-item page-item*
 	   item/bullet item*/bullet page-item/bullet page-item*/bullet
@@ -785,7 +870,7 @@
                    (loop (append l (vector->list
                                     (make-vector
                                      (- 4 (length l))
-                                     (make-slide void #f #f page-number 1 zero-inset)))))]
+                                     (make-slide void #f #f page-number 1 zero-inset null)))))]
                   [else (let ([a (car l)]
                               [b (cadr l)]
                               [c (caddr l)]
@@ -818,7 +903,8 @@
                                  #f
                                  (slide-page a)
                                  (- (+ (slide-page d) (slide-page-count d)) (slide-page a))
-				 zero-inset)
+				 zero-inset
+				 null)
                                 (loop (cddddr l))))]))))
       
       (define GAUGE-WIDTH 100)
@@ -841,21 +927,26 @@
                (let ([k (send e get-key-code)])
                  (case k
                    [(right #\space #\f #\n)
-                    (set! current-page (min (add1 current-page)
-                                            (sub1 (length talk-slide-list))))
-		    (when print-slide-seconds?
-		      (let ([slide-end-seconds (current-seconds)])
-			(printf "Slide ~a: ~a seconds~n" current-page
-			  (- slide-end-seconds slide-start-seconds))
-			(set! slide-start-seconds slide-end-seconds)))
-                    (refresh-page)
-                    #t]
+		    (if (pair? current-transitions)
+			(stop-transition)
+			(let ([old (list-ref talk-slide-list current-page)])
+			  (set! current-page (min (add1 current-page)
+						  (sub1 (length talk-slide-list))))
+			  (when print-slide-seconds?
+			    (let ([slide-end-seconds (current-seconds)])
+			      (printf "Slide ~a: ~a seconds~n" current-page
+				      (- slide-end-seconds slide-start-seconds))
+			      (set! slide-start-seconds slide-end-seconds)))
+			  (do-transitions (slide-transitions old) old)
+			  #t))]
                    [(left #\b)
+		    (stop-transition)
                     (set! current-page (max (sub1 current-page)
                                             0))
                     (refresh-page)
                     #t]
                    [(#\g)
+		    (stop-transition)
                     (if (send e get-meta-down)
                         (get-page-from-user)
                         (begin
@@ -863,10 +954,12 @@
                           (refresh-page)))
                     #t]
                    [(#\1)
+		    (stop-transition)
                     (set! current-page 0)
                     (refresh-page)
                     #t]
                    [(#\q #\S)  ; #\S is for Mac OS
+		    (stop-transition)
                     (when (or (send e get-meta-down)
 			      (send e get-alt-down))
                       (send c-frame show #f)
@@ -979,6 +1072,7 @@
                    (private
                      [paint
                       (lambda (dc)
+			(stop-transition/no-refresh)
                         (let* ([f (send dc get-font)]
                                [c (send dc get-text-foreground)]
                                [slide (list-ref talk-slide-list current-page)]
@@ -1127,6 +1221,38 @@
           (unless start-time
             (set! start-time (current-seconds))))
         (send c redraw))
+
+      (define current-transitions null)
+      (define current-transitions-key #f)
+
+      (define (do-transitions transes old-slide)
+	(let ([key (cons 1 2)])
+	  (set! current-transitions (map (lambda (mk) (mk old-slide)) transes))
+	  (set! current-transitions-key key)
+	  (if (null? transes)
+	      (refresh-page)
+	      (let do-trans ()
+		(when (and (eq? current-transitions-key key)
+			   (pair? current-transitions))
+		  (let ([went ((car current-transitions) c)])
+		    (if (eq? went 'done)
+			(begin
+			  (set! current-transitions (cdr current-transitions))
+			  (if (null? current-transitions)
+			      (refresh-page)
+			      (do-trans)))
+			(new timer% 
+			     [just-once? #t]
+			     [interval (inexact->exact (floor (* 1000 went)))]
+			     [notify-callback do-trans]))))))))
+
+      (define (stop-transition)
+	(stop-transition/no-refresh)
+	(refresh-page))
+      
+      (define (stop-transition/no-refresh)
+	(set! current-transitions null)
+	(set! current-transitions-key #f))
       
       (define (get-page-from-user)
         (let* ([d (make-object dialog% "Goto Page" f 200 250)]
