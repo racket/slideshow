@@ -247,12 +247,18 @@ the user has to move the mouse first.
   ;; y coordinates is from top going down (not bottom going up, which is what picts do)
   (define-struct hbox (x y w h))
   
+  (define (make-hbox/conv orig-pict x y w h)
+    (make-hbox x
+               (- (pict-height orig-pict) y h)
+               w
+               h))
+  
   ;; all-boxes : pict -> (listof hbox)
-  (define (all-boxes pict)
-    (let loop ([pict pict]
+  (define (all-boxes orig-pict)
+    (let loop ([pict orig-pict]
                [adx 0]
                [ady 0]
-               [boxes (list (make-hbox 0 0 (pict-width pict) (pict-height pict)))])
+               [boxes (list (make-hbox 0 0 (pict-width orig-pict) (pict-height orig-pict)))])
       (let ([children (pict-children pict)])
         (let i-loop ([children children]
                      [boxes boxes])
@@ -265,14 +271,12 @@ the user has to move the mouse first.
                              (+ adx (child-dx child))
                              (+ ady (child-dy child))
                              (cons 
-                              (make-hbox (+ adx (child-dx child))
-                                         (+ ady (child-dy child))
-                                         #;
-                                         (+ ady (- (- (pict-height pict) 
-                                                      (child-dy child))
-                                                   (pict-height (child-pict child))))
-                                         (pict-width (child-pict child))
-                                         (pict-height (child-pict child)))
+                              (make-hbox/conv
+                               orig-pict
+                               (+ adx (child-dx child))
+                               (+ ady (child-dy child))
+                               (pict-width (child-pict child))
+                               (pict-height (child-pict child)))
                               boxes))))])))))
 
   #|
