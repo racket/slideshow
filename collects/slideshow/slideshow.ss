@@ -35,6 +35,7 @@
   (define two-frames? #f)
   (define use-prefetch? #t)
   (define use-prefetch-in-preview? #f)
+  (define print-target #f)
   
   (define current-page 0)
   
@@ -47,6 +48,8 @@
        (set! two-frames? #t))
       (("-p" "--print") "print"
        (set! printing? #t))
+      (("-o") file "set output file for printing"
+       (set! print-target file))
       (("-c" "--condense") "condense"
        (set! condense? #t))
       (("-t" "--start") page "set the starting page"
@@ -110,9 +113,33 @@
   (when printing?
     (set! use-offscreen? #f)
     (set! use-prefetch? #f)
-    (set! keep-titlebar? #t)
-    (set! actual-screen-w 1024)
-    (set! actual-screen-h 768))
+    (set! keep-titlebar? #t))
+
+  (dc-for-text-size
+   (if printing?
+       ;; Make ps-dc%:
+       (let ([pss (make-object ps-setup%)])
+         (send pss set-mode 'file)
+	 (send pss set-file
+	       (if print-target
+		   print-target
+		   (if content
+		       (path-replace-suffix (file-name-from-path content) 
+					    (if quad-view?
+						"-4u.ps"
+						".ps"))
+		       "untitled.ps")))
+	 (send pss set-orientation 'landscape)
+	 (parameterize ([current-ps-setup pss])
+	   (let ([p (make-object post-script-dc% (not print-target) #f #t #f)])
+	     (unless (send p ok?) (exit))
+	     (send p start-doc "Slides")
+	     (send p start-page)
+	     (set!-values (actual-screen-w actual-screen-h) (send p get-size))
+	     p)))
+
+       ;; Bitmaps give same size as the screen:
+       (make-object bitmap-dc% (make-object bitmap% 1 1))))
 
   (define-values (use-screen-w use-screen-h)
     (if no-squash?
@@ -127,8 +154,6 @@
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                    Setup                      ;;
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (define ps-pre-scale 0.7)
 
   (define font-size base-font-size)
   (define gap-size (* 3/4 font-size))
@@ -187,31 +212,6 @@
       (k)))
 
   (define (tt* . l) (apply vl-append line-sep (map tt l)))
-
-  (dc-for-text-size
-   (if printing?
-       ;; Make ps-dc%:
-       (let ([pss (make-object ps-setup%)])
-         (send pss set-mode 'file)
-	 (send pss set-file
-	       (if content
-		   (path-replace-suffix (file-name-from-path content) 
-					(if quad-view?
-					    "-4u.ps"
-					    ".ps"))
-		   "untitled.ps"))
-	 (send pss set-scaling ps-pre-scale ps-pre-scale)
-	 (send pss set-orientation 'landscape)
-	 (parameterize ([current-ps-setup pss])
-	   (let ([p (make-object post-script-dc% #t #f #t #f)])
-	     (unless (send p ok?) (exit))
-	     (send p start-doc "Slides")
-	     (send p start-page)
-	     (set!-values (screen-w screen-h) (send p get-size))
-	     p)))
-
-       ;; Bitmaps give same size as the screen:
-       (make-object bitmap-dc% (make-object bitmap% 1 1))))
 
   (define bullet (if (send (dc-for-text-size) glyph-exists? #\u2022)
 		     (t "\u2022")
@@ -1253,14 +1253,14 @@
 	  (set! resizing-frame? #t) ; hack --- see yield below
 	  (send f resize 
 		(max 1 (- (inexact->exact (floor actual-screen-w)) 
-			  (floor (* (+ (sinset-l sinset) (sinset-r sinset))
-				    (/ actual-screen-w screen-w)))))
+			  (inexact->exact (floor (* (+ (sinset-l sinset) (sinset-r sinset))
+						    (/ actual-screen-w screen-w))))))
 		(max 1 (- (inexact->exact (floor actual-screen-h)) 
-			  (floor (* (+ (sinset-t sinset) (sinset-b sinset))
-				    (/ actual-screen-h screen-h))))))
+			  (inexact->exact (floor (* (+ (sinset-t sinset) (sinset-b sinset))
+						    (/ actual-screen-h screen-h)))))))
 	  (send f move 
-		(- (floor (* (sinset-l sinset) (/ actual-screen-w screen-w))) screen-left-inset)
-		(- (floor (* (sinset-t sinset) (/ actual-screen-h screen-h))) screen-top-inset))
+		(inexact->exact (- (floor (* (sinset-l sinset) (/ actual-screen-w screen-w))) screen-left-inset))
+		(inexact->exact (- (floor (* (sinset-t sinset) (/ actual-screen-h screen-h))) screen-top-inset)))
 	  (set! current-sinset sinset)
 	  ;; FIXME: This yield is here so that the frame
 	  ;;  and its children can learn about their new
@@ -1805,8 +1805,14 @@
               (when start?
                 (send ps-dc start-page))
               (let ([slide (car l)])
-                ((slide-drawer slide) ps-dc margin margin)
-                (when show-page-numbers?
+		(let ([xs (/ use-screen-w screen-w)]
+		      [ys (/ use-screen-h screen-h)])
+		  (send ps-dc set-scale xs ys)
+		  ((slide-drawer slide) ps-dc 
+		   (+ margin (/ (- actual-screen-w use-screen-w) 2 xs))
+		   (+ margin (/ (- actual-screen-h use-screen-h) 2 ys))))
+		(when show-page-numbers?
+		  (send ps-dc set-scale 1 1)
                   (let ([s (slide-page-string slide)])
                     (let-values ([(w h) (send ps-dc get-size)]
                                  [(sw sh sd sa) (send ps-dc get-text-extent s)]
