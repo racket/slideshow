@@ -734,23 +734,23 @@
     (opt-lambda (x y w h dx dy [duration 0.20] [steps 12])
       (add-transition! 'scroll-transition
 		       (lambda (offscreen-dc)
-			 (let ([steps-done 0]
-			       [xs (/ actual-screen-w screen-w)]
-			       [ys (/ actual-screen-h screen-h)]
-			       [x-in (if (positive? dx)
-					 (ceiling (/ dx steps))
-					 0)]
-			       [y-in (if (positive? dy)
-					 (ceiling (/ dy steps))
-					 0)])
+			 (let* ([steps-done 0]
+				[xs (/ actual-screen-w screen-w)]
+				[ys (/ actual-screen-h screen-h)]
+				[x-in (if (positive? dx)
+					  (floor (* xs (/ dx steps)))
+					  0)]
+				[y-in (if (positive? dy)
+					  (floor (* ys (/ dy steps)))
+					  0)])
 			   (unless (and scroll-bm
 					(>= (send scroll-bm get-width) 
-					    (+ w (abs dx)))
+					    (* xs (+ w (abs dx))))
 					(>= (send scroll-bm get-height) 
-					    (+ h (abs dy))))
+					    (* ys (+ h (abs dy)))))
 			     (set! scroll-bm (make-object bitmap% 
-							  (inexact->exact (ceiling (+ w (abs dx))))
-							  (inexact->exact (ceiling (+ h (abs dy))))))
+							  (inexact->exact (ceiling (* xs (+ w (abs dx)))))
+							  (inexact->exact (ceiling (* ys (+ h (abs dy)))))))
 			     (if (send scroll-bm ok?)
 				 (send scroll-dc set-bitmap scroll-bm)
 				 (set! scroll-bm #f)))
@@ -773,8 +773,8 @@
 					  (lambda (dc xm ym)
 					    (send dc draw-bitmap-section
 						  scroll-bm
-						  (+ (* xs (+ x margin (* dx (/ steps-done steps)))) xm (- x-in))
-						  (+ (* ys (+ y margin (* dy (/ steps-done steps)))) ym (- y-in))
+						  (+ (* xs (+ x margin (* dx (/ steps-done steps)) (- x-in))) xm)
+						  (+ (* ys (+ y margin (* dy (/ steps-done steps)) (- y-in))) ym)
 						  0 0 
 						  (ceiling (* xs (+ w (/ (abs dx) steps))))
 						  (ceiling (* ys (+ h (/ (abs dy) steps))))))])

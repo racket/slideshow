@@ -17,7 +17,8 @@
        "Title Slide"
        (titlet "Slideshow Tutorial")
        (blank)
-       (bitmap (build-path (collection-path "icons") "PLTnolarval.jpg"))
+       (size-in-pixels
+	(bitmap (build-path (collection-path "icons") "PLTnolarval.jpg")))
        (blank)
        (colorize (it "Press the spacebar to continue") blue)
        (comment "Welcome to Slideshow"))
