@@ -990,8 +990,8 @@
   (define-values (progress-window progress-display)
     (parameterize ([current-eventspace (make-eventspace)])
       (let* ([f (make-object (class frame% 
-			       (override on-close)
-			       (define (on-close) (exit))
+			       (augment on-close)
+			       (define (on-close) (inner (void) on-close) (exit))
 			       (super-instantiate ()))
 			     "Progress")]
 	     [h (instantiate horizontal-panel% (f)
@@ -1075,7 +1075,7 @@
         (class frame% 
           (init-field closeable?)
           (init-field close-bg?)
-          (define/override can-close? (lambda () closeable?))
+          (define/augment can-close? (lambda () (and closeable? (inner #t can-close?))))
           (define/override on-superwindow-show (lambda (on?)
                                                  (unless on?
                                                    (when (and close-bg? background-f)
