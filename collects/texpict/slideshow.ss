@@ -61,11 +61,21 @@
   (require "utils.ss")
   (require (lib "math.ss"))
 
-  (define (t s) (text s main-font font-size))
-  (define (it s) (text s `(italic . ,main-font) font-size))
-  (define (bt s) (text s `(bold . ,main-font) font-size))
-  (define (bit s) (text s `(bold italic . ,main-font) font-size))
-  (define (tt s) (text s '(bold . modern) font-size))
+  (define current-font-size (make-parameter 
+			     font-size
+			     (lambda (x)
+			       (unless (and (number? x)
+					    (integer? x)
+					    (exact? x)
+					    (positive? x))
+				 (raise-type-error 'current-font-size "exact non-negative integer" x))
+			       x)))
+
+  (define (t s) (text s main-font (current-font-size)))
+  (define (it s) (text s `(italic . ,main-font) (current-font-size)))
+  (define (bt s) (text s `(bold . ,main-font) (current-font-size)))
+  (define (bit s) (text s `(bold italic . ,main-font) (current-font-size)))
+  (define (tt s) (text s '(bold . modern) (current-font-size)))
   (define (titlet s) (colorize (text s 
 				     `(bold . ,main-font) 
 				     title-size)
@@ -110,7 +120,12 @@
 				       comment)
 			   talk-slide-list)))
 
-  (define (one-slide/title s . x) 
+  (define (evenize-width p)
+    (let ([w (pict-width p)])
+      ;; Force even size:
+      (inset p 0 0 (+ (- w (floor w)) (modulo (floor w) 2)) 0)))
+
+  (define (one-slide/title process v-sep s . x) 
     (let-values ([(x c)
 		  (let loop ([x x][c #f][r null])
 		    (cond
@@ -122,25 +137,22 @@
       (add-slide!
        (ct-superimpose
 	full-page
-	(apply vc-append font-size
+	(apply vc-append v-sep
 	       (map
-		(lambda (p)
-		  (let ([w (pict-width p)])
-		    ;; Force even size:
-		    (inset p 0 0 (+ (- w (floor w)) (modulo (floor w) 2)) 0)))
+		evenize-width
 		(if s
-		    (cons (titlet s) x)
-		    x))))
+		    (cons (titlet s) (process x))
+		    (process x)))))
        s
-       comment)))
+       c)))
 
-  (define (slide/title/tall s . x)
+  (define (do-slide/title/tall process v-sep s . x)
     (let loop ([l x][r null][comment #f])
       (cond
-       [(null? l) (apply one-slide/title s (reverse r))]
+       [(null? l) (apply one-slide/title process v-sep s (reverse r))]
        [(memq (car l) '(NEXT NEXT!))
 	(unless (and printing? (eq? (car l) 'NEXT))
-	  (apply one-slide/title s (reverse r)))
+	  (apply one-slide/title process v-sep s (reverse r)))
 	(loop (cdr l) r comment)]
        [(memq (car l) '(ALTS ALTS~)) 
 	(let ([rest (cddr l)])
@@ -153,10 +165,39 @@
 		  (aloop (cdr al))))))]
        [else (loop (cdr l) (cons (car l) r) comment)])))
 
+  (define (slide/title/tall s . x)
+    (apply do-slide/title/tall values font-size s x))
+
   (define (slide/title s . x)
     (apply slide/title/tall s (blank) x))
 
+  (define (slide/title/center s . x)
+    (apply do-slide/title/tall 
+	   (lambda (x)
+	     (list
+	      (cc-superimpose
+	       (if s titleless-page full-page)
+	       (apply vc-append font-size
+		      (map
+		       evenize-width
+		       x)))))
+	   0 s x))
+
   (define (slide . x) (apply slide/title #f x))
+
+  (define (slide/center . x) (apply slide/title/center #f x))
+
+  (define most-recent-slide
+    (case-lambda
+     [() (most-recent-slide 0)]
+     [(n) (if ((length talk-slide-list) . <= . n)
+	      #f
+	      (list-ref talk-slide-list n))]))
+
+  (define (re-slide s)
+    (unless (slide? s)
+      (raise-type-error 're-slide "slide" s))
+    (set! talk-slide-list (cons s talk-slide-list)))
 
   (define (make-outline . l)
     (define a (colorize (arrow font-size 0) blue))
@@ -361,13 +402,16 @@
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (provide (all-from mzscheme)
-	   slide slide/title slide/title/tall comment make-outline
+	   slide slide/title slide/title/tall 
+	   slide/center slide/title/center
+	   most-recent-slide re-slide
+	   comment make-outline
 	   item item* page-item page-item*
 	   subitem subitem* page-subitem page-subitem*
 	   itemize itemize* page-itemize page-itemize*
 	   para para* page-para page-para*
 	   para/c para/r para*/c para*/r page-para/c page-para/r page-para*/c page-para*/r
-	   font-size line-sep title-size main-font
+	   font-size current-font-size line-sep title-size main-font
 	   red green blue purple orange
 	   t it bt bit tt titlet
 	   bullet o-bullet
@@ -430,7 +474,7 @@
   (define GAUGE-HEIGHT 4)
 
   (define talk-frame%
-    (class100 frame% (closeble? . args)
+    (class100 frame% (closeble?)
       (private-field [closeable? closeble?])
       (override
 	[can-close? (lambda () closeable?)]
@@ -467,14 +511,16 @@
 	       [else
 		#f])))])
       (sequence
-	(apply super-init args))))
+	(super-init))))
 
-  (define f (make-object talk-frame% #f "Talk" #f 
-			 (inexact->exact (floor screen-w))
-			 (inexact->exact (floor screen-h))
-			 0 0 '(no-caption)))
+  (define f (instantiate talk-frame% (#f)
+			 [label "Talk"]
+			 [x 0] [y 0]
+			 [width (inexact->exact (floor screen-w))]
+			 [height (inexact->exact (floor screen-h))]
+			 [style '(no-caption no-resize-border)]))
 
-  (define c-frame (make-object talk-frame% #t "Commentary" #f 400 100))
+  (define c-frame (instantiate talk-frame% (#t) [label "Commentary"] [width 400] [height 100]))
   (define commentary (make-object text%))
   (send (make-object editor-canvas% c-frame commentary)
 	set-line-count 3)
@@ -574,26 +620,52 @@
 
   (define (get-page-from-user)
     (let* ([d (make-object dialog% "Goto Page" f 200 250)]
-	   [l (make-object list-box% #f (let loop ([pages talk-slide-list][n 1])
-					  (if (null? pages)
-					      null
-					      (cons (format "~a. ~a" 
-							    n 
-							    (or (slide-title (car pages))
-								"(untitled)"))
-						    (loop (cdr pages) (add1 n)))))
+	   [short-slide-list 
+	    (let loop ([slides talk-slide-list][n 1][last-title #f])
+	      (cond
+	       [(null? slides) null]
+	       [(and last-title
+		     (equal? last-title (slide-title (car slides))))
+		(loop (cdr slides) (add1 n) last-title)]
+	       [else
+		(let ([title (or (slide-title (car slides))
+				 "(untitled)")])
+		  (cons (cons
+			 n
+			 (format "~a. ~a" 
+				 n 
+				 title))
+			(loop (cdr slides) (add1 n) title)))]))]
+	   [long-slide-list (let loop ([slides talk-slide-list][n 1])
+			      (if (null? slides)
+				  null
+				  (cons (cons
+					 n
+					 (format "~a. ~a" 
+						 n 
+						 (or (slide-title (car slides))
+						     "(untitled)")))
+					(loop (cdr slides) (add1 n)))))]
+	   [slide-list short-slide-list]
+	   [l (make-object list-box% #f (map cdr slide-list)
 			   d void)]
 	   [p (make-object horizontal-pane% d)])
       (send d center)
-      (send p set-alignment 'right 'center)
       (send p stretchable-height #f)
+      (make-object check-box% "All Pages" p
+		   (lambda (c e)
+		     (set! slide-list (if (send c get-value)
+					  long-slide-list
+					  short-slide-list))
+		     (send l set (map cdr slide-list))))
+      (make-object pane% p)
       (make-object button% "Cancel" p (lambda (b e) (send d show #f)))
       (make-object button% "Ok" p 
 		   (lambda (b e)
 		     (send d show #f)
 		     (let ([i (send l get-selection)])
 		       (when i
-			 (set! current-page i)
+			 (set! current-page (sub1 (car (list-ref slide-list i))))
 			 (refresh-page))))
 		   '(border))
       (send l focus)
