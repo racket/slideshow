@@ -119,6 +119,8 @@
 				     title-size)
 			       green))
 
+  (define (tt* . l) (apply vl-append line-sep (map tt l)))
+
   (define bullet (cc-superimpose (disk (/ font-size 2)) 
 				 (blank 0 font-size)))
   (define o-bullet (cc-superimpose (circle (/ font-size 2)) 
@@ -151,7 +153,7 @@
 					     (- screen-h (* margin 2))))
   (define full-page (blank client-w client-h))
   (define (mk-titleless-page)
-    (inset full-page 0 (- 0 (pict-height (titlet "Hi")) font-size) 0 0))
+    (inset full-page 0 (- 0 (pict-height (titlet "Hi")) (* 2 font-size)) 0 0))
   (define titleless-page (mk-titleless-page))
 
   (define use-background-frame? #f)
@@ -186,7 +188,7 @@
       ;; Force even size:
       (inset p 0 0 (+ (- w (floor w)) (modulo (floor w) 2)) 0)))
 
-  (define (apply-sinset sinset pict)
+  (define (apply-slide-inset sinset pict)
     (inset pict 
 	   (- (sinset-l sinset))
 	   (- (sinset-t sinset))
@@ -204,7 +206,7 @@
 		      (loop (cdr x) c (cons (car x) r))]))])
       (add-slide!
        (ct-superimpose
-	(apply-sinset inset full-page)
+	(apply-slide-inset inset full-page)
 	(apply vc-append v-sep
 	       (map
 		evenize-width
@@ -285,7 +287,7 @@
 	   (lambda (x)
 	     (list
 	      (cc-superimpose
-	       (apply-sinset inset (if s titleless-page full-page))
+	       (apply-slide-inset inset (if s titleless-page full-page))
 	       (apply vc-append font-size
 		      (map
 		       evenize-width
@@ -586,7 +588,7 @@
 	   para/c para/r para*/c para*/r page-para/c page-para/r page-para*/c page-para*/r
 	   font-size current-font-size line-sep title-size main-font
 	   red green blue purple orange
-	   t it bt bit tt titlet
+	   t it bt bit tt titlet tt*
 	   bullet o-bullet
 	   margin client-w client-h
 	   full-page titleless-page
@@ -604,7 +606,9 @@
 		    [make-slide-inset
 		     (side-inset? side-inset? side-inset? side-inset?
 				  . -> .
-				  sinset?)])
+				  sinset?)]
+		    [apply-slide-inset
+		     (sinset? pict? . -> . pict?)])
   
   (define-values (progress-window progress-display)
     (parameterize ([current-eventspace (make-eventspace)])
@@ -771,10 +775,10 @@
 		     (= (sinset-t current-sinset) (sinset-t sinset))
 		     (= (sinset-r current-sinset) (sinset-r sinset))
 		     (= (sinset-b current-sinset) (sinset-b sinset)))
-	  (send f move (sinset-l sinset) (sinset-t sinset))
 	  (send f resize 
 		(max 1 (- (inexact->exact (floor screen-w)) (sinset-l sinset) (sinset-r sinset)))
 		(max 1 (- (inexact->exact (floor screen-h)) (sinset-t sinset) (sinset-b sinset))))
+	  (send f move (sinset-l sinset) (sinset-t sinset))
 	  (set! current-sinset sinset)))
 		
 
