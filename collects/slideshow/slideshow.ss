@@ -215,6 +215,23 @@
   (define (set-use-background-frame! on?)
     (set! use-background-frame? (and on? #t)))
 
+  (define (set-page-numbers-visible! on?)
+    (set! show-page-numbers? (and on? #t)))
+
+  (define current-page-number-font 
+    (make-parameter
+     (make-object font% 10 'default 'normal 'normal)
+     (lambda (f)
+       (unless (f . is-a? . font%)
+	 (raise-type-error 'current-page-number-font "font%" f))
+       f)))
+  (define current-page-number-color 
+    (make-parameter (make-object color% "black")
+		    (lambda (s)
+		      (unless (s . is-a? . color%)
+			(raise-type-error 'current-page-number-color "color%" s))
+		      s)))
+      
   (define talk-slide-list null)
   (define-struct slide (drawer title comment page page-count inset transitions))
   (define-struct just-a-comment (text))
@@ -900,6 +917,8 @@
 	   printing? condense? skip-slides
 	   set-use-background-frame!
 	   title-h set-title-h! current-slide-assembler
+	   current-page-number-font current-page-number-color 
+	   set-page-numbers-visible!
 	   (all-from (lib "mrpict.ss" "texpict"))
 	   (all-from (lib "utils.ss" "texpict"))
            start-making-slides done-making-slides)
@@ -1049,6 +1068,10 @@
                      (printf "Total Time: ~a seconds~n"
                              (- (current-seconds) talk-start-seconds)))
                    #f]
+		  [(#\p)
+		   (set! show-page-numbers? (not show-page-numbers?))
+		   (stop-transition)
+		   (refresh-page)]
                   [(#\c)
                    (stop-transition)
                    (when (or (send e get-meta-down)
@@ -1212,7 +1235,6 @@
           (send dc set-pen p)
           (send dc set-brush b)))
       
-      (define number-font (make-object font% 10 'default 'normal 'normal))
       (define c%
         (class canvas%
           (inherit get-dc get-client-size)
@@ -1227,6 +1249,7 @@
                  (send dc draw-bitmap cached-page-bitmap 0 0)]
                 [else
                  (send dc clear)
+		 (stop-transition/no-refresh)
                  (paint-slide dc)])))
           
           (inherit get-top-level-window)
@@ -1311,6 +1334,7 @@
                (set! clicking #f)
                (send offscreen clear)
                (let-values ([(cw ch) (get-client-size)])
+		 (stop-transition/no-refresh)
                  (paint-slide offscreen))
                (let ([bm (send offscreen get-bitmap)])
                  (send (get-dc) draw-bitmap bm 0 0))]
@@ -1322,6 +1346,7 @@
                     (send dc draw-bitmap cached-page-bitmap 0 0)]
                    [else
                     (send dc clear)
+		    (stop-transition/no-refresh)
                     (paint-slide dc)]))]))
           (super-new)))
 
@@ -1357,10 +1382,8 @@
           [(dc) (paint-slide dc current-page)]
           [(dc page) 
            (let-values ([(cw ch) (send dc get-size)])
-	     (paint-slide dc page 1 1 cw ch #f))]
+	     (paint-slide dc page 1 1 cw ch #t))]
           [(dc page extra-scale-x extra-scale-y cw ch to-main?)
-           (when to-main?
-	     (stop-transition/no-refresh))
            (let* ([slide (list-ref talk-slide-list page)]
                   [set-scale? (not (and (= actual-screen-w screen-w)
                                         (= actual-screen-h screen-h)))]
@@ -1376,7 +1399,19 @@
              
              ;; Draw the slide
              ((slide-drawer slide) dc m m)
-             
+
+	     ;; Slide number
+	     (when (and to-main? show-page-numbers?)
+	       (let ([f (send dc get-font)]
+		     [s (slide-page-string slide)]
+		     [c (send dc get-text-foreground)])
+		 (send dc set-font (current-page-number-font))
+		 (send dc set-text-foreground (current-page-number-color))
+		 (let-values ([(w h d a) (send dc get-text-extent s)])
+		   (send dc draw-text s (- cw w m) (- ch h m)))
+		 (send dc set-text-foreground c)
+		 (send dc set-font f)))
+	     
              ;; reset the scale
              (send dc set-scale 1 1))]))
 
@@ -1527,13 +1562,15 @@
         (message-box "Instructions"
                      (format "Keybindings:~
                      ~n  {Meta,Alt}-q - quit~
-                     ~n  Right, Space, f or n - next page~
-                     ~n  Left, b - prev page~
-                     ~n  g - last page~
-                     ~n  1 - first page~
-                     ~n  {Meta,Alt}-g - select page~
+                     ~n  Right, Space, f or n - next slide~
+                     ~n  Left, b - prev slide~
+                     ~n  g - last slide~
+                     ~n  1 - first slide~
+                     ~n  {Meta,Alt}-g - select slide~
+                     ~n  p - show/hide slide number~
                      ~n  {Meta,Alt}-c - show/hide commentary~
-                     ~nAll bindings work in both the display and commentary windows")))
+                     ~n  {Meta,Alt,Shift}-{Right,Left,Up,Down} - move window~
+                     ~nAll bindings work in all windows")))
       
       (when printing?
         (let ([ps-dc (dc-for-text-size)])

@@ -84,7 +84,10 @@ Alt-q (or Meta-q) to end the slides. More controls:
     g                             :  last slide
     1                             :  first slide
     Alt-g or Meta-g               :  select a slide
+    p                             :  show/hide slide number
     Alt-c or Meta-c               :  show/hide commentary
+    Shift with arrow              :  move window 1 pixel
+    Alt or Meta with arrow        :  move window 10 pixels
 
 In general, each element after the title string for `slide/title' is a
 pict that will be centered on the slide. The picts are stacked
@@ -201,10 +204,11 @@ text functions, such as `t' and `page-para', are built on `text'.) In
 particular, scaling the picture causes a different font size to be
 used for drawing the slide (rather than bitmap-scaling the original
 font), and changing the font size by a factor of K does not
-necessarily scale all text dimensions equally by a factor of
-K. Nevertheless, using the `current-expected-text-scale' parameter,
-Slideshow is usually able to produce good results when the slide is
-scaled.
+necessarily scale all text dimensions equally by a factor of K
+(because, for most devices, each character must have integer
+dimensions). Nevertheless, using the `current-expected-text-scale'
+parameter, Slideshow is usually able to produce good results when the
+slide is scaled.
 
 More generally, different font sets on different platforms can change
 the way a slide is rendered. For example, the `tt' font on one
@@ -213,8 +217,8 @@ line breaks, etc. Beware.
 
 Beware also of using bitmaps in slides when the presentation screen
 will not be 1024x768. In that case, consider using `size-in-pixels'
-(with the caveat that the resulting picture will have a different size
-on different displays).
+(with the caveat that the resulting picture will take up different
+amounts of the slide on different displays).
 
 Transition Animations
 =====================
@@ -447,17 +451,23 @@ Procedure Reference
 > title-h - the height of a title string
 
 > set-title-h! - sets `title-h' and updates `titleless-page'; this
-                 usually makes sense only in combination with
-                 a change to `current-format-slide'
+  usually makes sense only in combination with a change to
+  `current-format-slide'
 
 > current-slide-assembler - a parameter whose value is a function for
-                assembling slide content into a single pict; the
-                assembling function takes a string-or-false for the
-                title, a separation for the title and pict (if any),
-                and a pict for the slide content (not counting the
-                title); the result is 'lt-superimpose'd with the
-                client area (but the result pict might draw outside
-                the client region to paint the screen margins, too)
+  assembling slide content into a single pict; the assembling function
+  takes a string-or-false for the title, a separation for the title
+  and pict (if any), and a pict for the slide content (not counting
+  the title); the result is 'lt-superimpose'd with the client area
+  (but the result pict might draw outside the client region to paint
+  the screen margins, too); see also `set-title-h!',
+  `current-page-number-font', `current-page-number-color', and
+  `set-page-numbers-visible!'
+
+> current-page-number-font - font used to draw slide numbers
+> current-page-number-color - color used to draw slide numbers
+> set-page-numbers-visible! - determines whether slide numbers are
+  initially visible
 
 > printing? - #t if the slides are begin durected to PostScript output
 > condense? - #t if slides are being condensed (see overview)

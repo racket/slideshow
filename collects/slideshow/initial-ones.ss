@@ -36,7 +36,10 @@
       (define sym:leftarrow (symbol 172))
 
       (define (meta key)
-	(hbl-append (t "Alt-") (tt key) (t " or Meta-") (tt key)))
+	(hbl-append (t "Alt-") 
+		    (if (pict? key) key (tt key))
+		    (t " or Meta-") 
+		    (if (pict? key) key (tt key))))
 
       (slide/title/center
        "How to Control this Viewer"
@@ -51,7 +54,10 @@
 		      ((,(tt "g")) "last slide")
 		      ((,(tt "1")) "first slide")
 		      ((,(meta "g")) "select a slide")
-		      ((,(meta "c")) "show/hide commentary"))))
+		      ((,(tt "p")) "show/hide slide number")
+		      ((,(meta "c")) "show/hide commentary")
+		      (("Shift-" ,sym:rightarrow ", etc.") "move window 1 pixel")
+		      ((,(meta sym:rightarrow) ", etc.") "move window 10 pixels"))))
 	      lbl-superimpose lbl-superimpose
 	      gap-size (/ gap-size 2))
        (comment "This window shows comments for each slide. "
