@@ -5,7 +5,7 @@
            (lib "unit.ss")
 	   (lib "file.ss")
 	   (lib "etc.ss")
-	   (lib "contracts.ss")
+	   (lib "contract.ss")
 	   (lib "mred.ss" "mred"))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -243,7 +243,38 @@
 	 (+ 1 skipped-pages)
 	 inset))))
 
+  (define (slide-error nested string . args)
+    (apply error
+	   (let loop ([nested nested])
+	     (if (null? nested)
+		 'slide*
+		 (string->symbol (format "~a of ~a" (car nested) (loop (cdr nested))))))
+	   string
+	   args))
+
   (define (do-slide/title/tall/inset do-add-slide! skip-ok? process v-sep s inset . x)
+    ;; Check slides:
+    (let loop ([l x][nested null])
+      (or (null? l)
+	  (cond
+	   [(pict? (car l)) (loop (cdr l) nested)]
+	   [(just-a-comment? (car l)) (loop (cdr l) nested)]
+	   [(memq (car l) '(next next!)) (and (or (pair? l) 
+						  (slide-error nested "argument sequence contains 'next at end"))
+					      (loop (cdr l) nested))]
+	   [(memq (car l) '(alts alts~)) (and (or (pair? (cdr l))
+						  (slide-error nested "argument sequence contains '~a at end" (car l)))
+					      (let ([a (cadr l)])
+						(and (or (list? a)
+							 (slide-error nested "non-list after '~a: ~e" (car l) a))
+						     (andmap (lambda (sl)
+							       (loop sl (cons (car l) nested)))
+							     a)))
+					      (loop (cddr l) nested))]
+	   [(eq? (car l) 'nothing) (loop (cdr l) nested)]
+	   [else #f])
+	  (slide-error nested "argument sequence contains a bad element: ~e" (car l))))
+
     (let loop ([l x][r null][comment #f][skip-all? #f][skipped 0])
       (cond
        [(null? l) 
@@ -271,6 +302,9 @@
 		  (let ([skipped (loop (car al) r comment skip? skipped)])
 		    (aloop (cdr al) skipped))))))]
        [else (loop (cdr l) (cons (car l) r) comment skip-all? skipped)])))
+
+  ;; Let the contract check always pass. We do more specific checking.
+  (define (slide-sequence? l) #t)
 
   (define zero-inset (make-sinset 0 0 0 0))
 
@@ -359,18 +393,25 @@
 	  (set! talk-slide-list (cdr talk-slide-list))
 	  slide))))
 
-  (define (re-slide s)
-    (unless (slide? s)
-      (raise-type-error 're-slide "slide" s))
-    (set! talk-slide-list (cons (make-slide
-				 (slide-drawer s)
-				 (slide-title s)
-				 (slide-comment s)
-				 page-number
-				 1
-				 (slide-inset s))
-				talk-slide-list))
-    (set! page-number (+ page-number 1)))
+  (define re-slide
+    (opt-lambda (s [addition #f])
+      (unless (slide? s)
+	(raise-type-error 're-slide "slide" s))
+      (set! talk-slide-list (cons (make-slide
+				   (let ([orig (slide-drawer s)]
+					 [extra (if addition
+						    (make-pict-drawer addition)
+						    void)])
+				     (lambda (dc x y)
+				       (orig dc x y)
+				       (extra dc x y)))
+				   (slide-title s)
+				   (slide-comment s)
+				   page-number
+				   1
+				   (slide-inset s))
+				  talk-slide-list))
+      (set! page-number (+ page-number 1))))
 
   (define (make-outline . l)
     (define ah (arrowhead gap-size 0))
@@ -637,16 +678,43 @@
 		 (pict-ascent pict)
 		 (pict-descent pict))))))))
 
+
+  ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;                Contracts                      ;;
+  ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (define slide-contract
+    (() slide-sequence? . ->* . any))
+  (define slide/title-contract
+    ((string?) slide-sequence? . ->* . any))
+  (define slide/inset-contract
+    ((sinset?) slide-sequence? . ->* . any))
+  (define slide/title/inset-contract
+    ((string? sinset?) slide-sequence? . ->* . any))
+
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                 Talk                          ;;
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (provide (all-from mzscheme)
-           (rename :slide slide) slide/title slide/title/tall 
-	   slide/center slide/title/center
-	   slide/inset slide/title/inset slide/title/tall/inset
-	   slide/center/inset slide/title/center/inset
-	   most-recent-slide retract-most-recent-slide re-slide 
+  (define-syntax (provide-slide stx)
+    #'(begin
+       ;; The name slide is introduced by this macro,
+       ;;  so it doesn't conflict with the real `slide'!
+       (define slide :slide)
+       (provide/contract [slide slide-contract])))
+
+  (provide-slide)
+  (provide (all-from mzscheme))
+  (provide/contract [slide/title slide/title-contract]
+		    [slide/title/tall slide/title-contract]
+		    [slide/center slide-contract]
+		    [slide/title/center slide/title-contract]
+		    [slide/inset slide/inset-contract]
+		    [slide/title/inset slide/title/inset-contract]
+		    [slide/title/tall/inset slide/title/inset-contract]
+		    [slide/center/inset slide/inset-contract]
+		    [slide/title/center/inset slide/title/inset-contract])
+  (provide most-recent-slide retract-most-recent-slide re-slide 
 	   comment make-outline
 	   item item* page-item page-item*
 	   item/bullet item*/bullet page-item/bullet page-item*/bullet
