@@ -29,6 +29,17 @@ pict snip :
 
   (provide tool@)
 
+  (define orig-inspector (current-inspector))
+
+  (define-syntax syntax/cert 
+    (syntax-rules ()
+      [(_ stx tmpl) (let ([stx stx])
+		      (syntax-recertify
+		       (syntax/loc stx tmpl)
+		       stx
+		       orig-inspector
+		       #f))]))
+
   (define tool@
     (unit/sig drscheme:tool-exports^
       (import drscheme:tool^)
@@ -666,11 +677,11 @@ pict snip :
            (with-syntax ([(rewritten-module-level-expr ...) (map rewrite-module-level
                                                                  (syntax->list
                                                                   (syntax (module-level-expr ...))))])
-             (syntax (module identifier name (#%plain-module-begin rewritten-module-level-expr ...))))]
+             (syntax/cert stx (module identifier name (#%plain-module-begin rewritten-module-level-expr ...))))]
           [(begin top-level-expr ...)
            (with-syntax ([(rewritten-top-level-expr ...) 
                           (map rewrite-top-level (syntax->list (syntax (top-level-expr ...))))])
-             (syntax (begin rewritten-top-level-expr ...)))]
+             (syntax/cert stx (begin rewritten-top-level-expr ...)))]
           [general-top-level-expr (rewrite-general-top-level stx)]))
 
       (define (rewrite-module-level stx)
@@ -680,53 +691,57 @@ pict snip :
            (with-syntax ([(rewritten-module-level-expr ...)
                           (map rewrite-module-level 
                                (syntax->list (syntax (module-level-expr  ...))))])
-             (syntax (begin rewritten-module-level-expr ...)))]
+             (syntax/cert stx (begin rewritten-module-level-expr ...)))]
           [general-top-level-expr (rewrite-general-top-level stx)]))
       
       (define (rewrite-general-top-level stx)
-        (syntax-case stx (define-values define-syntaxes require require-for-syntax)
+        (syntax-case stx (define-values define-syntaxes define-values-for-syntax 
+			   require require-for-syntax require-for-template)
           [(define-values (variable ...) expr)
            (with-syntax ([rewritten-expr (add-send-over (rewrite-expr (syntax expr)) 
                                                         (syntax expr) 
                                                         (length (syntax->list (syntax (variable ...)))))])
-             (syntax (define-values (variable ...) rewritten-expr)))]
+             (syntax/cert stx (define-values (variable ...) rewritten-expr)))]
           [(define-syntaxes (variable ...) expr) stx]
+          [(define-values-for-syntax (variable ...) expr) stx]
           [(require require-spec ...) stx]
           [(require-for-syntax require-spec ...) stx]
+          [(require-for-template require-spec ...) stx]
           [expr (rewrite-expr stx)]))
       
       (define (rewrite-expr stx)
-        (syntax-case stx (lambda case-lambda if begin begin0 let-values letrec-values set! quote quote-syntax with-continuation-mark #%app #%datum #%top)
+        (syntax-case stx (lambda case-lambda if begin begin0 let-values letrec-values set! quote quote-syntax 
+				 with-continuation-mark #%app #%datum #%top)
           [variable
            (identifier? (syntax variable))
            (add-send-over/var (syntax variable) stx)]
           [(lambda formals expr ...)
            (with-syntax ([(rewritten-expr ...) 
                           (map rewrite-expr (syntax->list (syntax (expr ...))))])
-                  (syntax (lambda formals rewritten-expr ...)))]
+	     (syntax/cert stx (lambda formals rewritten-expr ...)))]
           [(case-lambda (formals expr ...) ...)
            (with-syntax ([((rewritten-expr ...) ...)
                           (map (lambda (exprs) (map rewrite-expr (syntax->list exprs)))
                                (syntax->list (syntax ((expr ...) ...))))])
-             (syntax (case-lambda (formals rewritten-expr ...) ...)))]
+             (syntax/cert stx (case-lambda (formals rewritten-expr ...) ...)))]
           [(if expr1 expr2)
            (with-syntax ([rewritten-expr1 (add-send-over (rewrite-expr (syntax expr1)) (syntax expr1) 1)]
                          [rewritten-expr2 (rewrite-expr (syntax expr2))])
-             (syntax (if rewritten-expr1 rewritten-expr2)))]
+             (syntax/cert stx (if rewritten-expr1 rewritten-expr2)))]
           [(if expr1 expr2 expr3)
            (with-syntax ([rewritten-expr1 (add-send-over (rewrite-expr (syntax expr1)) (syntax expr1) 1)]
                          [rewritten-expr2 (rewrite-expr (syntax expr2))]
                          [rewritten-expr3 (rewrite-expr (syntax expr3))])
-             (syntax (if rewritten-expr1 rewritten-expr2 rewritten-expr3)))]
+             (syntax/cert stx (if rewritten-expr1 rewritten-expr2 rewritten-expr3)))]
           [(begin expr ... last-expr)
            (with-syntax ([(rewritten-expr ...) (map (lambda (x) (add-send-over (rewrite-expr x) x 1))
                                                     (syntax->list (syntax (expr ...))))]
                          [rewritten-last-expr (rewrite-expr (syntax last-expr))])
-             (syntax (begin rewritten-expr ... rewritten-last-expr)))]
+             (syntax/cert stx (begin rewritten-expr ... rewritten-last-expr)))]
           [(begin0 expr ...)
            (with-syntax ([(rewritten-expr ...) (map (lambda (x) (add-send-over (rewrite-expr x) x 1)) 
                                                     (syntax->list (syntax (expr ...))))])
-             (syntax (begin0 rewritten-expr ...)))]
+             (syntax/cert stx (begin0 rewritten-expr ...)))]
           [(let-values (((variable ...) v-expr) ...) expr ...)
            (with-syntax ([(rewritten-expr ...) (map rewrite-expr (syntax->list (syntax (expr ...))))]
                          [(rewritten-v-expr ...) (map rewrite-expr (syntax->list (syntax (v-expr ...))))]
@@ -735,9 +750,10 @@ pict snip :
                                  (map (lambda (var) (add-send-over/var var var))
                                       (syntax->list vars)))
                                (syntax->list (syntax ((variable ...) ...))))])
-             (syntax (let-values (((variable ...) rewritten-v-expr) ...)
-                       (begin (void) (begin (void) send-over-vars ...) ...)
-                       rewritten-expr ...)))]
+             (syntax/cert stx
+			  (let-values (((variable ...) rewritten-v-expr) ...)
+			    (begin (void) (begin (void) send-over-vars ...) ...)
+			    rewritten-expr ...)))]
           [(letrec-values (((variable ...) v-expr) ...) expr ...)
            (with-syntax ([(rewritten-expr ...) (map rewrite-expr (syntax->list (syntax (expr ...))))]
                          [(rewritten-v-expr ...) (map rewrite-expr (syntax->list (syntax (v-expr ...))))]
@@ -746,23 +762,24 @@ pict snip :
                                  (map (lambda (var) (add-send-over/var var var))
                                       (syntax->list vars)))
                                (syntax->list (syntax ((variable ...) ...))))])
-             (syntax (letrec-values (((variable ...) rewritten-v-expr) ...)
-                       (begin (void) (begin (void) send-over-vars ...) ...)
-                       rewritten-expr ...)))]
+             (syntax/cert stx
+			  (letrec-values (((variable ...) rewritten-v-expr) ...)
+			    (begin (void) (begin (void) send-over-vars ...) ...)
+			    rewritten-expr ...)))]
           [(set! variable expr)
            (with-syntax ([rewritten-expr (add-send-over (rewrite-expr (syntax expr)) (syntax expr) 1)])
-             (syntax (set! variable rewritten-expr)))]
+             (syntax/cert stx (set! variable rewritten-expr)))]
           [(quote datum) stx]
           [(quote-syntax datum) stx]
           [(with-continuation-mark expr1 expr2 expr3)
            (with-syntax ([rewritten-expr1 (add-send-over (rewrite-expr (syntax expr1)) (syntax expr1) 1)]
                          [rewritten-expr2 (add-send-over (rewrite-expr (syntax expr2)) (syntax expr2) 1)]
                          [rewritten-expr3 (rewrite-expr (syntax expr3))])
-             (syntax (with-continuation-mark rewritten-expr1 rewritten-expr2 rewritten-expr3)))]
+             (syntax/cert stx (with-continuation-mark rewritten-expr1 rewritten-expr2 rewritten-expr3)))]
           [(#%app expr ...)
            (with-syntax ([(rewritten-expr ...) (map (lambda (x) (add-send-over (rewrite-expr x) x 1)) 
                                                     (syntax->list (syntax (expr ...))))])
-             (syntax (#%app rewritten-expr ...)))]
+             (syntax/cert stx (#%app rewritten-expr ...)))]
           [(#%datum . datum) stx]
           [(#%top . variable) stx]))
       

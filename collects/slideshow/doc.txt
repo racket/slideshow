@@ -285,6 +285,12 @@ Procedure Reference
   the overview for information about `element's. The space between the
   title and content is twice `gap-size'.
 
+  When this function (or one of its variants) is first called in
+  non-printing mode, then the viewer window is opened. Furthermore,
+  each call to the function (or a variant) `yield's, so that the
+  viewer window can be refreshed, and so the user can step through
+  slides.
+
 > (slide/title/tall title-string element ...) - Like `slide/title',
   except that the space is inserted between the title and the slide
   content is only `gap-size'.
