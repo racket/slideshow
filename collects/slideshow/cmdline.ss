@@ -47,6 +47,7 @@
 
 	(define condense? #f)
 	(define printing? #f)
+	(define native-printing? #f)
 	(define commentary? #f)
 	(define show-gauge? #f)
 	(define keep-titlebar? #f)
@@ -74,8 +75,11 @@
 	   [once-each
 	    (("-d" "--preview") "show next-slide preview (useful on a non-mirroring display)" 
 	     (set! two-frames? #t))
-	    (("-p" "--print") "print"
+	    (("-p" "--print") "print to PostScript"
 	     (set! printing? #t))
+	    (("-P" "--Print") "print using native support (Windows and Mac OS)"
+	     (set! printing? #t)
+	     (set! native-printing? #t))
 	    (("-o") file "set output file for printing"
 	     (set! print-target file))
 	    (("-c" "--condense") "condense"
@@ -151,27 +155,34 @@
 
 	(dc-for-text-size
 	 (if printing?
-	     ;; Make ps-dc%:
-	     (let ([pss (make-object ps-setup%)])
-	       (send pss set-mode 'file)
-	       (send pss set-file
-		     (if print-target
-			 print-target
-			 (if file-to-load
-			     (path-replace-suffix (file-name-from-path file-to-load)
-						  (if quad-view?
-						      "-4u.ps"
-						      ".ps"))
-			     "untitled.ps")))
-	       (send pss set-orientation 'landscape)
-	       (parameterize ([current-ps-setup pss])
-		 (let ([p (make-object post-script-dc% (not print-target) #f #t #f)])
-		   (unless (send p ok?) (exit))
-		   (send p start-doc "Slides")
-		   (send p start-page)
-		   (set!-values (actual-screen-w actual-screen-h) (send p get-size))
-		   p)))
-
+	     (let ([p (let ([pss (make-object ps-setup%)])
+			(send pss set-mode 'file)
+			(send pss set-file
+			      (if print-target
+				  print-target
+				  (if file-to-load
+				      (path-replace-suffix (file-name-from-path file-to-load)
+							   (if quad-view?
+							       "-4u.ps"
+							       ".ps"))
+					"untitled.ps")))
+			(send pss set-orientation 'landscape)
+			(parameterize ([current-ps-setup pss])
+			  (if (and native-printing?
+				   (not (memq (system-type) '(unix))))
+			      ;; Make printer-dc%
+			      (begin
+				(unless (send pss show-native) (exit))
+				(make-object printer-dc% #f))
+			      ;; Make ps-dc%:
+			      (make-object post-script-dc% (not print-target) #f #t #f))))])
+	       ;; Init page, set "screen" size, etc.:
+	       (unless (send p ok?) (exit))
+	       (send p start-doc "Slides")
+	       (send p start-page)
+	       (set!-values (actual-screen-w actual-screen-h) (send p get-size))
+	       p)
+	     
 	     ;; Bitmaps give same size as the screen:
 	     (make-object bitmap-dc% (make-object bitmap% 1 1))))
 
