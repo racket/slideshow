@@ -200,10 +200,10 @@
          (send pss set-mode 'file)
 	 (send pss set-file
 	       (if content
-		   (regexp-replace "[.][^.]+$" (file-name-from-path content) 
-				   (if quad-view?
-				       "-4u.ps"
-				       ".ps"))
+		   (path-replace-suffix (file-name-from-path content) 
+					(if quad-view?
+					    "-4u.ps"
+					    ".ps"))
 		   "untitled.ps"))
 	 (send pss set-scaling ps-pre-scale ps-pre-scale)
 	 (send pss set-orientation 'landscape)
@@ -1847,7 +1847,7 @@
   (define (load-content content)
     (send progress-window show #t)
     (start-making-slides)
-    (dynamic-require content #f)
+    (dynamic-require (path->complete-path content) #f)
     (done-making-slides))
 
   (when content
