@@ -81,7 +81,7 @@
   (define ps-pre-scale 0.7)
 
   (define font-size 32)
-  (define gap-size (* 3/4 base-font-size))
+  (define gap-size (* 3/4 font-size))
   (define line-sep 2)
   (define title-size (+ font-size 4))
   (define main-font (if (and (not printing?)
