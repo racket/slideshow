@@ -1171,7 +1171,7 @@
 	(send background-f show #t))
 
       (define f (new talk-frame%
-                     [closeable? #f]
+                     [closeable? keep-titlebar?]
                      [label (if content
                                 (format "~a: slideshow" (file-name-from-path content))
                                 "Slideshow")]
