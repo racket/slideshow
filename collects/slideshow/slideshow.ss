@@ -31,7 +31,7 @@
   (define use-offscreen? #t)
   (define use-transitions? use-offscreen?)
   (define talk-duration-minutes #f)
-  (define no-squash? #f)
+  (define no-squash? #t)
   (define two-frames? #f)
   (define use-prefetch? #t)
   (define use-prefetch-in-preview? #f)
@@ -43,12 +43,12 @@
      "slideshow"
      (current-command-line-arguments)
      [once-each
-      (("-d" "--double") "show next-slide preview (useful on a non-mirroring display)" 
-                         (set! two-frames? #t))
+      (("-d" "--preview") "show next-slide preview (useful on a non-mirroring display)" 
+       (set! two-frames? #t))
       (("-p" "--print") "print"
-		        (set! printing? #t))
+       (set! printing? #t))
       (("-c" "--condense") "condense"
-			   (set! condense? #t))
+       (set! condense? #t))
       (("-t" "--start") page "set the starting page"
        (let ([n (string->number page)])
 	 (unless (and n 
@@ -59,24 +59,21 @@
 	 (set! current-page (sub1 n))))
       (("-q" "--quad") "show four slides at a time"
        (set! quad-view? #t))
-      (("-n" "--no-stretch") "don't stretch the slide window to fit this screen"
+      (("-n" "--no-stretch") "don't stretch the slide window to fit the screen"
        (when (> actual-screen-w screen-w)
-	 (set! keep-titlebar? #t)
 	 (set! actual-screen-w screen-w)
 	 (set! actual-screen-h screen-h)))
-      (("-s" "--size") w h "show <w> high and <h> tall"
+      (("-s" "--size") w h "use a <w> by <h> window"
        (let ([nw (string->number w)]
 	     [nh (string->number h)])
 	 (unless (and nw (< 0 nw 10000))
 	   (error 'slideshow "bad width: ~e" w))
 	 (unless (and nw (< 0 nh 10000))
 	   (error 'slideshow "bad height: ~e" h))
-	 (when (> actual-screen-h nh)
-	   (set! keep-titlebar? #t))
 	 (set! actual-screen-w nw)
 	 (set! actual-screen-h nh)))
-      (("-u" "--no-squash") "maintain 1024x768 proportion within slides"
-       (set! no-squash? #t))
+      (("-a" "--squash") "scale to full window, even if not 4:3 aspect"
+       (set! no-squash? #f))
       ;; Disable --minutes, because it's not used
       #;
       (("-m" "--minutes") min "set talk duration in minutes"
@@ -91,8 +88,10 @@
        (set! use-transitions? #f))
       (("--no-prefetch") "disable next-slide prefetch"
        (set! use-prefetch? #f))
-      (("--double-prefetch") "use prefetch for next-slide preview"
+      (("--preview-prefetch") "use prefetch for next-slide preview"
        (set! use-prefetch-in-preview? #t))
+      (("--keep-titlebar") "give the slide window a title bar and resize border"
+       (set! keep-titlebar? #t))
       (("--comment") "display commentary"
                      (set! commentary? #t))
       (("--time") "time seconds per slide" (set! print-slide-seconds? #t))]
@@ -1016,22 +1015,25 @@
                           (cons (make-slide
                                  (lambda (dc x y)
 				   (define-values (orig-sx orig-sy) (send dc get-scale))
+				   (define-values (orig-ox orig-oy) (send dc get-origin))
                                    (define scale (min (/ (- (/ client-h 2) margin) client-h)
                                                       (/ (- (/ client-w 2) margin) client-w)))
+				   (define (set-origin x y)
+				     (send dc set-origin (+ orig-ox (* x orig-sx)) (+ orig-oy (* y orig-sy))))
                                    (send dc set-scale (* orig-sx scale) (* orig-sy scale))
-                                   (send dc set-origin x y)
+                                   (set-origin x y)
                                    ((slide-drawer a) dc 0 0)
-                                   (send dc set-origin (+ x (/ client-w 2) margin) y)
+                                   (set-origin (+ x (/ client-w 2) margin) y)
                                    ((slide-drawer b) dc 0 0)
-                                   (send dc set-origin x (+ y (/ client-h 2) margin))
+                                   (set-origin x (+ y (/ client-h 2) margin))
                                    ((slide-drawer c) dc 0 0)
-                                   (send dc set-origin (+ x (/ client-w 2) margin) (+ y (/ client-h 2) margin))
+                                   (set-origin (+ x (/ client-w 2) margin) (+ y (/ client-h 2) margin))
                                    ((slide-drawer d) dc 0 0)
                                    (send dc set-scale orig-sx orig-sy)
-                                   (send dc set-origin x y)
+                                   (set-origin x y)
                                    (send dc draw-line (/ client-w 2) 0 (/ client-w 2) client-h)
                                    (send dc draw-line 0 (/ client-h 2) client-w (/ client-h 2))
-                                   (send dc set-origin 0 0))
+                                   (send dc set-origin orig-ox orig-oy))
                                  (format "~a | ~a | ~a | ~a"
                                          (or (slide-title a) untitled)
                                          (or (slide-title b) untitled)
@@ -1231,7 +1233,9 @@
       (define gray-brush (make-object brush% "GRAY" 'solid))
       (define green-brush (make-object brush% "GREEN" 'solid))
       (define red-brush (make-object brush% "RED" 'solid))
+      (define black-brush (make-object brush% "BLACK" 'solid))
       (define black-pen (make-object pen% "BLACK" 1 'solid))
+      (define clear-pen (make-object pen% "BLACK" 1 'transparent))
       (define red-color (make-object color% "RED"))
       (define green-color (make-object color% "GREEN"))
       (define black-color (make-object color% "BLACK"))
@@ -1419,7 +1423,7 @@
 		     [else
 		      (when (< (add1 current-page) (length talk-slide-list))
 			(let ([b (send dc get-brush)])
-			  (send dc set-brush (send the-brush-list find-or-create-brush "gray" 'solid))
+			  (send dc set-brush gray-brush)
 			  (send dc draw-rectangle bw 0 bw bh)
 			  (send dc set-brush b)))])
 		    (send dc set-scale 1 1))]
@@ -1457,9 +1461,26 @@
                   [mx (- margin (/ (- usw cw) 2 sx))]
 		  [my (- margin (/ (- ush ch) 2 sy))])
 
-	     (send dc set-scale (* extra-scale-x sx) (* extra-scale-y sy))
+	     (when (or (< usw cw)
+		       (< ush ch))
+	       (let ([b (send dc get-brush)]
+		     [p (send dc get-pen)])
+		 (send dc set-brush black-brush)
+		 (send dc set-pen clear-pen)
+		 (when (< usw cw)
+		   (let ([half (/ (- cw usw) 2)])
+		     (send dc draw-rectangle 0 0 half ch)
+		     (send dc draw-rectangle (- cw half) 0 half ch)))
+		 (when (< ush ch)
+		   (let ([half (/ (- ch ush) 2)])
+		     (send dc draw-rectangle 0 0 cw half)
+		     (send dc draw-rectangle 0 (- ch half) cw half)))
+		 (send dc set-brush b)
+		 (send dc set-pen p)))
 	     
-             ;; Draw the slide
+             (send dc set-scale (* extra-scale-x sx) (* extra-scale-y sy))
+
+	     ;; Draw the slide
              ((slide-drawer slide) dc mx my)
 	     
              ;; reset the scale
@@ -1473,7 +1494,9 @@
 		 (send dc set-font (current-page-number-font))
 		 (send dc set-text-foreground (current-page-number-color))
 		 (let-values ([(w h d a) (send dc get-text-extent s)])
-		   (send dc draw-text s (- cw w 5) (- ch h 5)))
+		   (send dc draw-text s 
+			 (- cw w 5 (/ (- cw usw) 2))
+			 (- ch h 5 (/ (- ch ush) 2))))
 		 (send dc set-text-foreground c)
 		 (send dc set-font f))))]))
 
