@@ -1142,6 +1142,8 @@
                               (- slide-end-seconds slide-start-seconds))
                       (set! slide-start-seconds slide-end-seconds)))
                   (do-transitions (slide-transitions old) (send c get-offscreen))
+		  ;; Lookahead cache disabled
+		  #;
                   (when (< current-page (- (length talk-slide-list) 1))
                     (cache-slide (+ current-page 1))))))
 
@@ -1267,13 +1269,16 @@
           
           (define/override (on-paint)
             (let ([dc (get-dc)])
+	      (stop-transition/no-refresh)
               (cond
-                [(equal? current-page cached-page)
-                 (send dc draw-bitmap cached-page-bitmap 0 0)]
-                [else
-                 (send dc clear)
-		 (stop-transition/no-refresh)
-                 (paint-slide dc)])))
+	       [use-transitions?
+		(let ([bm (send offscreen get-bitmap)])
+		  (send (get-dc) draw-bitmap bm 0 0))]
+	       [(equal? current-page cached-page)
+		(send dc draw-bitmap cached-page-bitmap 0 0)]
+	       [else
+		(send dc clear)
+		(paint-slide dc)])))
           
           (inherit get-top-level-window)
           (define/override (on-event e)
@@ -1408,15 +1413,15 @@
 	     (paint-slide dc page 1 1 cw ch use-screen-w use-screen-h #t))]
           [(dc page extra-scale-x extra-scale-y cw ch usw ush to-main?)
            (let* ([slide (list-ref talk-slide-list page)]
-                  [mx (- margin (/ (- usw cw) 2))]
-		  [my (- margin (/ (- ush ch) 2))]
 		  [sx (/ usw screen-w)]
-		  [sy (/ ush screen-h)])
+		  [sy (/ ush screen-h)]
+                  [mx (- margin (/ (- usw cw) 2 sx))]
+		  [my (- margin (/ (- ush ch) 2 sy))])
 
 	     (send dc set-scale (* extra-scale-x sx) (* extra-scale-y sy))
 	     
              ;; Draw the slide
-             ((slide-drawer slide) dc (/ mx sx) (/ my sy))
+             ((slide-drawer slide) dc mx my)
 	     
              ;; reset the scale
              (send dc set-scale 1 1)
