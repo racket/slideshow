@@ -268,7 +268,7 @@
     (set! page-number (+ page-number 1)))
 
   (define (make-outline . l)
-    (define a (colorize (arrow font-size 0) blue))
+    (define a (colorize (arrowhead font-size 0) blue))
     (lambda (which)
       (slide/title
        "Outline"
