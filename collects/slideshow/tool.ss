@@ -25,6 +25,7 @@ pict snip :
            (lib "string-constant.ss" "string-constants")
            (lib "framework.ss" "framework")
            (lib "mrpict.ss" "texpict")
+           (lib "pict-value-snip.ss" "texpict")
            (lib "list.ss"))
 
   (provide tool@)
@@ -829,6 +830,10 @@ pict snip :
         (drscheme:language-configuration:add-language
          (new slideshow-language%)))
       
+      
+      (drscheme:language:add-snip-value
+       (lambda (x) ((dynamic-require '(lib "mrpict.ss" "texpict") 'pict?) x))
+       (lambda (pict) (new (dynamic-require '(lib "pict-value-snip.ss" "texpict") 'pict-value-snip%) (pict pict))))
       
       )))
 
