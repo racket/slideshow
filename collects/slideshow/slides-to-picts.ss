@@ -35,7 +35,7 @@
 				       (define screen-h 768)
 				       (define use-screen-w w)
 				       (define use-screen-h h)
-				       (define pixel-scale 1/4)
+				       (define pixel-scale 1)
 				       (define condense? c?)
 				       (define printing? #f)))]
 		  [CORE : core^ (core@ CONFIG (VIEWER : viewer^))]
