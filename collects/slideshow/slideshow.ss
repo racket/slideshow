@@ -845,20 +845,22 @@
 				[bch (send (send offscreen-dc get-bitmap) get-height)]
 				[mx (- margin (/ (- use-screen-w bcw) 2 xs))]
 				[my (- margin (/ (- use-screen-h bch) 2 ys))]
+				[x-space (ceiling (* xs (/ (abs dx) steps)))]
+				[y-space (ceiling (* ys (/ (abs dy) steps)))]
 				[x-in (if (positive? dx)
-					  (ceiling (* xs (/ dx steps)))
+					  x-space
 					  0)]
 				[y-in (if (positive? dy)
-					  (ceiling (* ys (/ dy steps)))
+					  y-space
 					  0)])
 			   (unless (and scroll-bm
 					(>= (send scroll-bm get-width) 
-					    (+ x-in (* xs w)))
+					    (+ x-space (* xs w)))
 					(>= (send scroll-bm get-height) 
-					    (+ y-in (* ys h))))
+					    (+ y-space (* ys h))))
 			     (set! scroll-bm (make-bitmap
-					      (inexact->exact (ceiling (+ x-in (* xs w))))
-					      (inexact->exact (ceiling (+ y-in (* ys h))))))
+					      (inexact->exact (ceiling (+ x-space (* xs w))))
+					      (inexact->exact (ceiling (+ y-space (* ys h))))))
 			     (if (send scroll-bm ok?)
 				 (send scroll-dc set-bitmap scroll-bm)
 				 (set! scroll-bm #f)))
@@ -1091,7 +1093,7 @@
 		  [(#\space #\f #\n)
                    (next)
                    #t]
-                  [(#\b)
+                  [(#\b #\backspace #\rubout)
                    (prev)
                    #t]
                   [(#\g)

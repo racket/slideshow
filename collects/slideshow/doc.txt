@@ -81,7 +81,7 @@ Alt-q (or Meta-q) to end the slides. More controls:
    Alt-q, Meta-q, or Cmd-q             :  end slide show
    Esc                                 :  if confirmed, end show
    Right arrow, Space, f, n, or click  :  next slide
-   Left arrow or b                     :  previous slide
+   Left arrow, Backspace, Delete, or b :  previous slide
    g                                   :  last slide
    1                                   :  first slide
    Alt-g, Cmd-g, or Meta-g             :  select a slide

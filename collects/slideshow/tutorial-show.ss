@@ -59,7 +59,7 @@
   
   (slide/title/center
    "Titles and Centering"
-   (page-para "The" (tt "slide/title/center") "function is obvious..."))
+   (page-para "The" (tt "slide/title/center") "function centers the slide body vertically"))
   
   (slide/title/center
    "More Centering"
@@ -72,22 +72,22 @@
               "that is wrapped to fit the slide, but it allows"
               "the resulting pict to be more narrow than the slide"))
 
-  (slide/title
-   "More Alignment"
-   (frame
-    (page-para/r "Of course, there's also" (tt "page-para/r")))
-   (frame
-    (page-para*/r "And there's" (tt "page-para*/r") ", which is different"
-                  "from" (tt "page-para*") "or" (tt "page-para*/c")
-                  "only if the paragraph takes multiple lines"))
-   (page-para "For comparision, the same text using" (tt "page-para/r") ":")
-   (frame
-    (page-para/r "And there's" (tt "page-para*/r") ", which is different"
-                 "from" (tt "page-para*") "or" (tt "page-para*/c")
-                 "only if the paragraph takes multiple lines"))
-   (page-para "Unless your font happens to make the" (tt "page-para*/r")
-              "box exactly as wide as this slide, the last box will be slightly"
-              "wider with extra space to the left"))
+  (let ([apply-page-para-to-example
+	 (lambda (page-para...)
+	   (page-para...
+	    "And there's" (tt "page-para*/r") ", which is different"
+	    "from" (tt "page-para*") "or" (tt "page-para*/c")
+	    "only if the paragraph takes multiple lines"))])
+    (slide/title
+     "More Alignment"
+     (frame
+      (page-para/r "Of course, there's also" (tt "page-para/r")))
+     (frame (apply-page-para-to-example page-para*/r))
+     (page-para "For comparision, the same text using" (tt "page-para/r") ":")
+     (frame (apply-page-para-to-example page-para/r))
+     (page-para "Unless your font happens to make the" (tt "page-para*/r")
+		"box exactly as wide as this slide, the last box will be slightly"
+		"wider with extra space to the left")))
   
   (slide/title
    "Spacing"

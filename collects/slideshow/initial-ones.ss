@@ -55,7 +55,7 @@
 		    `(((,(meta "q")) "end show")
 		      (("Esc") "if confirmed, end show")
 		      ((,sym:rightarrow ", Space," ,(tt "f") "," ,(tt "n") ", or click") "next slide")
-		      ((,sym:leftarrow "or" ,(tt "b")) "previous slide")
+		      ((,sym:leftarrow ", Backspace, Delete, or" ,(tt "b")) "previous slide")
 		      ((,(tt "g")) "last slide")
 		      ((,(tt "1")) "first slide")
 		      ((,(meta "g")) "select a slide")
@@ -83,7 +83,7 @@
        'alts
        (list (list (page-para "Run a Slideshow program in DrScheme as follows:")
 		   (page-item "Open" mytalk.scm "in DrScheme")
-		   (page-item "Select" (bt "Choose Langauge") "from the" (bt "Language") "menu")
+		   (page-item "Select" (bt "Choose Language") "from the" (bt "Language") "menu")
 		   (page-item "Choose the" (tt "(module ...)") "language")
 		   (page-item "Click" (bt "Execute")))
 	     (list (page-para "You can also execute it from the command line:")
