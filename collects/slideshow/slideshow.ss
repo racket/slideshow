@@ -169,7 +169,7 @@
    (if printing?
        ;; Make ps-dc%:
        (let ([pss (make-object ps-setup%)])
-	 (send pss set-mode 'file)
+         (send pss set-mode 'file)
 	 (send pss set-file
 	       (if content
 		   (regexp-replace "[.][^.]+$" (file-name-from-path content) 
@@ -226,7 +226,7 @@
   (define (add-slide! pict title comment page-count inset)
     (set! talk-slide-list (cons
 			   (make-slide (make-pict-drawer pict)
-				       title 
+                                       title 
 				       comment
 				       page-number
 				       page-count
@@ -1342,6 +1342,13 @@
 			       1/2 1/2 
 			       cw (* 2 ch)
 			       #f)))))
+          
+          (inherit get-top-level-window)
+          (define/override (on-event e)
+            (cond
+              [(send e button-up?)
+               (send (get-top-level-window) next)]))
+          
           (define/public (redraw) (on-paint))
           (super-new)))
 
@@ -1546,7 +1553,8 @@
                       (send ps-dc draw-text s (- w hm sw) (- h vm sh))))))
               (send ps-dc end-page)
               (loop #t (cdr l) (add1 n))))
-          (send ps-dc end-doc)))))
+          (send ps-dc end-doc)
+          (exit)))))
 
   (define done-once? #f)
   (define making-nesting-depth 0)
