@@ -28,7 +28,8 @@
   (define show-page-numbers? #t)
   (define quad-view? #f)
   (define print-slide-seconds? #f)
-  (define use-transitions? #t)
+  (define use-offscreen? #t)
+  (define use-transitions? use-offscreen?)
   (define talk-duration-minutes #f)
   (define no-squash? #f)
   (define two-frames? #f)
@@ -102,6 +103,7 @@
     (set! use-transitions? #f))
 
   (when printing?
+    (set! use-offscreen? #f)
     (set! keep-titlebar? #t)
     (set! actual-screen-w 1024)
     (set! actual-screen-h 768))
@@ -1141,11 +1143,7 @@
                       (printf "Slide ~a: ~a seconds~n" current-page
                               (- slide-end-seconds slide-start-seconds))
                       (set! slide-start-seconds slide-end-seconds)))
-                  (do-transitions (slide-transitions old) (send c get-offscreen))
-		  ;; Lookahead cache disabled
-		  #;
-                  (when (< current-page (- (length talk-slide-list) 1))
-                    (cache-slide (+ current-page 1))))))
+                  (do-transitions (slide-transitions old) (send c get-offscreen)))))
 
           (super-new)))
       
@@ -1271,11 +1269,9 @@
             (let ([dc (get-dc)])
 	      (stop-transition/no-refresh)
               (cond
-	       [use-transitions?
+	       [use-offscreen?
 		(let ([bm (send offscreen get-bitmap)])
 		  (send (get-dc) draw-bitmap bm 0 0))]
-	       [(equal? current-page cached-page)
-		(send dc draw-bitmap cached-page-bitmap 0 0)]
 	       [else
 		(send dc clear)
 		(paint-slide dc)])))
@@ -1348,7 +1344,7 @@
                 (send commentary insert (just-a-comment-text (slide-comment s)))))
             (send commentary lock #t)
             (cond
-              [use-transitions?
+              [use-offscreen?
                (let-values ([(cw ch) (get-client-size)])
                  (when (and offscreen
                             (let ([bm (send offscreen get-bitmap)])
@@ -1369,13 +1365,9 @@
               [else
                (let ([dc (get-dc)])
                  (set! click-regions null)
-                 (cond
-                   [(equal? current-page cached-page)
-                    (send dc draw-bitmap cached-page-bitmap 0 0)]
-                   [else
-                    (send dc clear)
-		    (stop-transition/no-refresh)
-                    (paint-slide dc)]))]))
+		 (send dc clear)
+		 (stop-transition/no-refresh)
+		 (paint-slide dc))]))
           (super-new)))
 
       (define two-c%
@@ -1438,25 +1430,6 @@
 		 (send dc set-text-foreground c)
 		 (send dc set-font f))))]))
 
-      ;; cached-page : (union #f number)
-      (define cached-page #f)
-      ;; cached-page-bitmap : (union #f bitmap)
-      (define cached-page-bitmap #f)
-      
-      (define (cache-slide n)
-        (set! cached-page #f)
-        
-        ;; try to re-use existing bitmap
-        (unless (and (is-a? cached-page-bitmap bitmap%)
-                     (= screen-w (send cached-page-bitmap get-width))
-                     (= screen-h (send cached-page-bitmap get-height)))
-          (set! cached-page-bitmap (make-object bitmap% screen-w screen-h)))
-        (let ([bdc (new bitmap-dc% (bitmap cached-page-bitmap))])
-          (send bdc clear)
-          (paint-slide bdc n)
-          (send bdc set-bitmap #f))
-        (set! cached-page n))
-      
       (define c (make-object c% f))
       (define c-both (make-object two-c% f-both))
       
