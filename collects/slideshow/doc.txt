@@ -40,7 +40,7 @@ On in DrScheme:
 
 
 Slideshow Overview
-====================
+==================
 
 Slideshow is a library for creating presentation slides. Unlike
 Powerpoint, Slideshow provides no WYSIWYG interface for constructing
@@ -466,18 +466,25 @@ Procedure Reference
 > bullet - a bullet pict
 > o-bullet - a hollow bullet pict
 
-> client-w - useable width of the screen
-> client-h - useable height of the screen
+> client-w - (syntax) useable width of the screen
+> client-h - (syntax) useable height of the screen
+> get-client-w - returns useable width of the screen
+> get-client-h - returns useable height of the screen
 
-> full-page - an empty pict that is the same size as the client area
-> titleless-page - an empty pict that is the same size as the client
-  ares minus the title area
+> full-page - (syntax) an empty pict that is the same size as the
+              client area
+> titleless-page - (syntax) an empty pict that is the same size as
+                   the client ares minus the title area
+> get-full-page - returns full-page
+> get-titleless-page - returns titleless-page
 
-> margin - client margin within the full screen, 20
+> margin - (syntax) client margin within the full screen, 20
+> get-margin - returns client margin within the full screen, 20
 > set-margin! - sets `margin' and updates `client-w', `client-h',
                 `full-page', and `titleless-page'
 
-> title-h - the height of a title string
+> title-h - (syntax) the height of a title string
+> get-title-h - returns the height of a title string
 
 > set-title-h! - sets `title-h' and updates `titleless-page'; this
   usually makes sense only in combination with a change to
@@ -602,5 +609,3 @@ in a `slide' sequence).
 > (with-steps~ (id ...) expr) - like `with-steps', but when
   `condense?' from "slideshow.ss" is true, then `expr' is evaluated
   only for the last `id' (independent of whether its name ends in "~")
-
-

@@ -6,7 +6,9 @@
 
   ;; Main inputs to the core unit:
   (define-signature config^
-    (base-font-size
+    (file-to-load
+
+     base-font-size
      screen-w screen-h
      actual-screen-w actual-screen-h
      use-screen-w use-screen-h
@@ -38,11 +40,16 @@
      set-use-background-frame!
      enable-click-advance!
      set-page-numbers-visible!
-     add-click-region!))
+     add-click-region!
 
-  ;; The functions mostly used by a slideshow program:
+     ;; Not for the core; exported by "slideshow.ss", instead:
+     start-making-slides
+     done-making-slides
+     started-from-launcher))
+
+  ;; The functions used by a slideshow program:
   (define-signature core^
-    (plain-slide
+    (slide
      slide/title
      slide/title/tall
      slide/center
@@ -83,4 +90,6 @@
      set-page-numbers-visible!
      clickback 
      make-slide-inset
-     apply-slide-inset)))
+     apply-slide-inset
+     condense?
+     printing?)))

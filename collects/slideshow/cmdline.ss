@@ -12,10 +12,7 @@
 	   (lib "math.ss")
 	   "sig.ss")
 
-  (provide cmdline^ cmdline@)
-
-  (define-signature cmdline^
-    ((open config^) content))
+  (provide cmdline@)
 
   (define-syntax (define-at-end stx)
     (syntax-case stx ()
@@ -37,10 +34,10 @@
 	       (values id ...))))]))
 
   (define cmdline@
-    (unit/sig cmdline^
+    (unit/sig config^
       (import)
       
-      (define-at-end cmdline^
+      (define-at-end config^
 	(define-values (screen-w screen-h) (values 1024 768))
 	(define base-font-size 32)
 
@@ -67,7 +64,7 @@
 	
 	(define init-page 0)
 	
-	(define content
+	(define file-to-load
 	  (command-line
 	   "slideshow"
 	   (current-command-line-arguments)
@@ -153,8 +150,8 @@
 	       (send pss set-file
 		     (if print-target
 			 print-target
-			 (if content
-			     (path-replace-suffix (file-name-from-path content) 
+			 (if file-to-load
+			     (path-replace-suffix (file-name-from-path file-to-load)
 						  (if quad-view?
 						      "-4u.ps"
 						      ".ps"))

@@ -15,9 +15,15 @@
   (provide core@ 
 	   zero-inset)
 
-  ;; We create structs just once, so that all instances of the core share
-  ;;  the types
-  (define/provide-struct slide (drawer title comment page page-count inset transitions))
+  ;; We create structs just once, so that all instances of the 
+  ;; core share the types.
+  (define/provide-struct sliderec (drawer        ; dc<%> x y -> void
+				   title         ; string
+				   comment       ; #f or just-a-comment
+				   page          ; int
+				   page-count    ; int
+				   inset         ; sinset
+				   transitions)) ; canvas% bitmap% -> 'went or delay-msecs
   (define/provide-struct just-a-comment (text))
   (define/provide-struct sinset (l t r b))
   (define/provide-struct click-region (left top right bottom thunk show-click?))
@@ -27,10 +33,15 @@
   (define core@
     (unit/sig core^
       (import config^ (viewer : viewer^))
+      (rename (local:condense? condense?)
+	      (local:printing? printing?))
 
       ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                    Setup                      ;;
       ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+      (define local:condense? condense?)
+      (define local:printing? printing?)
 
       (define font-size base-font-size)
       (define gap-size (* 3/4 font-size))
@@ -124,11 +135,14 @@
 	(set! titleless-page (mk-titleless-page)))
       (define (get-title-h) title-h)
 
-      (define set-use-background-frame! viewer:set-use-background-frame!)
+      (define (set-use-background-frame! on?)
+	(viewer:set-use-background-frame! (and on? #t)))
 
-      (define enable-click-advance! viewer:enable-click-advance!)
+      (define (enable-click-advance! on?)
+	(viewer:enable-click-advance! (and on? #t)))
 
-      (define set-page-numbers-visible! viewer:set-page-numbers-visible!)
+      (define (set-page-numbers-visible! on?)
+	(viewer:set-page-numbers-visible! (and on? #t)))
 
       (define current-page-number-font 
 	(make-parameter
@@ -149,13 +163,13 @@
       (define (add-slide! pict title comment page-count inset)
 	(viewer:set-talk-slide-list! 
 	 (cons
-	  (make-slide (make-pict-drawer pict)
-		      title 
-		      comment
-		      page-number
-		      page-count
-		      inset
-		      null)
+	  (make-sliderec (make-pict-drawer pict)
+			 title 
+			 comment
+			 page-number
+			 page-count
+			 inset
+			 null)
 	  (viewer:get-talk-slide-list)))
 	(set! page-number (+ page-number page-count))
 	(viewer:display-progress (number->string page-number)))
@@ -363,7 +377,7 @@
       (define (slide/name/center s . x)
 	(apply slide/title/center (make-name-only s) x))
 
-      (define (plain-slide . x) (apply slide/title #f x))
+      (define (slide . x) (apply slide/title #f x))
       (define (slide/inset inset . x) (apply slide/title/inset #f inset x))
 
       (define (slide/center . x) (apply slide/title/center #f x))
@@ -380,28 +394,28 @@
 	(lambda ()
 	  (unless (null? (viewer:get-talk-slide-list))
 	    (let ([slide (car (viewer:get-talk-slide-list))])
-	      (set! page-number (slide-page slide))
+	      (set! page-number (sliderec-page slide))
 	      (viewer:set-talk-slide-list! (cdr (viewer:get-talk-slide-list)))
 	      slide))))
 
       (define re-slide
 	(opt-lambda (s [addition #f])
-	  (unless (slide? s)
+	  (unless (sliderec? s)
 	    (raise-type-error 're-slide "slide" s))
 	  (viewer:set-talk-slide-list! 
-	   (cons (make-slide
-		  (let ([orig (slide-drawer s)]
+	   (cons (make-sliderec
+		  (let ([orig (sliderec-drawer s)]
 			[extra (if addition
 				   (make-pict-drawer addition)
 				   void)])
 		    (lambda (dc x y)
 		      (orig dc x y)
 		      (extra dc x y)))
-		  (slide-title s)
-		  (slide-comment s)
+		  (sliderec-title s)
+		  (sliderec-comment s)
 		  page-number
 		  1
-		  (slide-inset s)
+		  (sliderec-inset s)
 		  null)
 		 (viewer:get-talk-slide-list)))
 	  (set! page-number (+ page-number 1))))
@@ -681,10 +695,10 @@
 	(unless (or (null? (viewer:get-talk-slide-list))
 		    (not use-transitions?))
 	  (let ([slide (car (viewer:get-talk-slide-list))])
-	    (set-slide-transitions! slide 
-				    (append! (slide-transitions slide)
-					     (list trans))))))
-
+	    (set-sliderec-transitions! slide 
+				       (append! (sliderec-transitions slide)
+						(list trans))))))
+      
       (define scroll-bm #f)
       (define scroll-dc (make-object bitmap-dc%))
 
