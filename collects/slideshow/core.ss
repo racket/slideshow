@@ -472,9 +472,46 @@
 
       ;; ----------------------------------------
 
+      ;; Move separators (that shouldn't be preceded by extra space)
+      ;; at the front of a string to the end of the previous item
+      (define (shift-no-sep l)
+	(let loop ([l 
+		    ;; Flatten l, first:
+		    (let loop ([l l])
+		      (cond
+		       [(null? l) null]
+		       [(pair? (car l)) (append (loop (car l)) (loop (cdr l)))]
+		       [else (cons (car l) (loop (cdr l)))]))]
+		   [a null])
+	  ;; Combine strings:
+	  (cond
+	   [(null? l) (reverse a)]
+	   [(null? a) (loop (cdr l) (list (car l)))]
+	   [(and (string? (car l)) 
+		 (regexp-match #rx"^[',. :;-?!)]" (car l)))
+	    (let ([m (regexp-match #rx"^([^ ]*) (.*)$" (car l))])
+	      (if m
+		  (if (string? (car a))
+		      (loop (cdr l)
+			    (list* (caddr m)
+				   (string-append (car a) (cadr m))
+				   (cdr a)))
+		      (loop (cdr l)
+			    (list* (caddr m)
+				   (hbl-append (car a) (t (cadr m)))
+				   (cdr a))))
+		  (if (string? (car a))
+		      (loop (cdr l)
+			    (cons (string-append (car a) (car l))
+				  (cdr a)))
+		      (loop (cdr l)
+			    (cons (hbl-append (car a) (t (car l)))
+				  (cdr a))))))]
+	   [else (loop (cdr l) (cons (car l) a))])))
+
       (define (para*/align v-append w . s)
 	(define space (t " "))
-	(let loop ([pre #f][s s][rest null])
+	(let loop ([pre #f][s (shift-no-sep s)][rest null])
 	  (cond
 	   [(null? s)
 	    (if (null? rest)
@@ -482,20 +519,19 @@
 		(loop pre (car rest) (cdr rest)))]
 	   [(list? s) (loop pre (car s) (append (cdr s) rest))]
 	   [else
-	    (let* ([sep? (and (string? s) (regexp-match "^[',. :;-?!)]" s))]
-		   [p (if (string? s) (t s) s)])
+	    (let* ([p (if (string? s) (t s) s)])
 	      (cond
 	       [(< (+ (if pre (pict-width pre) 0)
-		      (if pre (if sep? 0 (pict-width space)) 0)
+		      (if pre (pict-width space) 0)
 		      (pict-width p)) 
 		   w)
-					; small enough
+		;; small enough
 		(loop (if pre 
-			  (hbl-append pre (if sep? (blank) space) p) 
+			  (hbl-append pre space p) 
 			  p)
 		      rest null)]
 	       [(and (string? s) (regexp-match "(.*) (.*)" s))
-					; can break on string
+		;; can break on string
 		=> (lambda (m)
 		     (loop pre
 			   (cadr m) 
