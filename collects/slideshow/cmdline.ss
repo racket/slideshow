@@ -172,7 +172,11 @@
 				   (not (memq (system-type) '(unix))))
 			      ;; Make printer-dc%
 			      (begin
-				(unless (send pss show-native) (exit))
+				(when (can-get-page-setup-from-user?)
+				  (let ([v (get-page-setup-from-user)])
+				    (if v
+					(send pss copy-from v)
+					(exit))))
 				(make-object printer-dc% #f))
 			      ;; Make ps-dc%:
 			      (make-object post-script-dc% (not print-target) #f #t #f))))])
