@@ -3,21 +3,26 @@
 
 (module tutorial-show (lib "run.ss" "slideshow")
 
-  ;; The first slide
+  ;; The first few slides are not to be read
+  ;; until you have seen the rest of the tutorial,
+  ;; so we put them in a separate file
+  (require "initial-ones.ss")
+  (do-initial-slides)
+
+  ;; The rest is meant for reading, as you view the slides
+
+  ;; The first slide that's meant to be read
   (slide
    (t "Part I: Basic Concepts"))
 
   ;; The second slide
-  (slide
-   (t "Read the code while viewing these slides"))
-  
-  ;; Etc.
   (slide
    (t "This slide shows how four picts")
    (t "get vertically appended by the")
    (tt "slide")
    (t "function to create and install a slide"))
   
+  ;; Etc.
   (slide
    (t "See how the")
    (tt "t")
@@ -194,7 +199,7 @@
   (require (lib "code.ss" "slideshow"))
   (slide/title/center
    "Scheme Code"
-   (page-para "For Scheme code, the" (code (lib "slide-code.ss" "texpict"))
+   (page-para "For Scheme code, the" (code (lib "code.ss" "slideshow"))
               "library provides a handy" (code code) "macro for"
               "typesetting literal code")
    (page-para "The" (code code) "macro uses source-location information"
