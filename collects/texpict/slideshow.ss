@@ -960,9 +960,7 @@
 				 (send offscreen clear)
 				 (paint offscreen)
 				 (let ([bm (send offscreen get-bitmap)])
-				   (send offscreen set-bitmap #f)
-				   (send (get-dc) draw-bitmap bm 0 0)
-				   (send offscreen set-bitmap bm))]
+				   (send (get-dc) draw-bitmap bm 0 0))]
 				[else
 				 (let ([dc (get-dc)])
 				   (send dc clear)
