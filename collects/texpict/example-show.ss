@@ -50,7 +50,7 @@
               "the body picts horizontally, but" (tt "page-para")
               "makes a slide-width picture with left-aligned text")
    (frame (page-para "The" (tt "frame") "function wraps a frame"
-                     "around a pict to create a new pict"
+                     "around a pict to create a new pict,"
                      "so you can easily this this individual pict")))
   
   (slide/title
