@@ -161,18 +161,15 @@
       (define page-number 1)
 
       (define (add-slide! pict title comment page-count inset)
-	(viewer:set-talk-slide-list! 
-	 (cons
-	  (make-sliderec (make-pict-drawer pict)
-			 title 
-			 comment
-			 page-number
-			 page-count
-			 inset
-			 null)
-	  (viewer:get-talk-slide-list)))
-	(set! page-number (+ page-number page-count))
-	(viewer:display-progress (number->string page-number)))
+	(viewer:add-talk-slide! 
+	 (make-sliderec (make-pict-drawer pict)
+			title 
+			comment
+			page-number
+			page-count
+			inset
+			null))
+	(set! page-number (+ page-number page-count)))
 
       (define (skip-slides n)
 	(set! page-number (+ page-number n)))
@@ -386,38 +383,35 @@
       (define most-recent-slide
 	(case-lambda
 	 [() (most-recent-slide 0)]
-	 [(n) (if ((length (viewer:get-talk-slide-list)) . <= . n)
-		  #f
-		  (list-ref (viewer:get-talk-slide-list) n))]))
+	 [(n) (viewer:most-recent-talk-slide)]))
 
       (define retract-most-recent-slide
 	(lambda ()
-	  (unless (null? (viewer:get-talk-slide-list))
-	    (let ([slide (car (viewer:get-talk-slide-list))])
+	  (let ([slide (viewer:most-recent-talk-slide)])
+	    (when slide
 	      (set! page-number (sliderec-page slide))
-	      (viewer:set-talk-slide-list! (cdr (viewer:get-talk-slide-list)))
+	      (viewer:retract-talk-slide!)
 	      slide))))
-
+      
       (define re-slide
 	(opt-lambda (s [addition #f])
 	  (unless (sliderec? s)
 	    (raise-type-error 're-slide "slide" s))
-	  (viewer:set-talk-slide-list! 
-	   (cons (make-sliderec
-		  (let ([orig (sliderec-drawer s)]
-			[extra (if addition
-				   (make-pict-drawer addition)
-				   void)])
-		    (lambda (dc x y)
-		      (orig dc x y)
-		      (extra dc x y)))
-		  (sliderec-title s)
-		  (sliderec-comment s)
-		  page-number
-		  1
-		  (sliderec-inset s)
-		  null)
-		 (viewer:get-talk-slide-list)))
+	  (viewer:add-talk-slide!
+	   (make-sliderec
+	    (let ([orig (sliderec-drawer s)]
+		  [extra (if addition
+			     (make-pict-drawer addition)
+			     void)])
+	      (lambda (dc x y)
+		(orig dc x y)
+		(extra dc x y)))
+	    (sliderec-title s)
+	    (sliderec-comment s)
+	    page-number
+	    1
+	    (sliderec-inset s)
+	    null))
 	  (set! page-number (+ page-number 1))))
 
       (define (start-at-recent-slide)
@@ -692,8 +686,8 @@
       ;; ----------------------------------------
 
       (define (add-transition! who trans)
-	(unless (null? (viewer:get-talk-slide-list))
-	  (let ([slide (car (viewer:get-talk-slide-list))])
+	(let ([slide (viewer:most-recent-talk-slide)])
+	  (when slide
 	    (set-sliderec-transitions! slide 
 				       (append! (sliderec-transitions slide)
 						(list trans))))))

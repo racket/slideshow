@@ -21,7 +21,7 @@
 
   (define-values/invoke-unit/sig ((open core^) 
 				  (unit config : config^) 
-				  (unit viewer : main-viewer^))
+				  (unit viewer : viewer^))
     ((current-slideshow-linker) core@))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -114,7 +114,4 @@
 		     (sinset? pict? . -> . pict?)])
   ;; Things not at all in the core unit:
   (provide (all-from (lib "mrpict.ss" "texpict"))
-	   (all-from (lib "utils.ss" "texpict"))
-           (rename viewer:start-making-slides start-making-slides)
-	   (rename viewer:done-making-slides done-making-slides)
-	   (rename viewer:started-from-launcher started-from-launcher)))
+	   (all-from (lib "utils.ss" "texpict"))))

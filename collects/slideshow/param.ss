@@ -13,6 +13,6 @@
        (compound-unit/sig
 	(import)
 	(link [CONFIG : cmdline^ (cmdline@)]
-	      [CORE : core^ (core@ (CONFIG : config^) (VIEWER : viewer^))]
-	      [VIEWER : main-viewer^ (viewer@ CONFIG CORE)])
+	      [CORE : core^ (core@ (CONFIG : config^) VIEWER)]
+	      [VIEWER : viewer^ (viewer@ CONFIG CORE)])
 	(export (open CORE) (unit (CONFIG : config^) config) (unit VIEWER viewer)))))))

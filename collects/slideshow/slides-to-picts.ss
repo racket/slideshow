@@ -38,24 +38,23 @@
 				       (define condense? c?)
 				       (define printing? #f)))]
 		  [CORE : core^ (core@ CONFIG (VIEWER : viewer^))]
-		  [VIEWER : main-viewer^ ((unit/sig main-viewer^
-					    (import)
-					    (define (set-talk-slide-list! l)
-					      (set! slides l)
-					      (when (and stop-after
-							 ((length l) . >= . stop-after))
-						(escape (void))))
-					    (define (get-talk-slide-list)
-					      slides)
-					    (define display-progress void)
-					    (define set-init-page! void)
-					    (define set-use-background-frame! void)
-					    (define enable-click-advance! void)
-					    (define set-page-numbers-visible! void)
-					    (define add-click-region! void)
-					    (define done-making-slides void)
-					    (define start-making-slides void)
-					    (define started-from-launcher void)))])
+		  [VIEWER : viewer^ ((unit/sig viewer^
+				       (import)
+				       (define (add-talk-slide! s)
+					 (set! slides (cons s slides))
+					 (when (and stop-after
+						    ((length slides) . >= . stop-after))
+					   (escape (void))))
+				       (define (retract-talk-slide! s)
+					 (set! slides (cdr slides)))
+				       (define (most-recent-talk-slide)
+					 (and (pair? slides) (car slides)))
+				       (define display-progress void)
+				       (define set-init-page! void)
+				       (define set-use-background-frame! void)
+				       (define enable-click-advance! void)
+				       (define set-page-numbers-visible! void)
+				       (define add-click-region! void)))])
 	    (export (open CORE) (unit CONFIG config) (unit VIEWER viewer)))))
 	(parameterize ([current-namespace ns])
 	  (let/ec k

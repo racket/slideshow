@@ -18,7 +18,7 @@
   (provide viewer@)
 
   (define viewer@
-    (unit/sig main-viewer^
+    (unit/sig viewer^
       (import (config : cmdline^) core^)
       (rename (viewer:set-use-background-frame! set-use-background-frame!)
 	      (viewer:enable-click-advance! enable-click-advance!)
@@ -34,14 +34,31 @@
       (define click-to-advance? #t)
       (define click-regions null)
       (define talk-slide-list null)
+      (define talk-slide-reverse-cell-list null)
 
-
-      (define (display-progress n)
-	(send progress-display set-label n))
+      (define (slide-list-change f)
+	(f)
+	(send progress-display set-label (number->string (length talk-slide-list))))
       
-      (define (get-talk-slide-list) talk-slide-list)
-      (define (set-talk-slide-list! l)
-	(set! talk-slide-list l))
+      (define (add-talk-slide! s)
+	(slide-list-change
+	 (lambda ()
+	   (let ([p (cons s null)])
+	     (if (null? talk-slide-reverse-cell-list)
+		 (set! talk-slide-list p)
+		 (set-cdr! (car talk-slide-reverse-cell-list) p))
+	     (set! talk-slide-reverse-cell-list (cons p talk-slide-reverse-cell-list))))))
+      (define (retract-talk-slide!)
+	(slide-list-change
+	 (lambda ()
+	   (unless (null? talk-slide-reverse-cell-list)
+	     (set! talk-slide-reverse-cell-list (cdr talk-slide-reverse-cell-list))
+	     (if (null? talk-slide-reverse-cell-list)
+		 (set! talk-slide-list null)
+		 (set-cdr! (car talk-slide-reverse-cell-list) null))))))
+      (define (most-recent-talk-slide)
+	(and (pair? talk-slide-reverse-cell-list)
+	     (caar talk-slide-reverse-cell-list)))
       
       (define (set-init-page! p)
 	(set! current-page p))
@@ -68,8 +85,6 @@
 	(unit
 	  (import)
 	  (export)
-	  
-	  (set! talk-slide-list (reverse talk-slide-list))
 	  
 	  (when config:quad-view?
 	    (set! talk-slide-list
@@ -253,6 +268,7 @@
 			  (printf "Slide ~a: ~a seconds~n" current-page
 				  (- slide-end-seconds slide-start-seconds))
 			  (set! slide-start-seconds slide-end-seconds)))
+		      ;; Refresh screen, and start transitions if any
 		      (do-transitions (if config:use-transitions?
 					  (sliderec-transitions old)
 					  null)
@@ -851,7 +867,7 @@
 	    (when (send bm ok?)
 	      (send f set-icon bm (and (send mbm ok?) mbm) 'both)))
 	  
-	  (send f show #t)
+	  (send f show (not config:printing?))
 	  (when config:two-frames?
 	    (send f-both show #t))
 	  
@@ -894,7 +910,8 @@
 			  (send ps-dc draw-text s (- w hm sw) (- h vm sh))))))
 		  (send ps-dc end-page)
 		  (loop #t (cdr l) (add1 n))))
-	      (send ps-dc end-doc)
+	      (parameterize ([current-security-guard original-security-guard])
+		(send ps-dc end-doc))
 	      (exit)))))
 
       ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -918,28 +935,24 @@
 	      (values f d)))))
 
       (send progress-window show #t)
-
-      (define done-once? #f)
-      (define making-nesting-depth 0)
       
-      (define (start-making-slides)
-	(set! making-nesting-depth (add1 making-nesting-depth)))
-      (define (done-making-slides)
-	(if done-once?
-	    (message-box "Slideshow"
-			 "Is more than one module using the slideshow-run language?")
+      (define (show-viewer)
+	(printf "~a~n" (length talk-slide-list))
+	(if (null? talk-slide-list)
+	    (show-slide-dialog)
 	    (begin
-	      (set! making-nesting-depth (sub1 making-nesting-depth))
-	      (when (zero? making-nesting-depth)
-		(set! done-once? #t)
-		(send progress-window show #f)
-		(unless (null? talk-slide-list)
-		  (invoke-unit go@))))))
+	      (send progress-window show #f)
+	      (invoke-unit go@))))
+
+      ;; Assume that we're done when we can process events
+      (queue-callback show-viewer)
+
+      (define original-security-guard (current-security-guard))
       
       (define (load-content content)
 	(unless config:trust-me?
 	  (current-security-guard
-	   (make-security-guard (current-security-guard)
+	   (make-security-guard original-security-guard
 				(lambda (who what mode)
 				  (when (memq 'write mode)
 				    (error 'slideshow
@@ -953,15 +966,14 @@
 				  (error 'slideshow
 					 "slide program attempted to make a network connection")))))
 	(send progress-window show #t)
-	(start-making-slides)
 	(dynamic-require (path->complete-path content) #f)
-	(done-making-slides))
+	(show-viewer))
 
-      (define (started-from-launcher)
+      (define (show-slide-dialog)
 	(when config:file-to-load
 	  (load-content (string->path config:file-to-load)))
 
-	(unless done-once?
+	(when (null? talk-slide-list)
 	  ;; GUI front-end when no slides are provided
 	  (let ()
 	    (define f (new dialog%

@@ -3,7 +3,7 @@
   (require (lib "unitsig.ss"))
 
   (provide config^ viewer^ core^
-	   cmdline^ main-viewer^)
+	   cmdline^)
 
   ;; Configuration inputs to the core unit:
   (define-signature config^
@@ -15,9 +15,9 @@
   ;; Viewer inputs to the core unit:
   (define-signature viewer^
     (;; Registering slides:
-     set-talk-slide-list!
-     get-talk-slide-list
-     display-progress
+     add-talk-slide!
+     retract-talk-slide!
+     most-recent-talk-slide
      ;; Pass-through of slide-program requests:
      set-init-page!
      set-use-background-frame!
@@ -94,11 +94,4 @@
      use-prefetch?
      use-prefetch-in-preview?
      print-target
-     talk-duration-minutes))
-
-  ;; Extra viewer stuff exported by "slideshow.ss":
-  (define-signature main-viewer^
-    ((open viewer^)
-     start-making-slides
-     done-making-slides
-     started-from-launcher)))
+     talk-duration-minutes)))
