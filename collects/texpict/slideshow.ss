@@ -25,8 +25,6 @@
   (define offscreen-transitions? #f)
   (define talk-duration-minutes 25)
 
-  (define base-font-size (get-preference 'slideshow:default-font-size (lambda () 32)))
-  
   (define current-page 0)
   
   (require (lib "cmdline.ss"))
@@ -37,9 +35,7 @@
      (current-command-line-arguments)
      [once-each
       (("--print") "print"
-		   (set! printing? #t)
-		   ;; Ignore screen-relevant preference:
-		   (set! base-font-size 32))
+		   (set! printing? #t))
       (("-c" "--condense") "condense"
 			   (set! condense? #t))
       (("-p") page "set the starting page"
@@ -56,14 +52,6 @@
        (when (> actual-screen-w screen-w)
 	 (set! actual-screen-w screen-w)
 	 (set! actual-screen-h screen-h)))
-      (("-f" "--font") fs "set base font size"
-		       (let ([n (string->number fs)])
-			 (unless (and n 
-				      (integer? n)
-				      (exact? n)
-				      (positive? n))
-			   (error 'talk "argument to -f is not a positive exact integer: ~a" fs))
-			 (set! base-font-size n)))
       (("-m" "--minutes") min "set talk duration in minutes"
 		       (let ([n (string->number min)])
 			 (unless (and n 
@@ -92,7 +80,7 @@
 
   (define ps-pre-scale 0.7)
 
-  (define font-size base-font-size)
+  (define font-size 32)
   (define gap-size (* 3/4 base-font-size))
   (define line-sep 2)
   (define title-size (+ font-size 4))
