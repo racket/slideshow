@@ -973,6 +973,12 @@
 		      (printf "Total Time: ~a seconds~n"
 			(- (current-seconds) talk-start-seconds)))
                     #f]
+		   [(#\c)
+		    (stop-transition)
+                    (when (or (send e get-meta-down)
+			      (send e get-alt-down))
+                      (send c-frame show (not (send c-frame is-shown?))))
+		    #t]
                    [else
                     #f])))])
           (sequence
@@ -1027,6 +1033,7 @@
       (define commentary (make-object text%))
       (send (make-object editor-canvas% c-frame commentary)
             set-line-count 3)
+      (send commentary auto-wrap #t)
       
       (define start-time #f)
       
@@ -1197,6 +1204,12 @@
                    (public
                      [redraw (lambda ()
 			       (reset-display-inset! (slide-inset (list-ref talk-slide-list current-page)))
+			       (send commentary lock #f)
+			       (send commentary erase)
+			       (let ([s (list-ref talk-slide-list current-page)])
+				 (when (just-a-comment? (slide-comment s))
+				   (send commentary insert (just-a-comment-text (slide-comment s)))))
+			       (send commentary lock #t)
 			       (cond
 				[use-transitions?
 				 (let-values ([(cw ch) (get-client-size)])
@@ -1330,12 +1343,13 @@
         (send c-frame show #t)
         (message-box "Instructions"
                      (format "Keybindings:~
-                     ~n  {Meta,Alt}-Q - quit  << IMPORTANT!~
-                     ~n  Right, Space, F or N - next page~
-                     ~n  Left, B - prev page~
-                     ~n  G - last page~
+                     ~n  {Meta,Alt}-q - quit~
+                     ~n  Right, Space, f or n - next page~
+                     ~n  Left, b - prev page~
+                     ~n  g - last page~
                      ~n  1 - first page~
-                     ~n  {Meta,Alt}-G - select page~
+                     ~n  {Meta,Alt}-g - select page~
+                     ~n  {Meta,Alt}-c - show/hide commentary~
                      ~nAll bindings work in both the display and commentary windows")))
       
       (when printing?

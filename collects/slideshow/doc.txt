@@ -84,6 +84,7 @@ Alt-q (or Meta-q) to end the slides. More controls:
     g                             :  last slide
     1                             :  first slide
     Alt-g or Meta-g               :  select a slide
+    Alt-c or Meta-c               :  show/hide commentary
 
 In general, each element after the title string for `slide/title' is a
 pict that will be centered on the slide. The picts are stacked

@@ -15,7 +15,8 @@
        (blank)
        (bitmap (build-path (collection-path "icons") "PLTnolarval.jpg"))
        (blank)
-       (colorize (it "Press the spacebar to continue") blue))
+       (colorize (it "Press the spacebar to continue") blue)
+       (comment "Welcome to Slideshow"))
 
       (slide/title/center
        "About Slideshow"
@@ -30,6 +31,9 @@
       (define sym:rightarrow (symbol 174))
       (define sym:leftarrow (symbol 172))
 
+      (define (meta key)
+	(hbl-append (t "Alt-") (tt key) (t " or Meta-") (tt key)))
+
       (slide/title/center
        "How to Control this Viewer"
        (table 3
@@ -37,14 +41,19 @@
 	       append
 	       (map (lambda (s)
 		      (list (apply page-para* (car s)) (t ":") (t (cadr s))))
-		    `(((,(hb-append (t "Alt-") (tt "q")) ,(hbl-append (t "or Meta-") (tt "q"))) "ends show")
+		    `(((,(meta "q")) "ends show")
 		      ((,sym:rightarrow ", Space," ,(tt "f") ", or" ,(tt "n")) "next slide")
 		      ((,sym:leftarrow "or" ,(tt "b")) "previous slide")
 		      ((,(tt "g")) "last slide")
 		      ((,(tt "1")) "first slide")
-		      ((,(hbl-append (t "Alt-") (tt "g") (t " or Meta-") (tt "g"))) "select a slide"))))
+		      ((,(meta "g")) "select a slide")
+		      ((,(meta "c")) "show/hide commentary"))))
 	      lbl-superimpose lbl-superimpose
-	      gap-size (/ gap-size 2)))
+	      gap-size (/ gap-size 2))
+       (comment "This window shows comments for each slide. "
+		"The comments are typically fill in the details of what "
+		"the slide presenter says when giving the talk."))
+		
 
       (define mytalk.scm (tt "mytalk.scm"))
 
