@@ -113,6 +113,7 @@ Alt-q (or Meta-q) to end the slides. More controls:
    Alt-p, Cmd-p, or Meta-p             :  show/hide slide number
    Alt-c, Cmd-c, or Meta-c             :  show/hide commentary
    Alt-d, Cmd-d, or Meta-d             :  show/hide preview
+   Alt-m, Cmd-m, or Meta-m             :  show/hide mouse cursor
    Shift with arrow                    :  move window 1 pixel
    Alt, Meta, or Cmd with arrow        :  move window 10 pixels
 
@@ -250,7 +251,7 @@ amounts of the slide on different displays).
 Transition Animations
 =====================
 
-Any number of transition actions can be nstalled after a slide is
+Any number of transition actions can be installed after a slide is
 created and before the next slide is created. The first animation
 applies to the most recently created slide, and during presentation
 time, it starts when the next slide is requested; after all animations

@@ -45,25 +45,28 @@
 
       (slide/title
        "How to Control this Viewer"
-       (table 3
-	      (apply
-	       append
-	       (map (lambda (s)
-		      (list (apply page-para* (car s)) (t ":") (t (cadr s))))
-		    `(((,(meta "q")) "end show")
-		      (("Esc") "if confirmed, end show")
-		      ((,sym:rightarrow ", Space," ,(tt "f") "," ,(tt "n") ", or click") "next slide")
-		      ((,sym:leftarrow ", Backspace, Delete, or" ,(tt "b")) "previous slide")
-		      ((,(tt "g")) "last slide")
-		      ((,(tt "1")) "first slide")
-		      ((,(meta "g")) "select a slide")
-		      ((,(meta "p")) "show/hide slide number")
-		      ((,(meta "c")) "show/hide commentary")
-		      ((,(meta "d")) "show/hide preview")
-		      ((,(hbl-append (t "Shift-") sym:rightarrow) ", etc.") "move window 1 pixel")
-		      ((,(meta sym:rightarrow) ", etc.") "move window 10 pixels"))))
-	      lbl-superimpose lbl-superimpose
-	      gap-size (/ gap-size 2))
+       (scale/improve-new-text
+	(table 3
+	       (apply
+		append
+		(map (lambda (s)
+		       (list (apply page-para* (car s)) (t ":") (t (cadr s))))
+		     `(((,(meta "q")) "end show")
+		       (("Esc") "if confirmed, end show")
+		       ((,sym:rightarrow ", Space," ,(tt "f") "," ,(tt "n") ", or click") "next slide")
+		       ((,sym:leftarrow ", Backspace, Delete, or" ,(tt "b")) "previous slide")
+		       ((,(tt "g")) "last slide")
+		       ((,(tt "1")) "first slide")
+		       ((,(meta "g")) "select a slide")
+		       ((,(meta "p")) "show/hide slide number")
+		       ((,(meta "c")) "show/hide commentary")
+		       ((,(meta "d")) "show/hide preview")
+		       ((,(meta "m")) "show/hide mouse cursor")
+		       ((,(hbl-append (t "Shift-") sym:rightarrow) ", etc.") "move window 1 pixel")
+		       ((,(meta sym:rightarrow) ", etc.") "move window 10 pixels"))))
+	       lbl-superimpose lbl-superimpose
+	       gap-size (/ gap-size 2))
+	0.9)
        (comment "This window shows comments for each slide. "
 		"The comments are typically fill in the details of what "
 		"the slide presenter says when giving the talk."))

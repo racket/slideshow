@@ -36,6 +36,7 @@
       (define use-background-frame? #f)
       (define show-page-numbers? #t)
       (define click-to-advance? #t)
+      (define blank-cursor-allowed? #t)
       (define click-regions null)
       (define talk-slide-list null)
       (define given-talk-slide-list null)
@@ -115,7 +116,10 @@
 	(set! show-page-numbers? (and on? #t)))
       (viewer:set-page-numbers-visible! config:show-page-numbers?)
       
+      (define adjust-cursor (lambda () (send f set-blank-cursor #f)))
+
       (define (add-click-region! cr)
+	(adjust-cursor)
 	(set! click-regions (cons cr click-regions)))
 
       (define (make-quad l)
@@ -179,6 +183,8 @@
       (define talk-start-seconds (current-seconds))
       (define slide-start-seconds (current-seconds))
       
+      (define blank-cursor (make-object cursor% 'blank))
+
       (define talk-frame%
 	(class frame% 
 	  (init-field closeable?)
@@ -257,6 +263,11 @@
 		     (stop-transition)
 		     (send c-frame show (not (send c-frame is-shown?))))
 		   #t]
+		  [(#\m)
+		   (when (or (send e get-meta-down)
+			     (send e get-alt-down))
+		     (set! blank-cursor-allowed? (not blank-cursor-allowed?))
+		     (send f set-blank-cursor blank-cursor-allowed?))]
 		  [else
 		   #f]))))
 
@@ -334,6 +345,24 @@
 				  (sliderec-transitions old)
 				  null)
 			      (send c get-offscreen))))
+
+	  (define blank-cursor? #f)
+	  (define activated? #f)
+
+	  (inherit set-cursor)
+
+	  (define/override (on-activate on?)
+	    (set! activated? on?)
+	    (when blank-cursor?
+	      (set-cursor (if (and blank-cursor? on? blank-cursor-allowed?)
+			      blank-cursor
+			      #f))))
+	  (define/public (set-blank-cursor b?)
+	    (set! blank-cursor? (and b? #t))
+	    (when activated?
+	      (set-cursor (if (and blank-cursor? blank-cursor-allowed?)
+			      blank-cursor
+			      #f))))
 
 	  (super-new)))
       
@@ -574,8 +603,8 @@
 		(send dc draw-bitmap prefetch-bitmap dx dy)
 		(set! click-regions (map (lambda (cr)
 					   (shift-click-region cr dx dy))
-					 prefetched-click-regions)))))
-
+					 prefetched-click-regions))
+		(send f set-blank-cursor (null? click-regions)))))
 	  (define/override (on-size w h)
 	    (unless resizing-frame?
 	      (redraw)))
@@ -776,11 +805,14 @@
 
 	(when (send prefetch-dc ok?)
 	  (send prefetch-dc clear)
-	  (let ([old-click-regions click-regions])
+	  (let ([old-click-regions click-regions]
+		[old-adjust adjust-cursor])
 	    (set! click-regions null)
+	    (set! adjust-cursor void)
 	    (paint-slide prefetch-dc n)
 	    (set! prefetched-click-regions click-regions)
-	    (set! click-regions old-click-regions))
+	    (set! click-regions old-click-regions)
+	    (set! adjust-cursor old-adjust))
 	  (set! prefetched-page n)
 	  (when (and config:use-prefetch-in-preview?
 		     (send f-both is-shown?))
@@ -811,6 +843,7 @@
       (define refresh-page
 	(opt-lambda ([immediate-prefetch? #f])
 	  (hide-cursor-until-moved)
+	  (send f set-blank-cursor #t)
 	  (when (= current-page 0)
 	    (set! start-time #f)
 	    (unless start-time
