@@ -33,6 +33,7 @@
   (define talk-duration-minutes #f)
   (define no-squash? #f)
   (define two-frames? #f)
+  (define use-prefetch? #t)
   
   (define current-page 0)
   
@@ -87,6 +88,8 @@
 			 (set! talk-duration-minutes n)))
       (("-i" "--immediate") "no transitions"
        (set! use-transitions? #f))
+      (("--no-prefetch") "disable next-slide prefetch"
+       (set! use-prefetch? #f))
       (("--comment") "display commentary"
                      (set! commentary? #t))
       (("--time") "time seconds per slide" (set! print-slide-seconds? #t))]
@@ -104,6 +107,7 @@
 
   (when printing?
     (set! use-offscreen? #f)
+    (set! use-prefetch? #f)
     (set! keep-titlebar? #t)
     (set! actual-screen-w 1024)
     (set! actual-screen-h 768))
@@ -1343,6 +1347,8 @@
               (when (just-a-comment? (slide-comment s))
                 (send commentary insert (just-a-comment-text (slide-comment s)))))
             (send commentary lock #t)
+	    (set! click-regions null)
+	    (set! clicking #f)
             (cond
               [use-offscreen?
                (let-values ([(cw ch) (get-client-size)])
@@ -1354,17 +1360,21 @@
                  (unless offscreen
                    (set! offscreen (make-object bitmap-dc% 
                                      (make-object bitmap% cw ch)))))
-               (set! click-regions null)
-               (set! clicking #f)
                (send offscreen clear)
-               (let-values ([(cw ch) (get-client-size)])
-		 (stop-transition/no-refresh)
-                 (paint-slide offscreen))
+	       (stop-transition/no-refresh)
+	       (cond
+		[(equal? prefetched-page current-page)
+		 (set! click-regions prefetched-click-regions)
+		 (send offscreen draw-bitmap prefetch-bitmap 0 0)]
+		[else
+		 (paint-slide offscreen)])
                (let ([bm (send offscreen get-bitmap)])
                  (send (get-dc) draw-bitmap bm 0 0))]
+	      [(equal? prefetched-page current-page)
+	       (set! click-regions prefetched-click-regions)
+	       (send (get-dc) draw-bitmap prefetch-bitmap 0 0)]
               [else
                (let ([dc (get-dc)])
-                 (set! click-regions null)
 		 (send dc clear)
 		 (stop-transition/no-refresh)
 		 (paint-slide dc))]))
@@ -1430,6 +1440,58 @@
 		 (send dc set-text-foreground c)
 		 (send dc set-font f))))]))
 
+      ;; prefetched-page : (union #f number)
+      (define prefetched-page #f)
+      ;; prefetch-bitmap : (union #f bitmap)
+      (define prefetch-bitmap #f)
+      ;; prefetch-bitmap : (union #f bitmap-dc)
+      (define prefetch-dc #f)
+      ;; prefetch-schedule-cancel-box : (box boolean)
+      (define prefetch-schedule-cancel-box (box #f))
+      ;; prefetched-click-regions : list
+      (define prefetched-click-regions null)
+
+      (define (prefetch-slide n)
+        (set! prefetched-page #f)
+        
+	(unless prefetch-dc
+	  (set! prefetch-dc (new bitmap-dc%)))
+
+        ;; try to re-use existing bitmap
+        (unless (and (is-a? prefetch-bitmap bitmap%)
+                     (= use-screen-w (send prefetch-bitmap get-width))
+                     (= use-screen-h (send prefetch-bitmap get-height)))
+          (set! prefetch-bitmap (make-object bitmap% use-screen-w use-screen-h))
+	  (send prefetch-dc set-bitmap prefetch-bitmap))
+
+	(when (send prefetch-dc ok?)
+          (send prefetch-dc clear)
+	  (let ([old-click-regions click-regions])
+	    (set! click-regions null)
+	    (paint-slide prefetch-dc n)
+	    (set! prefetched-click-regions click-regions)
+	    (set! click-regions old-click-regions))
+	  (set! prefetched-page n)))
+
+      (define (schedule-slide-prefetch n)
+	(cancel-prefetch)
+	(when (and use-prefetch?
+		   (not (equal? n prefetched-page)))
+	  (let ([b (box #t)])
+	    (set! prefetch-schedule-cancel-box b)
+	    (new timer% [interval 500] [just-once? #t]
+		 [notify-callback (lambda ()
+				    (when (unbox b)
+				      (if (pair? current-transitions)
+					  ;; try again to wait for transition to end
+					  (schedule-slide-prefetch n)
+					  ;; Build next slide...
+					  (prefetch-slide n))))]))))
+
+
+      (define (cancel-prefetch)
+	(set-box! prefetch-schedule-cancel-box #f))
+
       (define c (make-object c% f))
       (define c-both (make-object two-c% f-both))
       
@@ -1440,7 +1502,9 @@
             (set! start-time (current-seconds))))
         (send c redraw)
         (when (and c-both (send f-both is-shown?))
-          (send c-both redraw)))
+          (send c-both redraw))
+	(when (< current-page (- (length talk-slide-list) 1))
+	  (schedule-slide-prefetch (+ current-page 1))))
 
       (define current-transitions null)
       (define current-transitions-key #f)
@@ -1476,6 +1540,7 @@
 	(refresh-page))
       
       (define (stop-transition/no-refresh)
+	(cancel-prefetch)
 	(set! current-transitions null)
 	(set! current-transitions-key #f))
       
