@@ -1581,7 +1581,7 @@
                      (= use-screen-w (send prefetch-bitmap get-width))
                      (= use-screen-h (send prefetch-bitmap get-height)))
           (send prefetch-dc set-bitmap #f)
-          (set! prefetch-bitmap (make-bitmap use-screen-w use-screen-h))
+          (set! prefetch-bitmap (make-bitmap (ceiling use-screen-w) (ceiling use-screen-h)))
 	  (when (send prefetch-bitmap ok?)
 	    (send prefetch-dc set-bitmap prefetch-bitmap)))
 
