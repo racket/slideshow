@@ -4,6 +4,9 @@ TODO: copying/pasting of pict snips doesn't preserve all of the information.
 It only preserves the look, for now. The bounding boxes for children, in particular,
 are gone.
 
+When pressing or releasing the modifier keys, the snip doesn't update immediately;
+the user has to move the mouse first.
+
 |#
 
 (module pict-value-snip mzscheme
@@ -263,6 +266,8 @@ are gone.
                              (+ ady (child-dy child))
                              (cons 
                               (make-hbox (+ adx (child-dx child))
+                                         (+ ady (child-dy child))
+                                         #;
                                          (+ ady (- (- (pict-height pict) 
                                                       (child-dy child))
                                                    (pict-height (child-pict child))))
