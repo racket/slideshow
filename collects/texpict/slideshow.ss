@@ -20,6 +20,7 @@
   (define show-page-numbers? #t)
   (define quad-view? #f)
   (define print-slide-seconds? #f)
+  (define offscreen-transitions? #f)
 
   (define base-font-size (get-preference 'slideshow:base-font-size (lambda () 32)))
   
@@ -54,6 +55,8 @@
 				      (positive? n))
 			   (error 'talk "argument to -f is not a positive exact integer: ~a" fs))
 			 (set! base-font-size n)))
+      (("-s" "--smooth") "use an offscreen bitmap for slide transitions"
+       (set! offscreen-transitions? #t))
       (("--comment") "display commentary"
                      (set! commentary? #t))
       (("--time") "time seconds per slide" (set! print-slide-seconds? #t))]
@@ -117,6 +120,10 @@
        ;; Make ps-dc%:
        (let ([pss (make-object ps-setup%)])
 	 (send pss set-mode 'file)
+	 (send pss set-file
+	       (if content
+		   (regexp-replace "[.][^.]+$" (file-name-from-path content) ".ps")
+		   "untitled.ps"))
 	 (send pss set-scaling ps-pre-scale ps-pre-scale)
 	 (send pss set-orientation 'landscape)
 	 (parameterize ([current-ps-setup pss])
@@ -635,6 +642,7 @@
       (define start-time #f)
       
       (define clear-brush (make-object brush% "WHITE" 'transparent))
+      (define white-brush (make-object brush% "WHITE" 'solid))
       (define gray-brush (make-object brush% "GRAY" 'solid))
       (define green-brush (make-object brush% "GREEN" 'solid))
       (define red-brush (make-object brush% "RED" 'solid))
@@ -679,17 +687,16 @@
                    (inherit get-dc get-client-size)
                    (private-field
                     [number-font (make-object font% 10 'default 'normal 'normal)])
-                   (override
-                     [on-paint
-                      (lambda ()
-                        (let* ([dc (get-dc)]
-                               [f (send dc get-font)]
+                   (private
+                     [paint
+                      (lambda (dc)
+                        (let* ([f (send dc get-font)]
                                [c (send dc get-text-foreground)]
                                [slide (list-ref talk-slide-list current-page)]
                                [s (slide-page-string slide)])
                           (let*-values ([(cw ch) (get-client-size)]
                                         [(m) (- margin (/ (- screen-w cw) 2))])
-                            ((slide-drawer slide) (get-dc) m m))
+                            ((slide-drawer slide) dc m m))
                           
                           ;; Slide number
                           (send dc set-font number-font)
@@ -716,11 +723,36 @@
                             (when show-gauge?
                               (unless printing?
                                 (show-time dc (- cw 10 w) (- ch 10)))))))])
+
+		   (override
+		     [on-paint (lambda () (paint (get-dc)))])
+		   
+		   (private-field
+		    [offscreen #f])
+		   
                    (public
                      [redraw (lambda ()
-                               (let ([dc (get-dc)])
-                                 (send dc clear)
-                                 (on-paint)))])
+			       (cond
+				[offscreen-transitions?
+				 (let-values ([(cw ch) (get-client-size)])
+				   (when (and offscreen
+					      (let ([bm (send offscreen get-bitmap)])
+						(not (and (= cw (send bm get-width))
+							  (= ch (send bm get-height))))))
+				     (set! offscreen #f))
+				   (unless offscreen
+				     (set! offscreen (make-object bitmap-dc% 
+								  (make-object bitmap% cw ch)))))
+				 (send offscreen clear)
+				 (paint offscreen)
+				 (let ([bm (send offscreen get-bitmap)])
+				   (send offscreen set-bitmap #f)
+				   (send (get-dc) draw-bitmap bm 0 0)
+				   (send offscreen set-bitmap bm))]
+				[else
+				 (let ([dc (get-dc)])
+				   (send dc clear)
+				   (paint dc))]))])
                    (sequence
                      (apply super-init args))))
       
