@@ -75,7 +75,7 @@
 	   (set! keep-titlebar? #t))
 	 (set! actual-screen-w nw)
 	 (set! actual-screen-h nh)))
-      (("-u" "--no-squash") "maintain 1024x768 proportion within show size"
+      (("-u" "--no-squash") "maintain 1024x768 proportion within slides"
        (set! no-squash? #t))
       ;; Disable --minutes, because it's not used
       #;
