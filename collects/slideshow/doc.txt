@@ -609,3 +609,15 @@ in a `slide' sequence).
 > (with-steps~ (id ...) expr) - like `with-steps', but when
   `condense?' from "slideshow.ss" is true, then `expr' is evaluated
   only for the last `id' (independent of whether its name ends in "~")
+
+
+------------------------------------------------------------
+_slides-to-picts.ss_
+------------------------------------------------------------
+
+> (get-slides-as-picts path width height condense?) - executes the
+  Slideshow program indicated by `path' in a fresh namespace, and
+  returns a list of picts for the slides. Each pict have the given
+  `width' and `height', and `condense?' determines whether the program
+  is executed in condense mode.
+

@@ -13,19 +13,16 @@
   ;;       Link Config and Viewer with Core        ;;
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ;; The actual config and viewer untis are determined by two
-  ;;  parameters in "param.ss". This somewhat strange technqiue allows
-  ;;  the units to be changed as this module is loaded in a new
-  ;;  namespace. Such namespace games are not necessary if talks are
-  ;;  written as units and linked to the core.ss unit.
+  ;; The actual config and viewer untis are determined by a parameter
+  ;;  in "param.ss". This somewhat strange technqiue allows the units
+  ;;  to be changed as this module is loaded in a new namespace; see
+  ;;  "slides-to-picts.ss". Such namespace games are not necessary if
+  ;;  talks are written as units and linked to the core.ss unit.
 
-  (define-values/invoke-unit/sig ((open core^) (unit config : cmdline^) (unit viewer : main-viewer^))
-    (compound-unit/sig
-     (import)
-     (link [CONFIG : cmdline^ ((current-config))]
-	   [CORE : core^ (core@ (CONFIG : config^) (VIEWER : viewer^))]
-	   [VIEWER : main-viewer^ ((current-viewer) CONFIG CORE)])
-     (export (open CORE) (unit CONFIG config) (unit VIEWER viewer))))
+  (define-values/invoke-unit/sig ((open core^) 
+				  (unit config : config^) 
+				  (unit viewer : main-viewer^))
+    ((current-slideshow-linker) core@))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                Contracts                      ;;

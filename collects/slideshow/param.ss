@@ -1,11 +1,18 @@
 
 (module param mzscheme
-  (require "cmdline.ss"
+  (require (lib "unitsig.ss")
+	   "sig.ss"
+	   "cmdline.ss"
 	   "viewer.ss")
 
-  (provide current-config
-	   current-viewer)
+  (provide current-slideshow-linker)
 
-  (define current-config (make-parameter cmdline@))
-  (define current-viewer (make-parameter viewer@)))
-
+  (define current-slideshow-linker 
+    (make-parameter 
+     (lambda (core@)
+       (compound-unit/sig
+	(import)
+	(link [CONFIG : cmdline^ (cmdline@)]
+	      [CORE : core^ (core@ (CONFIG : config^) (VIEWER : viewer^))]
+	      [VIEWER : main-viewer^ (viewer@ CONFIG CORE)])
+	(export (open CORE) (unit (CONFIG : config^) config) (unit VIEWER viewer)))))))
