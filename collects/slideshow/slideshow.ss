@@ -1017,7 +1017,9 @@
             (super-init))))
       
       (define-values (screen-left-inset screen-top-inset)
-	(get-display-left-top-inset))
+	(if keep-titlebar?
+	    (values 0 0)
+	    (get-display-left-top-inset)))
 
       (define background-f
 	(and use-background-frame?
