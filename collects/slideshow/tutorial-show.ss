@@ -241,7 +241,11 @@
        (lambda (tag)
 	 (sub-para "Beyond" (code 'next) "and" (code 'alts)))
      
-       'printing "Part V: Printing"
+       'background "Part V: Controlling the Background"
+       (lambda (tag)
+	 (sub-para "Changing the overall look of your talk"))
+
+       'printing "Part VI: Printing"
        (lambda (tag)
 	 (sub-para "Exporting slides as PostScript"))
 
@@ -749,6 +753,64 @@
 		       0.5 20))
   
   (scroll-slide #t)
+
+  ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Background
+
+  ;; A pict to use behind the main content
+  (define fade-bg
+    (let ([w (+ (* 2 margin) client-w)]
+	  [h (+ (* 2 margin) client-h)]
+	  [trans (make-object brush% "white" 'transparent)]
+	  [inside (make-object brush% "white" 'solid)])
+      (inset (dc (lambda (dc x y)
+		   (let ([b (send dc get-brush)]
+			 [draw-one
+			  (lambda (i)
+			    (send dc draw-rectangle
+				  (+ x i) (+ y i)
+				  (- w (* 2 i)) (- h (* 2 i))))])
+		     (send dc set-brush trans)
+		     (color-series 
+		      dc margin 1
+		      (make-object color% "black")
+		      (make-object color% "white")
+		      draw-one
+		      #t #f)
+		     (send dc set-brush inside)
+		     (draw-one margin)
+		     (send dc set-brush b)))
+		 w h 0 0)
+	     (- margin))))
+
+  (define orig-assembler (current-slide-assembler))
+
+  ;; Normally, you'd set the slide assembler at the beginning
+  ;;  of a talk and never change it
+  (current-slide-assembler
+   (lambda (s v-sep c)
+     (lt-superimpose
+      fade-bg
+      (let ([c (colorize c "darkred")])
+	(if s
+	    (vc-append v-sep 
+		       ;; left-aligns the title:
+		       (page-para (titlet s)) 
+		       c)
+	    c)))))
+
+  (outline 'background)
+
+  (slide/title/center
+   "Controlling the Background"
+   (page-para "The" (code current-slide-assembler)
+	      "parameter lets you change the overall look of a slide")
+   (page-para "For this slide and the previous one, the assembler")
+   (page-item "Colorizes the uncolored content as dark red")
+   (page-item "Left-aligns the title")
+   (page-item "Draws a fading box around the slide"))
+
+  (current-slide-assembler orig-assembler)
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Printing and Condensing

@@ -192,9 +192,21 @@
   (define-values (client-w client-h) (values (- screen-w (* margin 2))
 					     (- screen-h (* margin 2))))
   (define full-page (blank client-w client-h))
+  (define title-h (pict-height (titlet "Hi")))
   (define (mk-titleless-page)
-    (inset full-page 0 (- 0 (pict-height (titlet "Hi")) (* 2 gap-size)) 0 0))
+    (inset full-page 0 (- 0 title-h (* 2 gap-size)) 0 0))
   (define titleless-page (mk-titleless-page))
+
+  (define (set-margin! m)
+    (set! margin m)
+    (set! client-w (+ client-w (* 2 margin)))
+    (set! client-h (+ client-h (* 2 margin)))
+    (set! full-page (blank client-w client-h))
+    (set! titleless-page (mk-titleless-page)))
+
+  (define (set-title-h! h)
+    (set! title-h h)
+    (set! titleless-page (mk-titleless-page)))
 
   (define use-background-frame? #f)
     
@@ -247,7 +259,17 @@
      page-count
      inset))
 
-  (define (one-slide/title/inset do-add-slide! process v-sep skipped-pages s inset . x) 
+  (define default-slide-assembler
+    (lambda (s v-sep p)
+      (apply vc-append v-sep
+	     (if s
+		 (list (evenize-width (titlet s)) p)
+		 (list p)))))
+
+  (define current-slide-assembler
+    (make-parameter default-slide-assembler))
+
+  (define (one-slide/title/inset do-add-slide! use-assem? process v-sep skipped-pages s inset . x) 
     (let-values ([(x c)
 		  (let loop ([x x][c #f][r null])
 		    (cond
@@ -256,12 +278,14 @@
 		      (loop (cdr x) (car x) r)]
 		     [else
 		      (loop (cdr x) c (cons (car x) r))]))])
-      (let ([content (apply vc-append v-sep
-			    (map
-			     evenize-width
-			     (if (and s (not (name-only? s)))
-				 (cons (titlet s) (process x))
-				 (process x))))])
+      (let ([content ((if use-assem?
+			  (current-slide-assembler)
+			  default-slide-assembler)
+		      (and (not (name-only? s)) s)
+		      v-sep
+		      (apply vc-append 
+			     gap-size
+			     (map evenize-width (process x))))])
 	(do-add-slide!
 	 content
 	 (if (name-only? s) (name-only-title s) s)
@@ -278,7 +302,7 @@
 	   string
 	   args))
 
-  (define (do-slide/title/tall/inset do-add-slide! skip-ok? process v-sep s inset . x)
+  (define (do-slide/title/tall/inset do-add-slide! use-assem? skip-ok? process v-sep s inset . x)
     ;; Check slides:
     (let loop ([l x][nested null])
       (or (null? l)
@@ -310,7 +334,7 @@
 	(if skip-all?
 	    (add1 skipped)
 	    (begin
-	      (apply one-slide/title/inset do-add-slide! process v-sep skipped s inset (reverse r))
+	      (apply one-slide/title/inset do-add-slide! use-assem? process v-sep skipped s inset (reverse r))
 	      0))]
        [(memq (car l) '(NOTHING))
 	(loop (cdr l) r comment skip-all? skipped)]
@@ -319,7 +343,7 @@
 	  (let ([skipped (if skip?
 			     (add1 skipped)
 			     (begin
-			       (apply one-slide/title/inset do-add-slide! process v-sep skipped s inset (reverse r))
+			       (apply one-slide/title/inset do-add-slide! use-assem? process v-sep skipped s inset (reverse r))
 			       0))])
 	    (loop (cdr l) r comment skip-all? skipped)))]
        [(memq (car l) '(ALTS ALTS~)) 
@@ -348,28 +372,32 @@
   (define (make-slide-inset l t r b)
     (make-sinset l t r b))
 
+  (define (slide/title/tall/inset/gap v-sep s inset . x)
+    (apply do-slide/title/tall/inset do-add-slide! #t #t values v-sep s inset x))
+
   (define (slide/title/tall/inset s inset . x)
-    (apply do-slide/title/tall/inset do-add-slide! #t values gap-size s inset x))
+    (apply slide/title/tall/inset/gap gap-size s inset x))
 
   (define (slide/name/tall/inset s inset . x)
     (apply slide/title/tall/inset (make-name-only s) inset x))
 
+  (define (slide/title/tall/gap v-sep s . x)
+    (apply do-slide/title/tall/inset do-add-slide! #t #t values v-sep s zero-inset x))
+
   (define (slide/title/tall s . x)
-    (apply do-slide/title/tall/inset do-add-slide! #t values gap-size s zero-inset x))
+    (apply slide/title/tall/gap gap-size s x))
 
   (define (slide/name/tall s . x)
     (apply slide/title/tall (make-name-only s) x))
 
   (define (slide/title s . x)
-    (if s
-	(apply slide/title/tall s (blank) x)
-	(apply slide/title/tall s x)))
+    (apply slide/title/tall/gap (* 2 gap-size) s x))
 
   (define (slide/name s . x)
     (apply slide/title (make-name-only s) x))
 
   (define (slide/title/inset s inset . x)
-    (apply slide/title/tall/inset s inset (blank) x))
+    (apply slide/title/tall/inset/gap (* 2 gap-size) s inset x))
 
   (define (slide/name/inset s inset . x)
     (apply slide/title/inset (make-name-only s) inset x))
@@ -388,10 +416,12 @@
 	       (set! max-width (max max-width (pict-width content)))
 	       (set! max-height (max max-height (pict-height content))))
 	     #f
+	     #f
 	     (lambda (x) (list (combine x)))
 	     0 #f inset x)
       (apply do-slide/title/tall/inset
 	     do-add-slide!
+	     #t
 	     #t
 	     (lambda (x)
 	       (list
@@ -463,8 +493,15 @@
     (define current-item (colorize (hc-append (- (/ gap-size 2)) ah ah) blue))
     (define other-item (rc-superimpose (ghost current-item) (colorize ah "light gray")))
     (lambda (which)
-      (slide/title
-       "Outline"
+      (slide/name
+       (format "--~a--"
+	       (let loop ([l l])
+		 (cond
+		  [(null? l) "<unknown>"]
+		  [(eq? (car l) which)
+		   (cadr l)]
+		  [else (loop (cdddr l))])))
+       (blank (+ title-h gap-size))
        (lc-superimpose
 	(blank (pict-width full-page) 0)
 	(let loop ([l l])
@@ -856,10 +893,11 @@
 	   red green blue purple orange size-in-pixels
 	   t it bt bit tt titlet tt* rt
 	   bullet o-bullet
-	   margin client-w client-h
+	   margin set-margin! client-w client-h
 	   full-page titleless-page
 	   printing? condense? skip-slides
 	   set-use-background-frame!
+	   title-h set-title-h! current-slide-assembler
 	   (all-from (lib "mrpict.ss" "texpict"))
 	   (all-from (lib "utils.ss" "texpict"))
            start-making-slides done-making-slides)
@@ -1327,7 +1365,7 @@
                     [(and last-title
                           (equal? last-title (or (slide-title (car slides))
 						 "(untitled)")))
-                     (loop (cdr slides) (+ n (slide-page-count (car slides))) last-title)]
+                     (loop (cdr slides) (+ n 1) last-title)]
                     [else
                      (let ([title (or (slide-title (car slides))
                                       "(untitled)")])
@@ -1370,6 +1408,15 @@
                   (refresh-page))))
             '(border))
           (send l focus)
+	  (send d reflow-container)
+	  (let ([now (let loop ([l slide-list][n 0])
+		       (if (null? l)
+			   (sub1 n)
+			   (if (> (sub1 (caar l)) current-page)
+			       (sub1 n)
+			       (loop (cdr l) (add1 n)))))])
+	    (send l set-selection (max 0 now))
+	    (send l set-first-visible-item (max 0 (- now 3))))
           (send d show #t)))
       
       (refresh-page)

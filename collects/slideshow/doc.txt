@@ -252,16 +252,18 @@ Procedure Reference
 ===================
 
 > (slide/title title-string element ...) - Creates a titled slide. See
-  the overview for information about `element's.
+  the overview for information about `element's. The space between the
+  title and content is twice `gap-size'.
 
 > (slide/title/tall title-string element ...) - Like `slide/title',
-  except that less extra space is inserted between the title and the
-  slide content.
+  except that the space is inserted between the title and the slide
+  content is only `gap-size'.
 
 > (slide/title/center title-string element ...) - Like `slide/title',
-  except that the slide content is centered vertically. If the content
-  has steps an alternatives, each individual slide's content is
-  center-top aligned with the largest individual slide's bounding box.
+  except that the slide content is centered vertically under the
+  title. If the content has steps an alternatives, each individual
+  slide's content is center-top aligned with the largest individual
+  slide's bounding box.
 
 > (slide element ...) - Like `slide/title', but without the title.
 
@@ -298,7 +300,7 @@ Procedure Reference
 > (bit string) - Same as (text string `(bold italic . ,(current-main-font)) (current-font-size))
 > (tt string) - Same as (text string `(bold . modern) (current-font-size))
 > (rt string) - Same as (text string `roman (current-font-size))
-> (titlet string) - Like `t', but using the slide-title font and color.
+> (titlet string) - Like `t', but using the default slide-title font and color.
 
 > (para width-n ielement ...) - Generates a paragraph picture of width
   `width-n'. Each ielement is either a string or a pict; strings are
@@ -431,14 +433,31 @@ Procedure Reference
 > bullet - a bullet pict
 > o-bullet - a hollow bullet pict
 
-> client-w - useable width of a slide
-> client-h - useable height of a slide
-
-> margin - client margin within the full slide
+> client-w - useable width of the screen
+> client-h - useable height of the screen
 
 > full-page - an empty pict that is the same size as the client area
 > titleless-page - an empty pict that is the same size as the client
   ares minus the title area
+
+> margin - client margin within the full screen, 20
+> set-margin! - sets `margin' and updates `client-w', `client-h',
+                `full-page', and `titleless-page'
+
+> title-h - the height of a title string
+
+> set-title-h! - sets `title-h' and updates `titleless-page'; this
+                 usually makes sense only in combination with
+                 a change to `current-format-slide'
+
+> current-slide-assembler - a parameter whose value is a function for
+                assembling slide content into a single pict; the
+                assembling function takes a string-or-false for the
+                title, a separation for the title and pict (if any),
+                and a pict for the slide content (not counting the
+                title); the result is 'lt-superimpose'd with the
+                client area (but the result pict might draw outside
+                the client region to paint the screen margins, too)
 
 > printing? - #t if the slides are begin durected to PostScript output
 > condense? - #t if slides are being condensed (see overview)
