@@ -760,6 +760,10 @@
 
   (refresh-page)
 
+  (let ([bm (make-object bitmap% (build-path (collection-path "texpict") "slideshow.bmp"))])
+    (when (send bm ok?)
+      (send f set-icon bm #f 'large)))
+
   (send f show #t)
 
   (when commentary?
