@@ -96,6 +96,11 @@
   (when (or printing? condense?)
     (set! use-transitions? #f))
 
+  (when printing?
+    (set! keep-titlebar? #t)
+    (set! actual-screen-w 1024)
+    (set! actual-screen-h 768))
+
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                    Setup                      ;;
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
