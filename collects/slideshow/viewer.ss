@@ -791,6 +791,7 @@
       
       (define refresh-page
 	(opt-lambda ([immediate-prefetch? #f])
+	  (hide-cursor-until-moved)
 	  (when (= current-page 0)
 	    (set! start-time #f)
 	    (unless start-time
