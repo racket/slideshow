@@ -602,19 +602,23 @@ pict snip :
             (send (get-interactions-text) slideshow:clear-picts)
             (super clear-annotations))
           
+          (define/override (add-show-menu-items show-menu)
+            (super add-show-menu-items show-menu)
+            (set! view-menu-item
+                  (new menu-item%
+                       (label sc-show-slideshow-panel)
+                       (parent (get-show-menu))
+                       (callback
+                        (lambda (x y)
+                          (set! slideshow-panel-visible? (not slideshow-panel-visible?))
+                          (update-shown))))))
+          
+          (define view-menu-item #f)
+          
           (super-new)
           
           (inherit get-special-menu)
-          (add-special-menu-item (get-special-menu) this)
-          
-          (define view-menu-item 
-            (new menu-item%
-                 (label sc-show-slideshow-panel)
-                 (parent (get-show-menu))
-                 (callback
-                  (lambda (x y)
-                    (set! slideshow-panel-visible? (not slideshow-panel-visible?))
-                    (update-shown)))))))
+          (add-special-menu-item (get-special-menu) this)))
       
       (define slideshow-dragable%
         (class panel:horizontal-dragable%
