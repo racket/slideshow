@@ -119,6 +119,7 @@
   (define (bt s) (text s `(bold . ,main-font) (current-font-size)))
   (define (bit s) (text s `(bold italic . ,main-font) (current-font-size)))
   (define (tt s) (text s '(bold . modern) (current-font-size)))
+  (define (rt s) (text s 'roman (current-font-size)))
   (define (titlet s) (colorize (text s 
 				     `(bold . ,main-font) 
 				     title-size)
@@ -596,7 +597,7 @@
 	   para/c para/r para*/c para*/r page-para/c page-para/r page-para*/c page-para*/r
 	   font-size char-size current-font-size line-sep title-size main-font
 	   red green blue purple orange
-	   t it bt bit tt titlet tt*
+	   t it bt bit tt titlet tt* rt
 	   bullet o-bullet
 	   margin client-w client-h
 	   full-page titleless-page
