@@ -1,7 +1,8 @@
 
 (module slideshow mzscheme
   (require (lib "class.ss")
-	   (lib "class100.ss"))
+	   (lib "class100.ss")
+	   (lib "file.ss"))
 
   (require (lib "mred.ss" "mred"))
 
@@ -593,7 +594,7 @@
 	(super-init))))
 
   (define f (instantiate talk-frame% (#f)
-			 [label "Talk"]
+			 [label (format "Slides: ~a" (file-name-from-path content))]
 			 [x 0] [y 0]
 			 [width (inexact->exact (floor screen-w))]
 			 [height (inexact->exact (floor screen-h))]
@@ -760,9 +761,10 @@
 
   (refresh-page)
 
-  (let ([bm (make-object bitmap% (build-path (collection-path "texpict") "slideshow.bmp"))])
+  (let ([bm (make-object bitmap% (build-path (collection-path "texpict") "slideshow.bmp"))]
+	[mbm (make-object bitmap% (build-path (collection-path "texpict") "mask.xbm"))])
     (when (send bm ok?)
-      (send f set-icon bm #f 'large)))
+      (send f set-icon bm (and (send mbm ok?) mbm) 'both)))
 
   (send f show #t)
 
