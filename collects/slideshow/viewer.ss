@@ -455,11 +455,6 @@
 				   (put-preferences '(slideshow:commentary-width slideshow:commentary-height)
 						    (list w h)
 						    void))))
-			     (define/override (on-subwindow-event w e)
-			       (super on-subwindow-event w e)
-			       (when (and (send e button-up?)
-					  click-to-advance?)
-				 (send f next)))
 			     (super-new))
 			   [closeable? #t]
 			   [close-bg? #f]
@@ -469,10 +464,22 @@
 			   [x (get-preference 'slideshow:commentary-x (lambda () #f))]
 			   [y (get-preference 'slideshow:commentary-y (lambda () #f))]))
       (define commentary (make-object text%))
-      (send (make-object editor-canvas% c-frame commentary)
+      (send (new (class editor-canvas% 
+		   (define/override (on-event e)
+		     (super on-event e)
+		     (when (and click-to-advance?
+				(send e button-up?))
+		       (send f next)))
+		   (super-new))
+		 [parent c-frame] 
+		 [editor commentary] 
+		 [style (if (eq? (system-type) 'macosx)
+			    '(auto-hscroll resize-corner)
+			    '(auto-hscroll auto-vscroll))])
 	    set-line-count 3)
       (send commentary auto-wrap #t)
       (send c-frame reflow-container)
+      (define SCROLL-STEP-SIZE 20)
       (define pict-snip%
 	(class snip%
 	  (init-field pict)
@@ -488,6 +495,12 @@
 	    (set-box/f space 0)
 	    (set-box/f lspace 0)
 	    (set-box/f rspace 0))
+	  (define/override (get-num-scroll-steps)
+	    (inexact->exact (ceiling (/ (pict-height pict) SCROLL-STEP-SIZE))))
+	  (define/override (find-scroll-step y)
+	    (inexact->exact (floor (/ (max 0 y) SCROLL-STEP-SIZE))))
+	  (define/override (get-scroll-step-offset n)
+	    (* n SCROLL-STEP-SIZE))
 	  (super-new)
 	  (inherit set-snipclass)
 	  (set-snipclass pict-snipclass)))
@@ -654,6 +667,7 @@
 	  (define/public (redraw)
 	    (reset-display-inset! (sliderec-inset (talk-list-ref current-page)))
 	    (send commentary lock #f)
+	    (send commentary begin-edit-sequence)
 	    (send commentary erase)
 	    (let ([s (talk-list-ref current-page)])
 	      (when (just-a-comment? (sliderec-comment s))
@@ -662,6 +676,8 @@
 							v
 							(make-object pict-snip% v))))
 			  (just-a-comment-content (sliderec-comment s)))))
+	    (send commentary scroll-to-position 0 #f 'same 'start)
+	    (send commentary end-edit-sequence)
 	    (send commentary lock #t)
 	    (set! click-regions null)
 	    (set! clicking #f)
