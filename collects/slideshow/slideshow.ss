@@ -1,7 +1,6 @@
 
 (module slideshow mzscheme
   (require (lib "class.ss")
-	   (lib "class100.ss")
            (lib "unit.ss")
 	   (lib "file.ss")
 	   (lib "etc.ss")
@@ -31,7 +30,8 @@
   (define print-slide-seconds? #f)
   (define use-transitions? #t)
   (define talk-duration-minutes #f)
-
+  (define two-frames? #f)
+  
   (define current-page 0)
   
   (define content
@@ -39,6 +39,7 @@
      "slideshow"
      (current-command-line-arguments)
      [once-each
+      (("-d" "--double") "show next slide (non-mirroring display)" (set! two-frames? #t))
       (("-p" "--print") "print"
 		   (set! printing? #t))
       (("-c" "--condense") "condense"
@@ -91,7 +92,9 @@
                           (length slide-module-file)
                           slide-module-file)])]))
 
-  (when (or printing? condense?)
+  ;; probably two-frames? doesn't have to imply no transitions, but
+  ;; I'm not sure what the transitions are for... -robby
+  (when (or printing? condense? two-frames?)
     (set! use-transitions? #f))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -996,70 +999,120 @@
       (define slide-start-seconds (current-seconds))
       
       (define talk-frame%
-        (class100 frame% (closeble?)
-          (private-field [closeable? closeble?])
-          (override
-            [can-close? (lambda () closeable?)]
-	    [on-superwindow-show (lambda (on?)
-				   (unless on?
-				     (when background-f
-				       (send background-f show #f))))]
-            [on-subwindow-char
-             (lambda (w e)
-               (let ([k (send e get-key-code)])
-                 (case k
-                   [(right #\space #\f #\n)
-		    (if (pair? current-transitions)
-			(stop-transition)
-			(let ([old (list-ref talk-slide-list current-page)])
-			  (set! current-page (min (add1 current-page)
-						  (sub1 (length talk-slide-list))))
-			  (when print-slide-seconds?
-			    (let ([slide-end-seconds (current-seconds)])
-			      (printf "Slide ~a: ~a seconds~n" current-page
-				      (- slide-end-seconds slide-start-seconds))
-			      (set! slide-start-seconds slide-end-seconds)))
-			  (do-transitions (slide-transitions old) (send c get-offscreen))
-			  #t))]
-                   [(left #\b)
-		    (stop-transition)
-                    (set! current-page (max (sub1 current-page)
-                                            0))
-                    (refresh-page)
-                    #t]
-                   [(#\g)
-		    (stop-transition)
-                    (if (send e get-meta-down)
-                        (get-page-from-user)
-                        (begin
-                          (set! current-page (sub1 (length talk-slide-list)))
-                          (refresh-page)))
-                    #t]
-                   [(#\1)
-		    (stop-transition)
-                    (set! current-page 0)
-                    (refresh-page)
-                    #t]
-                   [(#\q #\S)  ; #\S is for Mac OS
-		    (stop-transition)
-                    (when (or (send e get-meta-down)
-			      (send e get-alt-down))
-                      (send c-frame show #f)
-                      (send f show #f))
-		    (when print-slide-seconds?
-		      (printf "Total Time: ~a seconds~n"
-			(- (current-seconds) talk-start-seconds)))
-                    #f]
-		   [(#\c)
-		    (stop-transition)
-                    (when (or (send e get-meta-down)
-			      (send e get-alt-down))
-                      (send c-frame show (not (send c-frame is-shown?))))
-		    #t]
-                   [else
-                    #f])))])
-          (sequence
-            (super-init))))
+        (class frame% 
+          (init-field closeable?)
+          (define/override can-close? (lambda () closeable?))
+          (define/override on-superwindow-show (lambda (on?)
+                                                 (unless on?
+                                                   (when background-f
+                                                     (send background-f show #f)))))
+          (define/override on-subwindow-char
+            (lambda (w e)
+              (let ([k (send e get-key-code)])
+                (case k
+                  [(right)
+                   (cond
+                     [(or (send e get-meta-down)
+                          (send e get-alt-down))
+                      (move-over 20 0)]
+                     [(send e get-shift-down)
+                      (move-over 1 0)]
+                     [else
+                      (next)])
+                   #t]
+                  [(left)
+                   (cond
+                     [(or (send e get-meta-down)
+                          (send e get-alt-down))
+                      (move-over -20 0)]
+                     [(send e get-shift-down)
+                      (move-over -1 0)]
+                     [else
+                      (prev)])
+                   #t]
+                  [(up)
+                   (cond
+                     [(or (send e get-meta-down)
+                          (send e get-alt-down))
+                      (move-over 0 -20)]
+                     [(send e get-shift-down)
+                      (move-over 0 -1)])
+                   #t]
+                  [(down)
+                   (cond
+                     [(or (send e get-meta-down)
+                          (send e get-alt-down))
+                      (move-over 0 20)]
+                     [(send e get-shift-down)
+                      (move-over 0 1)])
+                   #t]
+                  [(#\space #\f #\n)
+                   (next)
+                   #t]
+                  [(#\b)
+                   (prev)
+                   #t]
+                  [(#\g)
+                   (stop-transition)
+                   (if (send e get-meta-down)
+                       (get-page-from-user)
+                       (begin
+                         (set! current-page (sub1 (length talk-slide-list)))
+                         (refresh-page)))
+                   #t]
+                  [(#\1)
+                   (stop-transition)
+                   (set! current-page 0)
+                   (refresh-page)
+                   #t]
+                  [(#\q #\S)  ; #\S is for Mac OS
+                   (stop-transition)
+                   (when (or (send e get-meta-down)
+                             (send e get-alt-down))
+                     (send c-frame show #f)
+                     (send f show #f)
+                     (when f-both
+                       (send f-both show #f)))
+                   (when print-slide-seconds?
+                     (printf "Total Time: ~a seconds~n"
+                             (- (current-seconds) talk-start-seconds)))
+                   #f]
+                  [(#\c)
+                   (stop-transition)
+                   (when (or (send e get-meta-down)
+                             (send e get-alt-down))
+                     (send c-frame show (not (send c-frame is-shown?))))
+                   #t]
+                  [else
+                   #f]))))
+          
+          (inherit get-x get-y move)
+          (define/private (move-over dx dy)
+            (let ([x (get-x)]
+                  [y (get-y)])
+              (move (+ x dx) (+ y dy))))
+          
+          (define/private (prev)
+            (stop-transition)
+            (set! current-page (max (sub1 current-page)
+                                    0))
+            (refresh-page))
+          
+          (define/private (next)
+            (if (pair? current-transitions)
+                (stop-transition)
+                (let ([old (list-ref talk-slide-list current-page)])
+                  (set! current-page (min (add1 current-page)
+                                          (sub1 (length talk-slide-list))))
+                  (when print-slide-seconds?
+                    (let ([slide-end-seconds (current-seconds)])
+                      (printf "Slide ~a: ~a seconds~n" current-page
+                              (- slide-end-seconds slide-start-seconds))
+                      (set! slide-start-seconds slide-end-seconds)))
+                  (do-transitions (slide-transitions old) (send c get-offscreen))
+                  (when (< current-page (- (length talk-slide-list) 1))
+                    (cache-slide (+ current-page 1))))))
+          (super-new)))
       
       (define-values (screen-left-inset screen-top-inset)
 	(if keep-titlebar?
@@ -1084,16 +1137,28 @@
 	(send background-f enable #f)
 	(send background-f show #t))
 
-      (define f (instantiate talk-frame% (#f)
-                  [label (if content
-                             (format "~a: slideshow" (file-name-from-path content))
-                             "Slideshow")]
-                  [x (- screen-left-inset)] [y (- screen-top-inset)]
-                  [width (inexact->exact (floor actual-screen-w))]
-                  [height (inexact->exact (floor actual-screen-h))]
-                  [style (if keep-titlebar?
-			     null
-			     '(no-caption no-resize-border hide-menu-bar))]))
+      (define f (new talk-frame%
+                     [closeable? #f]
+                     [label (if content
+                                (format "~a: slideshow" (file-name-from-path content))
+                                "Slideshow")]
+                     [x (- screen-left-inset)] [y (- screen-top-inset)]
+                     [width (inexact->exact (floor actual-screen-w))]
+                     [height (inexact->exact (floor actual-screen-h))]
+                     [style (if keep-titlebar?
+                                null
+                                '(no-caption no-resize-border hide-menu-bar))]))
+      
+      (define f-both (and two-frames?
+                          (new talk-frame%
+                               [closeable? #f]
+                               [label "Slideshow Preview"]
+                               [x (- screen-left-inset)] [y (- screen-top-inset)]
+                               [width (inexact->exact (floor actual-screen-w))]
+                               [height (inexact->exact (quotient (floor actual-screen-h) 2))]
+                               [style (if keep-titlebar?
+                                          '()
+                                          '(no-caption no-resize-border hide-menu-bar))])))
       
       (define current-sinset zero-inset)
       (define (reset-display-inset! sinset)
@@ -1108,7 +1173,11 @@
 	  (set! current-sinset sinset)))
 		
 
-      (define c-frame (instantiate talk-frame% (#t) [label "Commentary"] [width 400] [height 100]))
+      (define c-frame (new talk-frame%
+                           [closeable? #t]
+                           [label "Commentary"]
+                           [width 400]
+                           [height 100]))
       (define commentary (make-object text%))
       (send (make-object editor-canvas% c-frame commentary)
             set-line-count 3)
@@ -1159,170 +1228,192 @@
           (send dc set-pen p)
           (send dc set-brush b)))
       
-      (define c% (class100 canvas% args
-                   (inherit get-dc get-client-size)
-                   (private-field
-                    [number-font (make-object font% 10 'default 'normal 'normal)])
-                   (private
-                     [paint
-                      (lambda (dc)
-			(stop-transition/no-refresh)
-                        (let* ([f (send dc get-font)]
-                               [c (send dc get-text-foreground)]
-                               [slide (list-ref talk-slide-list current-page)]
-                               [s (slide-page-string slide)]
-			       [set-scale? (not (and (= actual-screen-w screen-w)
-						     (= actual-screen-h screen-h)))])
-			  ;; Scale to adjust for screen size
-			  (when set-scale?
-			    (send dc set-scale 
-				  (/ actual-screen-w screen-w)
-				  (/ actual-screen-h screen-h)))
-			    
-			  ;; Draw the slide
-                          (let*-values ([(cw ch) (get-client-size)]
-                                        [(m) (- margin (/ (- actual-screen-w cw) 2))])
-                            ((slide-drawer slide) dc m m))
+      (define number-font (make-object font% 10 'default 'normal 'normal))
+      (define c%
+        (class canvas%
+          (inherit get-dc get-client-size)
+          
+          (define clicking #f)
+          (define clicking-hit? #f)
+          
+          (define/override (on-paint)
+            (let ([dc (get-dc)])
+              (cond
+                [(equal? current-page cached-page)
+                 (send dc draw-bitmap cached-page-bitmap 0 0)]
+                [else
+                 (send dc clear)
+                 (paint-slide dc)])))
+          
+          (define/override (on-event e)
+            (cond
+              [(send e button-down?)
+               (let ([c (ormap
+                         (lambda (c) (and (click-hits? e c) c))
+                         click-regions)])
+                 (when c
+                   (if (click-region-show-click? c)
+                       (begin
+                         (set! clicking c)
+                         (set! clicking-hit? #t)
+                         (invert-clicking!))
+                       ((click-region-thunk c)))))]
+              [(and clicking (send e dragging?))
+               (let ([hit? (click-hits? e clicking)])
+                 (unless (eq? hit? clicking-hit?)
+                   (set! clicking-hit? hit?)
+                   (invert-clicking!)))]
+              [(and clicking (send e button-up?))
+               (let ([hit? (click-hits? e clicking)]
+                     [c clicking])
+                 (unless (eq? hit? clicking-hit?)
+                   (set! clicking-hit? hit?)
+                   (invert-clicking!))
+                 (when clicking-hit?
+                   (invert-clicking!))
+                 (set! clicking #f)
+                 (when hit?
+                   ((click-region-thunk c))))]
+              [else 
+               (when (and clicking clicking-hit?)
+                 (invert-clicking!))
+               (set! clicking #f)]))
+          
+          (define/private (click-hits? e c)
+            (let ([x (send e get-x)]
+                  [y (send e get-y)])
+              (and (<= (click-region-left c) x (click-region-right c))
+                   (<= (click-region-top c) y (click-region-bottom c)))))
+          (define/private (invert-clicking!)
+            (let* ([dc (get-dc)]
+                   [b (send dc get-brush)]
+                   [p (send dc get-pen)])
+              (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
+              (send dc set-brush  (send the-brush-list find-or-create-brush "black" 'xor))
+              (send dc draw-rectangle 
+                    (click-region-left clicking)
+                    (click-region-top clicking)
+                    (- (click-region-right clicking) (click-region-left clicking))
+                    (- (click-region-bottom clicking) (click-region-top clicking)))
+              (send dc set-pen p)
+              (send dc set-brush b)))
+          
+          (define offscreen #f)
+          (define/public get-offscreen (lambda () offscreen))
+          
+          (define/public (redraw)
+            (reset-display-inset! (slide-inset (list-ref talk-slide-list current-page)))
+            (send commentary lock #f)
+            (send commentary erase)
+            (let ([s (list-ref talk-slide-list current-page)])
+              (when (just-a-comment? (slide-comment s))
+                (send commentary insert (just-a-comment-text (slide-comment s)))))
+            (send commentary lock #t)
+            (cond
+              [use-transitions?
+               (let-values ([(cw ch) (get-client-size)])
+                 (when (and offscreen
+                            (let ([bm (send offscreen get-bitmap)])
+                              (not (and (= cw (send bm get-width))
+                                        (= ch (send bm get-height))))))
+                   (set! offscreen #f))
+                 (unless offscreen
+                   (set! offscreen (make-object bitmap-dc% 
+                                     (make-object bitmap% cw ch)))))
+               (set! click-regions null)
+               (set! clicking #f)
+               (send offscreen clear)
+               (let-values ([(cw ch) (get-client-size)])
+                 (paint-slide offscreen))
+               (let ([bm (send offscreen get-bitmap)])
+                 (send (get-dc) draw-bitmap bm 0 0))]
+              [else
+               (let ([dc (get-dc)])
+                 (set! click-regions null)
+                 (cond
+                   [(equal? current-page cached-page)
+                    (send dc draw-bitmap cached-page-bitmap 0 0)]
+                   [else
+                    (send dc clear)
+                    (paint-slide dc)]))]))
+          (super-new)))
 
-			  ;; Reset the scale:
-                          (when set-scale?
-			    (send dc set-scale 1 1))
+      (define two-c%
+        (class canvas%
+          (inherit get-dc)
+          (define/override (on-paint)
+            (let ([dc (get-dc)])
+              (send dc clear)
+              (let-values ([(cw ch) (send dc get-size)])
+                (send dc set-origin 0 0)
+                (send dc draw-line (/ cw 2) 0 (/ cw 2) ch)
+                (paint-slide dc current-page 1/2 1/2 cw (* 2 ch) 0)
+                (send dc set-origin (/ actual-screen-w 2) 0)
+                (paint-slide dc
+                             (+ current-page 1)
+                             1/2 1/2 
+                             cw  (* 2 ch)
+                             0))))
+          (define/public (redraw) (on-paint))
+          (super-new)))
 
-                          ;; Slide number
-                          (send dc set-font number-font)
-                          (let-values ([(duration distance) (calc-progress)])
-                            (send dc set-text-foreground 
-                                  (cond
-                                    [printing? black-color]
-                                    [(<= (- duration 0.1)
-                                         distance
-                                         (+ duration 0.1))
-                                     black-color]
-                                    [(< distance duration) red-color]
-                                    [else green-color])))
-                          (let-values ([(w h d a) (send dc get-text-extent s)]
-                                       [(cw ch) (if printing?
-                                                    (send dc get-size)
-                                                    (get-client-size))])
-                            (when show-page-numbers?
-                              (send dc draw-text s (- cw w 10) (- ch h 10))) ; 5+5 border
-                            (send dc set-font f)
-                            (send dc set-text-foreground c)
-                            
-                            ;; Progress gauge
-                            (when show-gauge?
-                              (unless printing?
-                                (show-time dc (- cw 10 w) (- ch 10)))))))])
+      (define paint-slide
+        (case-lambda
+          [(dc) (paint-slide dc current-page)]
+          [(dc page) 
+           (let-values ([(cw ch) (send dc get-size)])
+             (let ([m (- margin (/ (- actual-screen-w cw) 2))])
+               (paint-slide dc page 1 1 cw ch m)))]
+          [(dc page extra-scale-x extra-scale-y cw ch m)
+           (stop-transition/no-refresh)
+           (let* ([slide (list-ref talk-slide-list page)]
+                  [set-scale? (not (and (= actual-screen-w screen-w)
+                                        (= actual-screen-h screen-h)))])
+             
+             (cond
+               [set-scale?
+                (send dc set-scale 
+                      (* extra-scale-x (/ actual-screen-w screen-w))
+                      (* extra-scale-y (/ actual-screen-h screen-h)))]
+               [else
+                (send dc set-scale extra-scale-x extra-scale-y)])
+             
+             ;; Draw the slide
+             ((slide-drawer slide) dc m m)
+             
+             ;; reset the scale
+             (send dc set-scale 1 1))]))
 
-		   (private-field
-		     [clicking #f]
-		     [clicking-hit? #f])
-
-		   (override
-		     [on-paint (lambda () (paint (get-dc)))]
-		     [on-event (lambda (e)
-				 (cond
-				  [(send e button-down?)
-				   (let ([c (ormap
-					     (lambda (c) (and (click-hits? e c) c))
-					     click-regions)])
-				     (when c
-				       (if (click-region-show-click? c)
-					   (begin
-					     (set! clicking c)
-					     (set! clicking-hit? #t)
-					     (invert-clicking!))
-					   ((click-region-thunk c)))))]
-				  [(and clicking (send e dragging?))
-				   (let ([hit? (click-hits? e clicking)])
-				     (unless (eq? hit? clicking-hit?)
-				       (set! clicking-hit? hit?)
-				       (invert-clicking!)))]
-				  [(and clicking (send e button-up?))
-				   (let ([hit? (click-hits? e clicking)]
-					 [c clicking])
-				     (unless (eq? hit? clicking-hit?)
-				       (set! clicking-hit? hit?)
-				       (invert-clicking!))
-				     (when clicking-hit?
-				       (invert-clicking!))
-				     (set! clicking #f)
-				     (when hit?
-				       ((click-region-thunk c))))]
-				  [else 
-				   (when (and clicking clicking-hit?)
-				     (invert-clicking!))
-				   (set! clicking #f)]))])
-		   
-		   (private
-		     [click-hits?
-		      (lambda (e c)
-			(let ([x (send e get-x)]
-			      [y (send e get-y)])
-			  (and (<= (click-region-left c) x (click-region-right c))
-			       (<= (click-region-top c) y (click-region-bottom c)))))]
-		     [invert-clicking!
-		      (lambda ()
-			(let* ([dc (get-dc)]
-			       [b (send dc get-brush)]
-			       [p (send dc get-pen)])
-			  (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
-			  (send dc set-brush  (send the-brush-list find-or-create-brush "black" 'xor))
-			  (send dc draw-rectangle 
-				(click-region-left clicking)
-				(click-region-top clicking)
-				(- (click-region-right clicking) (click-region-left clicking))
-				(- (click-region-bottom clicking) (click-region-top clicking)))
-			  (send dc set-pen p)
-			  (send dc set-brush b)))])
-		   
-		   (private-field
-		    [offscreen #f])
-		   (public
-		     [get-offscreen (lambda () offscreen)])
-		   
-                   (public
-                     [redraw (lambda ()
-			       (reset-display-inset! (slide-inset (list-ref talk-slide-list current-page)))
-			       (send commentary lock #f)
-			       (send commentary erase)
-			       (let ([s (list-ref talk-slide-list current-page)])
-				 (when (just-a-comment? (slide-comment s))
-				   (send commentary insert (just-a-comment-text (slide-comment s)))))
-			       (send commentary lock #t)
-			       (cond
-				[use-transitions?
-				 (let-values ([(cw ch) (get-client-size)])
-				   (when (and offscreen
-					      (let ([bm (send offscreen get-bitmap)])
-						(not (and (= cw (send bm get-width))
-							  (= ch (send bm get-height))))))
-				     (set! offscreen #f))
-				   (unless offscreen
-				     (set! offscreen (make-object bitmap-dc% 
-								  (make-object bitmap% cw ch)))))
-				 (set! click-regions null)
-				 (set! clicking #f)
-				 (send offscreen clear)
-				 (paint offscreen)
-				 (let ([bm (send offscreen get-bitmap)])
-				   (send (get-dc) draw-bitmap bm 0 0))]
-				[else
-				 (let ([dc (get-dc)])
-				   (send dc clear)
-				   (set! click-regions null)
-				   (paint dc))]))])
-                   (sequence
-                     (apply super-init args))))
+      ;; cached-page : (union #f number)
+      (define cached-page #f)
+      ;; cached-page-bitmap : (union #f bitmap)
+      (define cached-page-bitmap #f)
+      
+      (define (cache-slide n)
+        (set! cached-page #f)
+        
+        ;; try to re-use existing bitmap
+        (unless (and (is-a? cached-page-bitmap bitmap%)
+                     (= screen-w (send cached-page-bitmap get-width))
+                     (= screen-h (send cached-page-bitmap get-height)))
+          (set! cached-page-bitmap (make-object bitmap% screen-w screen-h)))
+        (let ([bdc (new bitmap-dc% (bitmap cached-page-bitmap))])
+          (send bdc clear)
+          (paint-slide bdc n)
+          (send bdc set-bitmap #f))
+        (set! cached-page n))
       
       (define c (make-object c% f))
+      (define c-both (and two-frames? (make-object two-c% f-both)))
       
       (define (refresh-page)
         (when (= current-page 0)
           (set! start-time #f)
           (unless start-time
             (set! start-time (current-seconds))))
-        (send c redraw))
+        (send c redraw)
+        (when c-both
+          (send c-both redraw)))
 
       (define current-transitions null)
       (define current-transitions-key #f)
@@ -1427,6 +1518,8 @@
           (send f set-icon bm (and (send mbm ok?) mbm) 'both)))
       
       (send f show #t)
+      (when f-both 
+        (send f-both show #t))
       
       (when commentary?
         (send c-frame show #t)
