@@ -71,7 +71,7 @@ implicitly inserted before the body of a module in the _run.ss_
 language, and "show presentation window" is implicitly added to the
 end of the body.
 
-The _slideshow.ss_ module is like _run.ss_, except that it can be used
+The _slideshow.ss_ module is like "run.ss", except that it can be used
 by utility modules (i.e., other than the main module of a
 presentation) to get access to all of the Slideshow functions without
 the implicit start-up actions.
@@ -81,6 +81,11 @@ the implicit start-up actions.
    "slideshow.ss" loads the indicated modules and then shows the
    presentation window. That's why the main module for the "Slideshow"
    executable requires "slideshow.ss".]
+
+The _slide.ss_ module is like "slideshow.ss", but does not re-export
+MzScheme. Thus, "slide.ss" is a non-language version of
+"slideshow.ss", and it can be imported with `require' into a module in
+any language.
 
 The rest of this section repeats much of the information that is in
 "tutorial-show.ss" (see "Quick Start" at the top of this
