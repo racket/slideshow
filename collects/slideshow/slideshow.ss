@@ -294,6 +294,9 @@
 						(and (or (list? a)
 							 (slide-error nested "non-list after '~a: ~e" (car l) a))
 						     (andmap (lambda (sl)
+							       (unless (list? sl)
+								 (slide-error nested "non-list in list after '~a: ~e" 
+									      (car l) sl))
 							       (loop sl (cons (car l) nested)))
 							     a)))
 					      (loop (cddr l) nested))]
