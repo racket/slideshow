@@ -253,7 +253,8 @@
    (page-item "And another does, too")
    (blank)
    (page-para "Creating a zero-sized empty pict with" (code (blank))
-              "inserts a space that often looks right"))
+              "efectively doubles the gap, making a space that"
+	      "often looks right"))
   
   (slide/title/center
    "Steps"
@@ -286,7 +287,7 @@
   
   (slide/title/center
    "Alternatives"
-   (page-para "Stepping stages a single slide, but sometimes"
+   (page-para "Steps can break up a linear slide, but sometimes"
               "you need to replace one thing with something else")
    'alts 
    (list (list 
@@ -298,7 +299,7 @@
           (page-item "An" (code 'alts) "in a sequence"
                      "must be followed by a list of lists")
           (page-item "Each list is a different conclusion for the slide's sequence")))
-   (page-item "Anything after the list is folded into the last alternative")
+   (page-item "Anything after the list of lists is folded into the last alternative")
    'next
    (blank)
    (page-para "Of course, you can mix" (code 'alts) "and"
