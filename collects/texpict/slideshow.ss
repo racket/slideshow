@@ -609,6 +609,9 @@
 			      (send e get-alt-down))
                       (send c-frame show #f)
                       (send f show #f))
+		    (when print-slide-seconds?
+		      (printf "Total Time: ~a seconds~n"
+			(- (current-seconds) talk-start-seconds)))
                     #f]
                    [else
                     #f])))])
