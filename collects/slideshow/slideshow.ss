@@ -1214,11 +1214,13 @@
 			  [style '()]))
       
       (define current-sinset zero-inset)
+      (define resizing-frame? #f)
       (define (reset-display-inset! sinset)
 	(unless (and (= (sinset-l current-sinset) (sinset-l sinset))
 		     (= (sinset-t current-sinset) (sinset-t sinset))
 		     (= (sinset-r current-sinset) (sinset-r sinset))
 		     (= (sinset-b current-sinset) (sinset-b sinset)))
+	  (set! resizing-frame? #t) ; hack --- see yield below
 	  (send f resize 
 		(max 1 (- (inexact->exact (floor actual-screen-w)) 
 			  (floor (* (+ (sinset-l sinset) (sinset-r sinset))
@@ -1229,7 +1231,14 @@
 	  (send f move 
 		(floor (* (sinset-l sinset) (/ actual-screen-w screen-w)))
 		(floor (* (sinset-t sinset) (/ actual-screen-h screen-h))))
-	  (set! current-sinset sinset)))
+	  (set! current-sinset sinset)
+	  ;; FIXME: This yield is here so that the frame
+	  ;;  and its children can learn about their new
+	  ;;  sizes, and so that the generated on-size callback
+	  ;;  can be ignored. Obviously, using yield creates a
+	  ;;  kind of race condition for incoming events from the user.
+	  (yield)
+	  (set! resizing-frame? #f)))
 		
 
       (define c-frame (new talk-frame%
@@ -1379,7 +1388,8 @@
 					 prefetched-click-regions)))))
 
 	  (define/override (on-size w h)
-	    (redraw))
+	    (unless resizing-frame?
+	      (redraw)))
 
           (define/public (redraw)
             (reset-display-inset! (slide-inset (list-ref talk-slide-list current-page)))
