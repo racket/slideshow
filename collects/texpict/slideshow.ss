@@ -3,9 +3,9 @@
   (require (lib "class.ss")
 	   (lib "class100.ss")
            (lib "unit.ss")
-	   (lib "file.ss"))
-
-  (require (lib "mred.ss" "mred"))
+	   (lib "file.ss")
+	   (lib "contracts.ss")
+	   (lib "mred.ss" "mred"))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                Command Line                   ;;
@@ -150,21 +150,30 @@
   (define-values (client-w client-h) (values (- screen-w (* margin 2))
 					     (- screen-h (* margin 2))))
   (define full-page (blank client-w client-h))
-  (define titleless-page (inset full-page 0 (- 0 (pict-height (titlet "Hi")) font-size) 0 0))
+  (define (mk-titleless-page)
+    (inset full-page 0 (- 0 (pict-height (titlet "Hi")) font-size) 0 0))
+  (define titleless-page (mk-titleless-page))
+
+  (define use-background-frame? #f)
+    
+  (define (set-use-background-frame! on?)
+    (set! use-background-frame? (and on? #t)))
 
   (define talk-slide-list null)
-  (define-struct slide (drawer title comment page page-count))
+  (define-struct slide (drawer title comment page page-count inset))
   (define-struct just-a-comment (text))
+  (define-struct sinset (l t r b))
 
   (define page-number 1)
 
-  (define (add-slide! pict title comment page-count)
+  (define (add-slide! pict title comment page-count inset)
     (set! talk-slide-list (cons
 			   (make-slide (make-pict-drawer pict)
 				       title 
 				       comment
 				       page-number
-				       page-count)
+				       page-count
+				       inset)
 			   talk-slide-list))
     (set! page-number (+ page-number page-count))
     (send progress-display set-label (number->string page-number)))
@@ -177,7 +186,14 @@
       ;; Force even size:
       (inset p 0 0 (+ (- w (floor w)) (modulo (floor w) 2)) 0)))
 
-  (define (one-slide/title process v-sep skipped-pages s . x) 
+  (define (apply-sinset sinset pict)
+    (inset pict 
+	   (- (sinset-l sinset))
+	   (- (sinset-t sinset))
+	   (- (sinset-r sinset))
+	   (- (sinset-b sinset))))
+
+  (define (one-slide/title/inset process v-sep skipped-pages s inset . x) 
     (let-values ([(x c)
 		  (let loop ([x x][c #f][r null])
 		    (cond
@@ -188,7 +204,7 @@
 		      (loop (cdr x) c (cons (car x) r))]))])
       (add-slide!
        (ct-superimpose
-	full-page
+	(apply-sinset inset full-page)
 	(apply vc-append v-sep
 	       (map
 		evenize-width
@@ -197,16 +213,17 @@
 		    (process x)))))
        s
        c
-       (+ 1 skipped-pages))))
+       (+ 1 skipped-pages)
+       inset)))
 
-  (define (do-slide/title/tall process v-sep s . x)
+  (define (do-slide/title/tall/inset process v-sep s inset . x)
     (let loop ([l x][r null][comment #f][skip-all? #f][skipped 0])
       (cond
        [(null? l) 
 	(if skip-all?
 	    (add1 skipped)
 	    (begin
-	      (apply one-slide/title process v-sep skipped s (reverse r))
+	      (apply one-slide/title/inset process v-sep skipped s inset (reverse r))
 	      0))]
        [(memq (car l) '(NOTHING))
 	(loop (cdr l) r comment skip-all? skipped)]
@@ -215,7 +232,7 @@
 	  (let ([skipped (if skip?
 			     (add1 skipped)
 			     (begin
-			       (apply one-slide/title process v-sep skipped s (reverse r))
+			       (apply one-slide/title/inset process v-sep skipped s inset (reverse r))
 			       0))])
 	    (loop (cdr l) r comment skip-all? skipped)))]
        [(memq (car l) '(ALTS ALTS~)) 
@@ -228,33 +245,61 @@
 		    (aloop (cdr al) skipped))))))]
        [else (loop (cdr l) (cons (car l) r) comment skip-all? skipped)])))
 
+  (define zero-inset (make-sinset 0 0 0 0))
+
+  (define (side-inset? n) (and (number? n)
+			       (exact? n)
+			       (integer? n)
+			       (n . >= . 0)))
+  (define (make-slide-inset l t r b)
+    (make-sinset l t r b))
+
+  (define (slide/title/tall/inset s inset . x)
+    (unless (or (string? s) (not s))
+      (raise-type-error 'slide/title/tall/inset "string" s))
+    (unless (sinset? inset)
+      (raise-type-error 'slide/title/tall/inset "slide-inset" inset))
+    (apply do-slide/title/tall/inset values font-size s inset x))
+
   (define (slide/title/tall s . x)
     (unless (or (string? s) (not s))
       (raise-type-error 'slide/title/tall "string" s))
-    (apply do-slide/title/tall values font-size s x))
+    (apply do-slide/title/tall/inset values font-size s zero-inset x))
 
   (define (slide/title s . x)
     (unless (or (string? s) (not s))
       (raise-type-error 'slide/title "string" s))
     (apply slide/title/tall s (blank) x))
 
-  (define (slide/title/center s . x)
+  (define (slide/title/inset s inset . x)
+    (unless (or (string? s) (not s))
+      (raise-type-error 'slide/title "string" s))
+    (apply slide/title/tall/inset s inset (blank) x))
+
+  (define (slide/title/center/inset s inset . x)
     (unless (or (string? s) (not s))
       (raise-type-error 'slide/title/center "string" s))
-    (apply do-slide/title/tall 
+    (unless (sinset? inset)
+      (raise-type-error 'slide/title/center/inset "slide-inset" inset))
+    (apply do-slide/title/tall/inset
 	   (lambda (x)
 	     (list
 	      (cc-superimpose
-	       (if s titleless-page full-page)
+	       (apply-sinset inset (if s titleless-page full-page))
 	       (apply vc-append font-size
 		      (map
 		       evenize-width
 		       x)))))
-	   0 s x))
+	   0 s inset x))
+
+  (define (slide/title/center s . x)
+    (apply slide/title/center/inset s zero-inset x))
 
   (define (:slide . x) (apply slide/title #f x))
+  (define (slide/inset inset . x) (apply slide/title/inset #f inset x))
 
   (define (slide/center . x) (apply slide/title/center #f x))
+  (define (slide/center/inset inset . x) (apply slide/title/center/inset #f inset x))
 
   (define most-recent-slide
     (case-lambda
@@ -279,7 +324,8 @@
 				 (slide-title s)
 				 (slide-comment s)
 				 page-number
-				 1)
+				 1
+				 (slide-inset s))
 				talk-slide-list))
     (set! page-number (+ page-number 1)))
 
@@ -495,6 +541,33 @@
   (define (page-itemize* . l)
     (l-combiner (lambda (x y) (page-item* y)) client-w l))
 
+  ;----------------------------------------
+
+  (define-struct click-region (left top right bottom thunk))
+
+  (define click-regions null)
+
+  (define clickback
+    (lambda (pict thunk)
+      (let ([w (pict-width pict)]
+	    [h (pict-height pict)])
+	(cc-superimpose
+	 (dc (lambda (dc x y)
+	       (let-values ([(sx sy) (send dc get-scale)]
+			    [(dx dy) (send dc get-origin)])
+		 (set! click-regions
+		       (cons
+			(make-click-region (+ (* x sx) dx)
+					   (+ (* y sy) dy)
+					   (+ (* (+ x w) sx) dx)
+					   (+ (* (+ y h) sy) dy)
+					   thunk)
+			click-regions))))
+	     w h
+	     (pict-ascent pict)
+	     (pict-descent pict))
+	 pict))))
+
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                 Talk                          ;;
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -502,6 +575,8 @@
   (provide (all-from mzscheme)
            (rename :slide slide) slide/title slide/title/tall 
 	   slide/center slide/title/center
+	   slide/inset slide/title/inset slide/title/tall/inset
+	   slide/center/inset slide/title/center/inset
 	   most-recent-slide retract-most-recent-slide re-slide 
 	   comment make-outline
 	   item item* page-item page-item*
@@ -516,9 +591,20 @@
 	   margin client-w client-h
 	   full-page titleless-page
 	   printing? condense? skip-slides
+	   set-use-background-frame!
 	   (all-from "mrpict.ss")
 	   (all-from "utils.ss")
            start-making-slides done-making-slides)
+  (provide/contract [clickback 
+		     (pict? (lambda (x)
+			      (and (procedure? x)
+				   (procedure-arity-includes? x 0)))
+			    . -> .
+			    pict?)]
+		    [make-slide-inset
+		     (side-inset? side-inset? side-inset? side-inset?
+				  . -> .
+				  sinset?)])
   
   (define-values (progress-window progress-display)
     (parameterize ([current-eventspace (make-eventspace)])
@@ -558,7 +644,7 @@
                    (loop (append l (vector->list
                                     (make-vector
                                      (- 4 (length l))
-                                     (make-slide void #f #f page-number 1)))))]
+                                     (make-slide void #f #f page-number 1 zero-inset)))))]
                   [else (let ([a (car l)]
                               [b (cadr l)]
                               [c (caddr l)]
@@ -589,7 +675,8 @@
                                          (or (slide-title d) untitled))
                                  #f
                                  (slide-page a)
-                                 (- (+ (slide-page d) (slide-page-count d)) (slide-page a)))
+                                 (- (+ (slide-page d) (slide-page-count d)) (slide-page a))
+				 zero-inset)
                                 (loop (cddddr l))))]))))
       
       (define GAUGE-WIDTH 100)
@@ -603,6 +690,10 @@
           (private-field [closeable? closeble?])
           (override
             [can-close? (lambda () closeable?)]
+	    [on-superwindow-show (lambda (on?)
+				   (unless on?
+				     (when background-f
+				       (send background-f show #f))))]
             [on-subwindow-char
              (lambda (w e)
                (let ([k (send e get-key-code)])
@@ -647,6 +738,24 @@
           (sequence
             (super-init))))
       
+      (define background-f
+	(and use-background-frame?
+	     (make-object (class frame%
+			    (define/override (on-activate on?)
+			      (when on?
+				(send f show #t)))
+			    (super-instantiate 
+			     ()
+			     [label "Slidsehow Background"]
+			     [x 0] [y 0]
+			     [width (inexact->exact (floor screen-w))]
+			     [height (inexact->exact (floor screen-h))]
+			     [style '(no-caption no-resize-border)])))))
+
+      (when background-f
+	(send background-f enable #f)
+	(send background-f show #t))
+
       (define f (instantiate talk-frame% (#f)
                   [label (if content
                              (format "~a: slideshow" (file-name-from-path content))
@@ -656,6 +765,19 @@
                   [height (inexact->exact (floor screen-h))]
                   [style '(no-caption no-resize-border)]))
       
+      (define current-sinset zero-inset)
+      (define (reset-display-inset! sinset)
+	(unless (and (= (sinset-l current-sinset) (sinset-l sinset))
+		     (= (sinset-t current-sinset) (sinset-t sinset))
+		     (= (sinset-r current-sinset) (sinset-r sinset))
+		     (= (sinset-b current-sinset) (sinset-b sinset)))
+	  (send f move (sinset-l sinset) (sinset-t sinset))
+	  (send f resize 
+		(max 1 (- (inexact->exact (floor screen-w)) (sinset-l sinset) (sinset-r sinset)))
+		(max 1 (- (inexact->exact (floor screen-h)) (sinset-t sinset) (sinset-b sinset))))
+	  (set! current-sinset sinset)))
+		
+
       (define c-frame (instantiate talk-frame% (#t) [label "Commentary"] [width 400] [height 100]))
       (define commentary (make-object text%))
       (send (make-object editor-canvas% c-frame commentary)
@@ -747,13 +869,24 @@
                                 (show-time dc (- cw 10 w) (- ch 10)))))))])
 
 		   (override
-		     [on-paint (lambda () (paint (get-dc)))])
+		     [on-paint (lambda () (paint (get-dc)))]
+		     [on-event (lambda (e)
+				 (when (send e button-down?)
+				   (let ([x (send e get-x)]
+					 [y (send e get-y)])
+				     (for-each 
+				      (lambda (c)
+					(when (and (<= (click-region-left c) x (click-region-right c))
+						   (<= (click-region-top c) y (click-region-bottom c)))
+					  ((click-region-thunk c))))
+				      click-regions))))])
 		   
 		   (private-field
 		    [offscreen #f])
 		   
                    (public
                      [redraw (lambda ()
+			       (reset-display-inset! (slide-inset (list-ref talk-slide-list current-page)))
 			       (cond
 				[offscreen-transitions?
 				 (let-values ([(cw ch) (get-client-size)])
@@ -765,6 +898,7 @@
 				   (unless offscreen
 				     (set! offscreen (make-object bitmap-dc% 
 								  (make-object bitmap% cw ch)))))
+				 (set! click-regions null)
 				 (send offscreen clear)
 				 (paint offscreen)
 				 (let ([bm (send offscreen get-bitmap)])
@@ -774,6 +908,7 @@
 				[else
 				 (let ([dc (get-dc)])
 				   (send dc clear)
+				   (set! click-regions null)
 				   (paint dc))]))])
                    (sequence
                      (apply super-init args))))
