@@ -32,7 +32,8 @@
       (define-accessor client-w get-client-w)
       (define-accessor client-h get-client-h)
 
-      (define current-page config:init-page)
+      (define target-page config:init-page)
+      (define current-page (if config:printing? config:init-page 0))
       (define use-background-frame? #f)
       (define show-page-numbers? #t)
       (define click-to-advance? #t)
@@ -84,6 +85,9 @@
 	    (send progress-display set-label (number->string slide-count))
 	    (begin
 	      (send f slide-changed (sub1 slide-count))
+	      (when (and target-page (= target-page (sub1 slide-count)))
+		(set-init-page! target-page)
+		(set! target-page #f))
 	      (yield))))
 
       (define (retract-talk-slide!)
