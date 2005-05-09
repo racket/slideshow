@@ -513,9 +513,18 @@ pict snip :
       (send has-info-style set-transparent-text-backing-off #t)
       (send has-info-style set-delta-foreground "hotpink")
       
-      (define (unit-frame-mixin %)
-        (class %
-          (inherit get-show-menu get-definitions-text get-interactions-text)
+      (define tab-mixin
+        (mixin (drscheme:rep:context<%> drscheme:unit:tab<%>) ()
+          (inherit get-defs get-ints)
+          (define/augment (clear-annotations)
+            (send (get-defs) slideshow:clear-picts)
+            (send (get-ints) slideshow:clear-picts)
+            (inner (void) clear-annotations))
+          (super-new)))
+      
+      (define unit-frame-mixin
+        (mixin (drscheme:unit:frame<%>) ()
+          (inherit get-show-menu)
           
           (define slideshow-parent-panel #f)
           (define everything-else-panel #f)
@@ -596,11 +605,6 @@ pict snip :
                             ((p-pict-drawer pict) dc 0 y)
                             (loop (cdr picts)
                                   (+ y (p-height pict))))])))))
-          
-          (define/override (clear-annotations)
-            (send (get-definitions-text) slideshow:clear-picts)
-            (send (get-interactions-text) slideshow:clear-picts)
-            (super clear-annotations))
           
           (define/override (add-show-menu-items show-menu)
             (super add-show-menu-items show-menu)
@@ -690,8 +694,8 @@ pict snip :
       ;; slideshow lang
       ;;
       
-      (define (slideshow-mixin lang%)
-        (class lang%
+      (define slideshow-mixin
+        (mixin (drscheme:language:language<%>) ()
           (define/override (front-end/complete-program input settings teachpack-cache)
             (let ([st (super front-end/complete-program input settings teachpack-cache)])
               (lambda ()
@@ -863,7 +867,8 @@ pict snip :
       (drscheme:get/extend:extend-interactions-text show-picts-mixin)
       (drscheme:get/extend:extend-definitions-text show-picts-mixin)
       (drscheme:get/extend:extend-unit-frame unit-frame-mixin)
-
+      (drscheme:get/extend:extend-tab tab-mixin)
+      
       (define (phase1) (void))
       (define (phase2)
         (define slideshow-language%
