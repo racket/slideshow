@@ -497,23 +497,23 @@
   (slide/title
    "Placing Picts"
    (page-item "Another" (let ([p (t "underline strategy")])
-			  (place-over p 0 (pict-height p) (hline (pict-width p) 1)))
-	      "is to use" (code place-over) ", which places one pict on"
+			  (pin-over p 0 (pict-height p) (hline (pict-width p) 1)))
+	      "is to use" (code pin-over) ", which places one pict on"
 	      "top of another to generate a new pict")
    (page-item "The new pict has the"
 	      (bound-frame
 	       (let ([p (t "original")])
-		 (place-over p 0 (pict-height p) (hline (pict-width p) 1))))
+		 (pin-over p 0 (pict-height p) (hline (pict-width p) 1))))
 	      "pict's bounding box and baselines")
    (note "(The green frame is the \"bounding box\" of the result)")
    (blank)
-   (page-item "The" (code place-over) "function is useful with" (code arrow-line)
+   (page-item "The" (code pin-over) "function is useful with" (code pt-arrow-line)
 	      "to draw an"
 	      (let ([p (bound-frame (inset (t "outgoing arrow") 2))])
-		(place-over p (/ (pict-width p) 2)  (/ (pict-height p) 2) 
-			    ;; arrow-line creates a pict where the
-			    ;; "bounding box" corresponds to the non-arrow end
-			    (linewidth 3 (colorize (arrow-line 50 -50 gap-size) "orange"))))
+		(pin-over p (/ (pict-width p) 2)  (/ (pict-height p) 2) 
+			  ;; pt-arrow-line creates a pict where the
+			  ;; "bounding box" corresponds to the non-arrow end
+			  (linewidth 3 (colorize (pt-arrow-line 50 50 gap-size) "orange"))))
 	      "without changing the layout"))
 
   (define blue-fish (standard-fish (* 3 gap-size) (* 2 gap-size) 'right "blue" "white"))
@@ -527,19 +527,15 @@
   (slide/title
    "Finding Picts"
    (page-para "Typically, an arrow needs to go from one pict to another")
-   (page-para "Functions like" (code find-rc) "locate a point of a pict (such as \"right center\") inside a larger pict")
-   (let-values ([(fdx fdy) (find-rc fish-file-scene blue-fish)]
-		[(adx ady) (find-lt fish-file-scene plain-file)])
-     (place-over fish-file-scene
-		 ;; For historical reasons, the dy from
-		 ;; the find- functions is from the bottom
-		 fdx (- (pict-height fish-file-scene) fdy)
-		 (colorize
-		  ;; For the same histroical reasons,
-		  ;; arrow-line's dy is inverted:
-		  (arrow-line (- adx fdx) (- ady fdy) gap-size)
-		  "orange")))
-   (page-para "There's a" (code find-) "function for every combination of"
+   (page-para "Functions like" (code rc-find) "locate a point of a pict (such as \"right center\") inside a larger pict")
+   (let-values ([(fdx fdy) (rc-find fish-file-scene blue-fish)]
+		[(adx ady) (lt-find fish-file-scene plain-file)])
+     (pin-over fish-file-scene
+	       fdx fdy
+	       (colorize
+		(pt-arrow-line (- adx fdx) (- ady fdy) gap-size)
+		"orange")))
+   (page-para "There's a" (code -find) "function for every combination of"
 	      (code l) "," (code c) ", and" (code r)
 	      "with" (code t) "," (code c) "," (code b)
 	      "," (code bl) ", and" (code tl)))
@@ -548,10 +544,10 @@
    "Connecting with Arrows"
    (page-para "Actually, straight-arrow combinations are so common that"
 	      "Slideshow provides"
-	      (code add-arrow-line))
-   (add-arrow-line gap-size fish-file-scene
-		   blue-fish find-rc
-		   plain-file find-lt
+	      (code pin-arrow-line))
+   (pin-arrow-line gap-size fish-file-scene
+		   blue-fish rc-find
+		   plain-file lt-find
 		   1 "orange"))
   
   (require (lib "balloon.ss" "texpict"))
@@ -559,13 +555,13 @@
    "Balloons"
    (page-para "The" (code (lib "balloon.ss" "texpict"))
 	      "library provides cartoon balloons" sym:emdash
-	      "another reason to use" (code find-) "functions")
+	      "another reason to use" (code -find) "functions")
    (let* ([orig fish-file-scene]
-	  [w/fish (place-balloon (wrap-balloon (t "Fish") 'ne 0 (- gap-size))
-				 orig blue-fish find-cb)]
-	  [w/file (place-balloon (wrap-balloon (t "File") 'nw (* -2 gap-size) 0)
-				 w/fish
-				 plain-file find-rc)])
+	  [w/fish (pin-balloon (wrap-balloon (t "Fish") 'ne 0 (- gap-size))
+			       orig blue-fish cb-find)]
+	  [w/file (pin-balloon (wrap-balloon (t "File") 'nw (* -2 gap-size) 0)
+			       w/fish
+			       plain-file rc-find)])
      w/file))
 		  
   (slide/title
@@ -596,8 +592,8 @@
   (define (link s)
     (let ([p (t s)])
       (colorize
-       (place-over p 0 (pict-height p)
-		   (linewidth 2 (hline (pict-width p) 2)))
+       (pin-over p 0 (pict-height p)
+		 (linewidth 2 (hline (pict-width p) 2)))
        "blue")))
 
   (define (run-example-talk f)
@@ -634,10 +630,10 @@
 		"abstraction and" (code ghost) "to create"
 		"complex sequences inside pict assemblies")
      (let* ([orig fish-file-scene]
-	    [w/fish (place-balloon (wrap-balloon (t "Fish") 'ne 0 (- gap-size))
-				   (ghost orig) blue-fish find-cb)]
-	    [w/file (place-balloon (wrap-balloon (t "File") 'nw (* -2 gap-size) 0)
-				   (ghost w/fish) plain-file find-rc)])
+	    [w/fish (pin-balloon (wrap-balloon (t "Fish") 'ne 0 (- gap-size))
+				 (ghost orig) blue-fish cb-find)]
+	    [w/file (pin-balloon (wrap-balloon (t "File") 'nw (* -2 gap-size) 0)
+				 (ghost w/fish) plain-file rc-find)])
        (cc-superimpose orig
 		       (show-fish w/fish)
 		       (show-file w/file)))
