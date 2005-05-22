@@ -111,7 +111,7 @@
 	    (("-a" "--squash") "scale to full window, even if not 4:3 aspect"
 	     (set! no-squash? #f))
 	    (("-m" "--no-smoothing") 
-             "disable smoothing to improve performance (drawing is not exactly the same)"
+             "disable anti-aliased drawing (usually faster)"
              (set! smoothing? #f))
             ;; Disable --minutes, because it's not used
 	    #;
