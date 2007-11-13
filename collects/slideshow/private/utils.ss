@@ -1,5 +1,5 @@
 
-(module util mzscheme
+(module utils mzscheme
   (require (lib "mred.ss" "mred")
 	   (lib "class.ss"))
 
