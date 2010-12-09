@@ -3,7 +3,7 @@
   (require scheme/class
            scheme/unit
            scheme/file
-           mred
+           racket/draw
            texpict/mrpict
            texpict/utils
            scheme/math
