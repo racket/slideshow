@@ -32,14 +32,12 @@
    #:title "About Slideshow"
    (para (bt "Slideshow")
          "is a library for creating slide presentations")
-   (item "A Slideshow presentation is a PLT Scheme program")
+   (item "A Slideshow presentation is a Racket program")
    (item "Instead of a WYSIWYG interface,"
-         "you get the power of Scheme"))
+         "you get the power of Racket"))
 
-  (define (symbol n)
-    (text (string (integer->char n)) 'symbol (current-font-size)))
-  (define sym:rightarrow (symbol 174))
-  (define sym:leftarrow (symbol 172))
+  (define sym:rightarrow (t "→"))
+  (define sym:leftarrow (t "←"))
 
   (define (meta key)
     (hbl-append (t "Alt-")
