@@ -13,7 +13,7 @@ the user has to move the mouse first.
   (require texpict/mrpict
            texpict/utils
            mzlib/class
-           mred
+           racket/gui/base
            mzlib/etc
            mzlib/list)
   

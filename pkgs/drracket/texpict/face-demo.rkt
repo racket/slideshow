@@ -3,7 +3,7 @@
            mzlib/class
            texpict/utils
            texpict/mrpict
-           "face.rkt")
+           texpict/face)
 
   (define f (new frame% (label "frame")))
 

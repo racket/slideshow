@@ -1,5 +1,5 @@
-(module start "slideshow.rkt"
-  (require "start-param.rkt"
+(module start slideshow/slideshow
+  (require slideshow/start-param
            planet/config
            mred
            mzlib/class)
