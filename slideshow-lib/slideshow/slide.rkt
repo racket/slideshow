@@ -50,6 +50,7 @@
   (define elem/c (flat-rec-contract elem/c (or/c string? pict? (listof elem/c))))
   (define item-contract (() (#:bullet pict?
                                       #:width real? 
+                                      #:gap-size real?
                                       #:align (or/c 'left 'center 'right)
                                       #:fill? any/c 
                                       #:decode? any/c)
