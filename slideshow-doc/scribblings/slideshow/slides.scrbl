@@ -631,6 +631,10 @@ of whether the name of the last @racket[id] name ends in @litchar{~}).
 
 @; ----------------------------------------------------------------------
 
+@include-section{text.scrbl}
+
+@; ----------------------------------------------------------------------
+
 @section{Slides to Picts}
 
 @defmodule[slideshow/slides-to-picts]
