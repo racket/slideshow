@@ -3,6 +3,8 @@
   (require mzlib/class
            mred
            scheme/list)
+
+  (module test racket/base)
   
   (define-struct posn (x y) (make-inspector))
   
