@@ -105,6 +105,7 @@
      commentary?
      use-offscreen?
      actual-screen-w actual-screen-h ; actual size (center use- within here)
+     auto-screen-size? ; auto-resize
      trust-me?
      quad-view?
      keep-titlebar?

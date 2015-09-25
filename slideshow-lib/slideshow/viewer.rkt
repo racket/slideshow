@@ -237,8 +237,28 @@
       (application-quit-handler (lambda ()
 				  (send f stop-show)))
 
+      (define current-use-screen-w config:use-screen-w)
+      (define current-use-screen-h config:use-screen-h)
+      
+      (define auto-resize-frame%
+        (class frame%
+          (super-new)
+          (inherit move resize)
+          (define/augment (display-changed)
+            (inner (void) display-changed)
+            (when config:auto-screen-size?
+              (define-values (w h) (get-display-size #t))
+              (define-values (dx dy) (get-display-left-top-inset))
+              (set!-values (current-use-screen-w current-use-screen-h)
+                           (let ([s (min (/ w config:use-screen-w)
+                                         (/ h config:use-screen-h))])
+                             (values (floor (* s config:use-screen-w))
+                                     (floor (* s config:use-screen-h)))))
+              (move (- dx) (- dy))
+              (resize w h)))))
+      
       (define talk-frame%
-	(class frame% 
+	(class auto-resize-frame% 
 	  (init-field closeable?)
 	  (init-field close-bg?)
 	  (define/augment can-close? (lambda () (and closeable? (inner #t can-close?))))
@@ -481,6 +501,11 @@
 	      (set-cursor (if (and blank-cursor? blank-cursor-allowed?)
 			      blank-cursor
 			      #f))))
+          
+          (define/augment (display-changed)
+            (when config:auto-screen-size?
+              (set! prefetched-page #f))
+            (inner (void) display-changed))
 
 	  (super-new)))
 
@@ -499,7 +524,7 @@
                     (= config:actual-screen-h h)))))
 
       (define background-f
-	(make-object (class frame%
+	(make-object (class auto-resize-frame%
 		       (inherit is-shown?)
 		       (define/override (on-activate on?)
 			 (when (and on? (is-shown?))
@@ -740,8 +765,8 @@
               (send dc set-text-foreground (make-color 100 100 100))
               (send dc set-font (make-font #:size time-size #:size-in-pixels? #t))
               (let-values ([(cw ch) (get-client-size)])
-                (let ([dx (floor (/ (- cw config:use-screen-w) 2))]
-                      [dy (floor (/ (- ch config:use-screen-h) 2))]
+                (let ([dx (floor (/ (- cw current-use-screen-w) 2))]
+                      [dy (floor (/ (- ch current-use-screen-h) 2))]
                       [d (seconds->date (current-seconds))])
                   (send dc draw-text 
                         (~a (let ([h (modulo (date-hour d) 12)])
@@ -750,7 +775,7 @@
                             (~a #:width 2 #:align 'right #:pad-string "0" 
                                 (date-minute d)))
                         (+ dx 5)
-                        (+ dy (- config:use-screen-h time-size 5)))))
+                        (+ dy (- current-use-screen-h time-size 5)))))
               (send dc set-text-foreground c)
               (send dc set-font f)))
 	  
@@ -856,9 +881,9 @@
 
 	  (define/private (paint-prefetch dc)
 	    (let-values ([(cw ch) (get-client-size)])
-              (paint-letterbox dc cw ch config:use-screen-w config:use-screen-h #f)
-	      (let ([dx (floor (/ (- cw config:use-screen-w) 2))]
-		    [dy (floor (/ (- ch config:use-screen-h) 2))])
+              (paint-letterbox dc cw ch current-use-screen-w current-use-screen-h #f)
+	      (let ([dx (floor (/ (- cw current-use-screen-w) 2))]
+		    [dy (floor (/ (- ch current-use-screen-h) 2))])
 		(send dc draw-bitmap prefetch-bitmap dx dy)
 		(set! click-regions (map (lambda (cr)
 					   (shift-click-region cr dx dy))
@@ -1116,7 +1141,7 @@
 	 [(canvas dc) (paint-slide canvas dc current-page)]
 	 [(canvas dc page) 
 	  (let-values ([(cw ch) (send dc get-size)])
-	    (paint-slide canvas dc page 1 1 cw ch config:use-screen-w config:use-screen-h #t))]
+	    (paint-slide canvas dc page 1 1 cw ch current-use-screen-w current-use-screen-h #t))]
 	 [(canvas dc page extra-scale-x extra-scale-y cw ch usw ush to-main?)
 	  (let* ([slide (if (sliderec? page)
                             page
@@ -1191,10 +1216,10 @@
 
 	;; try to re-use existing bitmap
 	(unless (and (is-a? prefetch-bitmap bitmap%)
-		     (= config:use-screen-w (send prefetch-bitmap get-width))
-		     (= config:use-screen-h (send prefetch-bitmap get-height)))
+		     (= current-use-screen-w (send prefetch-bitmap get-width))
+		     (= current-use-screen-h (send prefetch-bitmap get-height)))
 	  (send prefetch-dc set-bitmap #f)
-	  (set! prefetch-bitmap (send canvas make-bitmap config:use-screen-w config:use-screen-h))
+	  (set! prefetch-bitmap (send canvas make-bitmap current-use-screen-w current-use-screen-h))
 	  (when (send prefetch-bitmap ok?)
 	    (send prefetch-dc set-bitmap prefetch-bitmap)))
 
@@ -1436,12 +1461,12 @@
 	      (when start?
 		(send ps-dc start-page))
 	      (let ([slide (car l)])
-		(let ([xs (/ config:use-screen-w config:screen-w)]
-		      [ys (/ config:use-screen-h config:screen-h)])
+		(let ([xs (/ current-use-screen-w config:screen-w)]
+		      [ys (/ current-use-screen-h config:screen-h)])
 		  (send ps-dc set-scale xs ys)
                   (let ([clip (send ps-dc get-clipping-region)]
-                        [dx (/ (- config:actual-screen-w config:use-screen-w) 2 xs)]
-                        [dy (/ (- config:actual-screen-h config:use-screen-h) 2 ys)])
+                        [dx (/ (- config:actual-screen-w current-use-screen-w) 2 xs)]
+                        [dy (/ (- config:actual-screen-h current-use-screen-h) 2 ys)])
                     (send ps-dc set-clipping-rect dx dy config:screen-w config:screen-h)
                     ((sliderec-drawer slide) ps-dc (+ margin dx) (+ margin dy))
                     (send ps-dc set-clipping-region clip)))

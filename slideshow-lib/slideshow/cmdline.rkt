@@ -22,6 +22,7 @@
 
     (define-values (actual-screen-w actual-screen-h) (get-display-size #t))
     (define-values (use-screen-w use-screen-h) (values actual-screen-w actual-screen-h))
+    (define auto-screen-size? #t)
 
     (define condense? #f)
     (define printing-mode #f)
@@ -87,6 +88,8 @@
         (("-q" "--quad") "show four slides at a time"
          (set! quad-view? #t)
          (set! pixel-scale 1/2))
+        [("-r" "--no-resize") "don't resize window when the connected display changes"
+         (set! auto-screen-size? #f)]
         (("-n" "--no-stretch") "don't stretch the slide window to fit the screen"
                                (set! no-stretch? #t))
         (("-s" "--size") w h "use a <w> by <h> window"
@@ -97,6 +100,7 @@
            (unless (and nh (< 0 nh 10000))
              (die 'slideshow "bad height: ~e" h))
            (set! screen-set? #t)
+           (set! auto-screen-size? #f)
            (set! actual-screen-w nw)
            (set! actual-screen-h nh)))
         (("-a" "--squash") "scale to full window, even if not 4:3 aspect"
@@ -119,6 +123,7 @@
         (("--right-half-screen") "display slides on right half of the screen"
          (set! right-half-screen? #t)
          (set! keep-titlebar? #t)
+         (set! auto-screen-size? #f)
          (set! actual-screen-w (/ actual-screen-w 2)))
         (("--comment") "display commentary in window"
          (set! commentary? #t))
@@ -142,10 +147,11 @@
       (define-values (w h) (get-display-size #t #:monitor screen-number))
       (unless screen-set?
         (set!-values (actual-screen-w actual-screen-h) (values w h)))
-      (set!-values (use-screen-w use-screen-h) (values w h)))
+      (set! auto-screen-size? #f))
 
     (when no-stretch?
       (when (> actual-screen-w screen-w)
+        (set! auto-screen-size? #f)
         (set! actual-screen-w screen-w)
         (set! actual-screen-h screen-h)))
 
