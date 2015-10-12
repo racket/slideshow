@@ -12,6 +12,7 @@ This module provides conveniences functions for formatting text.
 
 Sets @racket[current-font-size] to @racket[size] while running @racket[expr].
 
+@history[#:added "1.2"]{}
 }
 
 @defform[(with-scale scale expr)]{
@@ -19,6 +20,7 @@ Sets @racket[current-font-size] to @racket[size] while running @racket[expr].
 Multiplies @racket[current-font-size] by @racket[scale] while running
 @racket[expr].
 
+@history[#:added "1.2"]{}
 }
 
 @deftogether[(
@@ -29,12 +31,14 @@ Multiplies @racket[current-font-size] by @racket[scale] while running
 Scale @racket[current-font-size] by @racket[3/2] or @racket[2/3], respectively,
 while running @racket[text].
 
+@history[#:added "1.2"]{}
 }
 
 @defform[(with-font font expr)]{
 
 Sets @racket[current-main-font] to @racket[font] while running @racket[expr].
 
+@history[#:added "1.2"]{}
 }
 
 @defform[(with-style style expr)]{
@@ -42,6 +46,7 @@ Sets @racket[current-main-font] to @racket[font] while running @racket[expr].
 Adds @racket[style] to @racket[current-main-font] (via @racket[cons]) while
 running @racket[expr].
 
+@history[#:added "1.2"]{}
 }
 
 @deftogether[(
@@ -55,8 +60,11 @@ running @racket[expr].
 Adds the attributes for bold, italic, superscript, subscript, or small caps
 text, respectively, to @racket[current-main-font] while running @racket[text].
 
+@history[#:added "1.2"]{}
 }
 
 @defproc[(blank-line) pict?]{
 Adds a blank line of the current font size's height.
+
+@history[#:added "1.2"]{}
 }
