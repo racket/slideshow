@@ -397,19 +397,18 @@ Modules are named and distributed in various ways:
        @filepath{pict} collection.'' When a module name includes
        no slash, then it refers to a @filepath{main.rkt} file.}
 
- @item{Some modules are distributed through the
-       @link[url:planet]{@PLaneT} server, and they can be
-       downloaded automatically on demand. For example, the first time
-       that you evaluate the following fragment:
+ @item{Some collections of modules are distributed as @defterm{packages}.
+       Packages can be installed using the @onscreen{Install Package...}
+       menu item in DrRacket's @onscreen{File} menu, or they can be
+       installed using the @exec{raco pkg} command-line tool.
+       For example, installing the @filepath{avl} package makes the
+       @racketmodname[avl #:indirect] module available.
 
-       @mr-def+int[
-        (require (planet schematics/random:1:0/random))
-        (random-gaussian)
-       ]
-
-       DrRacket automatically downloads version 1.0 of the
-       @filepath{random.plt} library by @filepath{schematics} and then
-       imports the @filepath{random.rkt} module.}
+       Packages can be registered at
+       @url{http://pkgs.racket-lang.org/}, or they can be installed
+       directly from a Git repository, web site, file, or directory.
+       See @other-doc['(lib "pkg/scribblings/pkg.scrbl")] for more
+       information about packages.}
 
  @item{@margin-note{To save your definitions, use DrRacket's
                     @seclink[#:indirect? #t
@@ -442,12 +441,10 @@ Modules are named and distributed in various ways:
 ]
 
 Racketeers typically write new programs and libraries as modules that
-import each other through relative paths, and that use existing
-libraries from collections and @racket[planet]. When a program or
-library developed this way seems useful to others, it can be uploaded
-as a @PLaneT package or distributed in the more old-fashioned way as
-an installable collection archive (in either case without modifying
-the internal relative references among modules).
+import each other through relative paths and collection-based paths.
+When a program or library developed this way seems useful to others,
+it can be registered as a package, especially if the implementation if
+hosted in a Git repository.
 
 @; ----------------------------------------------------------------------
 @section{Macros}
