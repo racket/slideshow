@@ -937,6 +937,7 @@
 			    ;; run as low priority:
 			    (queue-callback
 			     (lambda ()
+                               (collect-garbage 'incremental)
                                (when (send f is-shown?)
                                  (log-slideshow-debug "Timeout vs. requested: ~s vs. ~s"
                                                       (- (current-milliseconds) now) 
