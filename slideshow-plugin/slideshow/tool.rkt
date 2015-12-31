@@ -19,7 +19,6 @@ pict snip :
            mred
            mzlib/class
            mzlib/unit
-           mzlib/contract
            string-constants
            framework
            texpict/mrpict

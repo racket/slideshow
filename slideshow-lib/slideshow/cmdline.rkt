@@ -2,7 +2,6 @@
   (require mzlib/class
            mzlib/unit
            mzlib/file
-           mzlib/contract
            mred
            racket/cmdline
            texpict/mrpict
