@@ -405,7 +405,7 @@ Modules are named and distributed in various ways:
        @racketmodname[avl #:indirect] module available.
 
        Packages can be registered at
-       @url{http://pkgs.racket-lang.org/}, or they can be installed
+       @url{https://pkgs.racket-lang.org/}, or they can be installed
        directly from a Git repository, web site, file, or directory.
        See @other-doc['(lib "pkg/scribblings/pkg.scrbl")] for more
        information about packages.}
