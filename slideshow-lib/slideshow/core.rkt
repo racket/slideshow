@@ -167,6 +167,9 @@
 
       (define (set-spotlight-style! #:size [size #f] #:color [color #f])
         (viewer:set-spotlight-style! #:size size #:color color))
+      
+      (define (set-allow-new-slides-after-close! on?)
+        (viewer:set-allow-new-slides-after-close! on?))
 
       (define (pict->pre-render-pict p)
         (viewer:pict->pre-render-pict p))
@@ -1036,7 +1039,7 @@
                        (define-values (bx by bw bh) (transform-rectangle dc x y w h))
                        (viewer:add-interactive!
                         (make-interact bx by (+ bx bw) (+ by bh)
-                                       window-proc))))
+                                       window-proc)))
 		     w h
 		     (pict-ascent pict)
 		     (pict-descent pict))))))))

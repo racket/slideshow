@@ -28,6 +28,7 @@
      set-page-numbers-visible!
      done-making-slides
      set-spotlight-style!
+     set-allow-new-slides-after-close!
      ;; Called when a clickback-containing slide is rendered:
      add-click-region!
      ;; Called when a interactive-containing slide is rendered:
@@ -84,6 +85,7 @@
      current-titlet current-para-width
      set-page-numbers-visible! done-making-slides
      set-spotlight-style!
+     set-allow-new-slides-after-close!
      pict->pre-render-pict
      clickback
      interactive

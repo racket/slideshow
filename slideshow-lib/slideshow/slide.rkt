@@ -130,6 +130,7 @@
            current-titlet current-para-width
 	   set-page-numbers-visible! done-making-slides
            set-spotlight-style!
+           set-allow-new-slides-after-close!
            pict->pre-render-pict
            slide/timeout
            slide/title/timeout

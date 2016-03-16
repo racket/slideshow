@@ -63,6 +63,7 @@
                                           (define (set-spotlight-style! #:size [size #f] 
                                                                         #:color [color #f])
                                             (void))
+                                          (define set-allow-new-slides-after-close! void)
                                           (define (pict->pre-render-pict p) p)
                                           (define done-making-slides void))
                    CORE]))))

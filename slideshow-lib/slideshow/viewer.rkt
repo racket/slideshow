@@ -31,6 +31,7 @@
                       (viewer:enable-click-advance! enable-click-advance!)
                       (viewer:set-page-numbers-visible! set-page-numbers-visible!)
                       (viewer:set-spotlight-style! set-spotlight-style!)
+                      (viewer:set-allow-new-slides-after-close! set-allow-new-slides-after-close!)
                       (viewer:pict->pre-render-pict pict->pre-render-pict)
                       (viewer:done-making-slides done-making-slides)))
               
@@ -56,8 +57,17 @@
       (define given-slide-count 0)
       (define slide-count 0)
 
+      (define allow-more-slides? #f)
       (define error-on-slide? #f)
 
+      (define (clear-all-slides!)
+        (set! talk-slide-list null)
+        (set! given-talk-slide-list null)
+        (set! talk-slide-reverse-cell-list null)
+        (set! slide-count 0)
+        (set! given-slide-count 0)
+        (set! current-page 0))
+      
       (define empty-slide
 	(make-sliderec (lambda (dc x y) (void))
 		       "<Empty>"
@@ -141,6 +151,9 @@
                                            #:color [color #f])
         (when size (set! spotlight-size size))
         (when color (set! spotlight-color color)))
+      
+      (define (viewer:set-allow-new-slides-after-close! on?)
+        (set! allow-more-slides? (and on? #t)))
       
       (define adjust-cursor (lambda () (send f set-blank-cursor #f)))
 
@@ -313,18 +326,19 @@
 		   #t]
 		  [(escape)
 		   (send f set-blank-cursor #f)
-		   (when (equal? 1 (send
-                                    c
-                                    call-with-suspended-interactive
-                                    (lambda ()
-                                      (message-box/custom
-                                       "Quit"
-                                       "Really quit the slide show?"
-                                       "&Quit"
-                                       "&Cancel"
-                                       #f
-                                       this
-                                       '(default=1 caution)))))
+                   (define result
+                     (send c
+                           call-with-suspended-interactive
+                           (lambda ()
+                             (message-box/custom
+                              "Quit"
+                              "Really quit the slide show?"
+                              "&Quit"
+                              "&Cancel"
+                              #f
+                              this
+                              '(default=1 caution)))))
+		   (when (equal? 1 result)
 		     (stop-show))
 		   (send f set-blank-cursor blank-cursor-allowed?)
 		   #t]
@@ -373,9 +387,11 @@
 	    (when config:print-slide-seconds?
 	      (printf "Total Time: ~a seconds\n"
 		      (- (current-seconds) talk-start-seconds)))
-	    ;; In case slides are still building, tell them to stop. We
-	    ;;  prefer not to `exit' directly if we don't have to.
-	    (set! error-on-slide? #t))
+            (if allow-more-slides?
+                (clear-all-slides!)
+                ;; In case slides are still building, tell them to stop. We
+                ;;  prefer not to `exit' directly if we don't have to.
+                (set! error-on-slide? #t)))
 	  
 	  (define/private (shift e xs ys otherwise)
 	    (cond

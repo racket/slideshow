@@ -41,7 +41,10 @@ separated by @racket[sep-gap-size] vertical space.
 When this function is first called in non-printing mode, then the
 viewer window is opened. Furthermore, each call to the function
 @racket[yield]s, so that the viewer window can be refreshed, and so
-the user can step through slides.
+the user can step through slides. If the user closes the slide window,
+then @racket[slide] triggers an error unless
+@racket[set-allow-new-slides-after-close!] was called with a true
+value before the window was closed.
 
 If @racket[title] is not @racket[#f], then a title is shown for the
 slide. The @racket[name] is used in the slide-navigation dialog, and
@@ -345,6 +348,17 @@ in Slideshow as an alternative to the mouse. Note that the color
 normally should have alpha value less than 1 (to make it partially
 transparent). If @racket[size] or @racket[color] is @racket[#f], the
 corresponding setting is unchanged.}
+
+
+@defproc[(set-allow-new-slides-after-close! [on? any/c])
+         void?]{
+
+Sets whether new slides are allowed after the Slideshow window is
+closed by the user. By default, an attempt to register a new slide via
+@racket[slide] after the window is closed triggers an error. Calling
+this function with @racket[#t] enables new slides to start a new slideshow.
+
+@history[#:added "1.3"]}
 
 @; ------------------------------------------------------------------------
 
