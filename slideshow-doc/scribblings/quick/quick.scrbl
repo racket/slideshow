@@ -443,7 +443,7 @@ Modules are named and distributed in various ways:
 Racketeers typically write new programs and libraries as modules that
 import each other through relative paths and collection-based paths.
 When a program or library developed this way seems useful to others,
-it can be registered as a package, especially if the implementation if
+it can be registered as a package, especially if the implementation is
 hosted in a Git repository.
 
 @; ----------------------------------------------------------------------
