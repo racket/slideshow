@@ -181,12 +181,17 @@
 	   (unless (f . is-a? . font%)
 	     (raise-argument-error 'current-page-number-font "(is-a?/c font%)" f))
 	   f)))
-      (define current-page-number-color 
-	(make-parameter (make-object color% "black")
-			(lambda (s)
-			  (unless (s . is-a? . color%)
-			    (raise-argument-error 'current-page-number-color "(is-a?/c color%)" s))
-			  s)))
+    (define current-page-number-color
+      (make-parameter (send the-color-database find-color "black")
+                      (lambda (s)
+                        (unless (or (s . is-a? . color%)
+                                    (string? s))
+                          (raise-argument-error 'current-page-number-color
+                                                "(or/c string? (is-a?/c color%))" s))
+                        (if (string? s)
+                            (or (send the-color-database find-color s)
+                                (send the-color-database find-color "black"))
+                            s))))
       (define current-page-number-adjust (make-parameter 
                                           (λ (n s) s)
                                           (lambda (f)
