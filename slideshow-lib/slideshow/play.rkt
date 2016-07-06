@@ -30,7 +30,7 @@
                       #:layout (or/c 'auto 'center 'top 'tall) )
                      void?)]
           [play-n (->* [(and/c (unconstrained-domain-> pict?) (λ (x) (number? (procedure-arity x))))]
-                       (#:steps (list*of exact-positive-integer?)
+                       (#:steps (list*of exact-positive-integer? (or/c exact-positive-integer? '()))
                         #:delay real?
                         #:skip-first? any/c
                         #:skip-last? any/c
@@ -41,7 +41,7 @@
                         (or/c string? #f
                               (-> (real-in 0.0 1.0) (or/c string? #f)))
                         #:layout (or/c 'auto 'center 'top 'tall)
-                        #:comments (list*of comment? (or/c comment? #f)))
+                        #:comments (list*of comment? (or/c comment? #f '())))
                        void?)]))
 
 (define (fail-gracefully t)
