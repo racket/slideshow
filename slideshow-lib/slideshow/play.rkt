@@ -2,10 +2,10 @@
 (require slideshow/base
          pict
          scheme/list
-         scheme/math)
+         scheme/math
+         racket/contract)
 
-(provide play play-n
-         fade-pict
+(provide fade-pict
          slide-pict
          fade-around-pict
          sequence-animations
@@ -15,7 +15,34 @@
          fast-end
          fast-edges
          fast-middle
-         split-phase)
+         split-phase
+         (contract-out
+          [play (->* [(-> (real-in 0.0 1.0) pict?)]
+                     (#:steps exact-positive-integer?
+                      #:delay real?
+                      #:skip-first? any/c
+                      #:title 	
+                      (or/c string? pict? #f
+                            (-> (real-in 0.0 1.0) (or/c string? pict? #f)))
+                      #:name
+                      (or/c string? #f
+                            (-> (real-in 0.0 1.0) (or/c string? #f)))
+                      #:layout (or/c 'auto 'center 'top 'tall) )
+                     void?)]
+          [play-n (->* [(and/c (unconstrained-domain-> pict?) (λ (x) (number? (procedure-arity x))))]
+                       (#:steps (list*of exact-positive-integer?)
+                        #:delay real?
+                        #:skip-first? any/c
+                        #:skip-last? any/c
+                        #:title 	
+                        (or/c string? pict? #f
+                              (-> (real-in 0.0 1.0) (or/c string? pict? #f)))
+                        #:name
+                        (or/c string? #f
+                              (-> (real-in 0.0 1.0) (or/c string? #f)))
+                        #:layout (or/c 'auto 'center 'top 'tall)
+                        #:comments (list*of comment? (or/c comment? #f)))
+                       void?)]))
 
 (define (fail-gracefully t)
   (with-handlers ([exn:fail? (lambda (x) (values 0 0))])
@@ -35,11 +62,13 @@
               #:steps [N 10]
               #:delay [secs 0.05]
               #:skip-first? [skip-first? #f]
+              #:comment [comment #f]
               mid)
   (unless skip-first?
     (slide #:title (if (procedure? title) (title 0) title) 
            #:name (if (procedure? name) (name 0) name)
-           #:layout layout 
+           #:layout layout
+           (or comment 'nothing)
            (mid 0)))
   (if condense?
       (skip-slides N)
@@ -68,12 +97,14 @@
                 #:delay [secs 0.05]
                 #:skip-last? [skip-last? #f]
                 #:skip-first? [skip-first? #f]
+                #:comments [comments #f]
                 mid)
   (let ([n (procedure-arity mid)])
     (let loop ([post (vector->list (make-vector n))]
                [pre null]
                [skip? skip-first?]
-               [Ns N])
+               [Ns N]
+               [comments comments])
       (if (null? post)
           (unless skip-last?
             (slide #:title (if (procedure? title) (apply title pre) title)
@@ -92,10 +123,14 @@
                   #:layout layout 
                   #:steps (if (pair? Ns) (car Ns) Ns)
                   #:delay secs
+                  #:comment (if (pair? comments)
+                                (car comments)
+                                comments)
                   #:skip-first? skip?
                   (lambda (n)
                     (apply mid (append pre (list n) (cdr post)))))
-            (loop (cdr post) (cons 1.0 pre) #f (if (pair? Ns) (cdr Ns) Ns)))))))
+            (loop (cdr post) (cons 1.0 pre) #f (if (pair? Ns) (cdr Ns) Ns)
+                  (if (pair? comments) (cdr comments) comments)))))))
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

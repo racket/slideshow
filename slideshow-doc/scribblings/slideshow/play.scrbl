@@ -35,6 +35,7 @@ corresponds to an animation that fades in the word ``Hello.''
                [#:name name (or/c string? #f
                                   ((real-in 0.0 1.0) . -> . (or/c string? #f)))
                        title]
+               [#:comment comment (or/c comment? #f)]
                [#:layout layout (or/c 'auto 'center 'top 'tall) 'auto])
          void?]{
 
@@ -59,13 +60,16 @@ is a function, the function is applied to the value used to produce
 the slide content, and the resulting title or name is passed on to
 @racket[slide].
 
+The @racket[comment] argument is used like a comment argument to
+@racket[slide].
+
 In condensed mode (i.e., when @racket[condense?] is @racket[#t]), any
 slide that would be registered with a timeout is instead skipped.}
 
 
-@defproc[(play-n [gen* (() (listof (real-in 0.0 1.0)) . ->* . pict?)]
-                 [#:steps steps (or/c exact-positive-integer?
-                                      (improper-listof exact-positive-integer?))
+@defproc[(play-n [gen* (and/c (unconstrained-domain-> pict?)
+                              (λ (x) (number? (procedure-arity x))))]
+                 [#:steps steps (list*of exact-positive-integer?)
                           10]
                  [#:delay delay-secs real? 0.05]
                  [#:skip-first? skip-first? any/c #f]
@@ -117,6 +121,9 @@ for the first phase, and the second number is used for the rest of the
 phases. Similarly, if it is @racket[(cons num_1 (cons num_2 num_3))],
 @racket[num_1] and @racket[num_2] are used for the first two phases
 and @racket[num_3] is used for the rest.
+
+The elements of @racket[comment] argument are used like the @racket[steps]
+argument, except passed as comments instead of used as step counts.
 
 The @racket[delay-msecs], @racket[title],
 @racket[name], and @racket[layout] arguments are passed on to
