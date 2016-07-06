@@ -564,6 +564,11 @@ viewer for a slide on each side.}
 Returns @racket[#t] if @racket[v] is a slide inset created by
 @racket[make-slide-inset], @racket[#f] otherwise.}
 
+@defparam[commentary-on-slide-font-size size exact-positive-integer?]{
+ The font size used for commentary when passing @verbatim{--commentary-on-slide}
+ on the command-line.
+}
+
 @; ----------------------------------------------------------------------
 
 @section{Pict-Staging Helper}

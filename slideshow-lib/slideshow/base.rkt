@@ -41,6 +41,7 @@
 	   skip-slides
 	   set-use-background-frame!
 	   enable-click-advance!
+           commentary-on-slide-font-size
 	   title-h set-title-h! current-slide-assembler
 	   current-page-number-font current-page-number-color current-page-number-adjust
            current-titlet current-para-width

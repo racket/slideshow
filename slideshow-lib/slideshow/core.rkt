@@ -86,6 +86,14 @@
 						(positive? x))
 				     (raise-argument-error 'current-font-size "nonnegative-exact-integer?" x))
 				   x)))
+    (define commentary-on-slide-font-size (make-parameter
+                                           9
+                                           (λ (x)
+                                             (unless (exact-positive-integer? x)
+                                               (raise-argument-error 'commentary-on-slide-font-size
+                                                                     "exact-positive-integer?"
+                                                                     x))
+                                             x)))
 
       (define current-title-color (make-parameter
 				   green
@@ -222,7 +230,7 @@
 							 (loop (cons (caddr m) (cdr l))
 							       null))
 							(loop (cdr l) (cons (car l) current-line))))]))])
-			   (parameterize ([current-font-size 9])
+			   (parameterize ([current-font-size (commentary-on-slide-font-size)])
 			     (apply vl-append
 				    1
 				    (map (lambda (l) 
