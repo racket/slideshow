@@ -110,6 +110,10 @@
             (slide #:title (if (procedure? title) (apply title pre) title)
                    #:name (if (procedure? name) (apply name pre) name)
                    #:layout layout
+                   (cond
+                     [(or (null? comments) (not comments)) 'nothing]
+                     [(pair? comments) (car comments)]
+                     [else comments])
                    (apply mid pre)))
           (begin
             (play #:title (if (procedure? title)
