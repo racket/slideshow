@@ -127,14 +127,18 @@
                   #:layout layout 
                   #:steps (if (pair? Ns) (car Ns) Ns)
                   #:delay secs
-                  #:comment (if (pair? comments)
-                                (car comments)
-                                comments)
+                  #:comment (and (not skip?)
+                                 (if (pair? comments)
+                                     (car comments)
+                                     comments))
                   #:skip-first? skip?
                   (lambda (n)
                     (apply mid (append pre (list n) (cdr post)))))
             (loop (cdr post) (cons 1.0 pre) #f (if (pair? Ns) (cdr Ns) Ns)
-                  (if (pair? comments) (cdr comments) comments)))))))
+                  (cond
+                    [skip? comments]
+                    [(pair? comments) (cdr comments)]
+                    [else comments])))))))
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
