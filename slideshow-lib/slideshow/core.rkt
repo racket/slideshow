@@ -84,7 +84,7 @@
 						(integer? x)
 						(exact? x)
 						(positive? x))
-				     (raise-argument-error 'current-font-size "nonnegative-exact-integer?" x))
+				     (raise-argument-error 'current-font-size "exact-nonnegative-integer?" x))
 				   x)))
     (define commentary-on-slide-font-size (make-parameter
                                            9
