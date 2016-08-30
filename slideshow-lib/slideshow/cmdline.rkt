@@ -79,6 +79,10 @@
          (set! print-target file))
         (("-c" "--condense") "condense"
          (set! condense? #t))
+        (("-x" "--export") "short for `--pdf -c -o <slide-module-file-without-suffix>.pdf`"
+         (set! printing-mode 'pdf)
+         (set! condense? #t)
+         (set! print-target 'auto))
         (("-t" "--start") page "set the starting page"
          (let ([n (string->number page)])
            (unless (and n (exact-positive-integer? n))
@@ -170,7 +174,8 @@
          (let ([p (let ([pss (make-object ps-setup%)])
                     (send pss set-mode 'file)
                     (send pss set-file
-                          (if print-target
+                          (if (and print-target
+                                   (not (eq? print-target 'auto)))
                               print-target
                               (let ([suffix
                                      (if (eq? printing-mode 'pdf)
