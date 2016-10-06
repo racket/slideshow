@@ -72,18 +72,18 @@
            (mid 0)))
   (if condense?
       (skip-slides N)
-      (map (lambda (n)
-             (slide #:title (if (procedure? title) (title n) title)
-                    #:name (if (procedure? name) (name n) name)
-                    #:layout layout 
-                    #:timeout secs
-                    (mid n)))
-           (let ([cnt N])
-             (let loop ([n cnt])
-               (if (zero? n)
-                   null
-                   (cons (/ (- cnt -1 n) 1.0 cnt)
-                         (loop (sub1 n)))))))))
+      (for ([n (in-list
+                (let ([cnt N])
+                  (let loop ([n cnt])
+                    (if (zero? n)
+                        null
+                        (cons (/ (- cnt -1 n) 1.0 cnt)
+                              (loop (sub1 n)))))))])
+        (slide #:title (if (procedure? title) (title n) title)
+               #:name (if (procedure? name) (name n) name)
+               #:layout layout
+               #:timeout secs
+               (mid n)))))
 
 ;; Create a sequences of N `play' sequences, where `mid' takes
 ;; N arguments, each a number between 0.0 and 1.0. Initially, all
