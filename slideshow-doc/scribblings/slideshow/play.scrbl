@@ -35,7 +35,7 @@ corresponds to an animation that fades in the word ``Hello.''
                [#:name name (or/c string? #f
                                   ((real-in 0.0 1.0) . -> . (or/c string? #f)))
                        title]
-               [#:comment comment (or/c comment? #f)]
+               [#:comment comment (or/c comment? #f) #f]
                [#:layout layout (or/c 'auto 'center 'top 'tall) 'auto])
          void?]{
 
@@ -81,7 +81,7 @@ slide that would be registered with a timeout is instead skipped.}
                  [#:name name (or/c string? #f
                                     ((real-in 0.0 1.0) . -> . (or/c string? #f)))
                          title]
-                 [#:comment comment (list*of comment? (or/c comment? #f '()))]
+                 [#:comment comment (list*of comment? (or/c comment? #f '())) #f]
                  [#:layout layout (or/c 'auto 'center 'top 'tall) 'auto])
           void?]{
 
