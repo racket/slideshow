@@ -81,7 +81,7 @@ slide that would be registered with a timeout is instead skipped.}
                  [#:name name (or/c string? #f
                                     ((real-in 0.0 1.0) . -> . (or/c string? #f)))
                          title]
-                 [#:comment comment (list*of comment? (or/c comment? #f '())) #f]
+                 [#:comments comment (list*of comment? (or/c comment? #f '())) #f]
                  [#:layout layout (or/c 'auto 'center 'top 'tall) 'auto])
           void?]{
 
