@@ -1288,6 +1288,8 @@
                            (inexact->exact (ceiling (pict-width p)))
                            (inexact->exact (ceiling (pict-height p))))])
              (define dc (send bm make-dc))
+             (when config:smoothing?
+               (send dc set-smoothing 'aligned))
              ((make-pict-drawer p) dc 0 0)
              (send dc set-bitmap #f)
              (refocus (lt-superimpose (ghost p) (bitmap bm)) p))]
