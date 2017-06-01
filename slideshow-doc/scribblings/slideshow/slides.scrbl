@@ -269,14 +269,14 @@ Returns @racket[#t] if @racket[v] is a slide produced by
 
 @defproc[(most-recent-slide) slide?]{
 
-Returns a slide structure that be supplied @racket[re-slide] to make a
+Returns a slide structure that may be supplied to @racket[re-slide] to make a
 copy of the slide or @racket[slide->pict] to re-extract the entire
 slide as a pict.}
 
 @defproc[(retract-most-recent-slide) slide?]{
 
 Cancels the most recently created slide, and also returns a slide
-structure that be supplied to @racket[re-slide] to restore the slide
+structure that may be supplied to @racket[re-slide] to restore the slide
 (usually in a later position).}
 
 @defproc[(re-slide [slide slide?] [pict pict? (blank)])
@@ -310,8 +310,8 @@ Enables or disables slide advance as a result of a mouse click.}
 @defproc[(set-use-background-frame! [on? any/c]) void?]{
 
 Enables or disables the creation of a background frame, which is
-typically useful only when @racket[make-slide-inset] is used are
-active. The last enable/disable before the first slide registration
+typically useful only when @racket[make-slide-inset] is used.
+The last enable/disable before the first slide registration
 takes effect once and for all.}
 
 @defproc[(set-page-numbers-visible! [on? any/c]) void?]{
