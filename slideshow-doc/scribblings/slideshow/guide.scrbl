@@ -143,7 +143,7 @@ usually a pict, but there are a few other possibilities:
   @item{If an element is @racket['alts], then the next element must be
     a list of element lists. Each list up to the last one is appended
     to the elements before @racket['alts] and the resulting list of
-    elements is processed. The last lists is appended to the preceding
+    elements is processed. The last list is appended to the preceding
     elements along with the remaining elements (after the list of
     lists) and the result is re-processed.}
 

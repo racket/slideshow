@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@(require (for-label slideshow/base pict slideshow/text))
+@(require (for-label racket/list slideshow/base pict slideshow/text))
 
 @title{Text Formatting Helpers}
 
