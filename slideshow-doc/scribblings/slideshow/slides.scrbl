@@ -335,7 +335,7 @@ Parameter that controls the precise text
 that appears to indicate the page numbers (if visible). The
 input to the function is the default string and the slide
 number, and the result is what is drawn in the bottom right
-corner. The default parameter value just returns its first
+corner. The default parameter value just returns its second
 argument.
 }
 
