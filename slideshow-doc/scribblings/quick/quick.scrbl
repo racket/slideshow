@@ -232,7 +232,7 @@ completely printing the function, so DrRacket just prints
 
 This example shows that functions are values, just like numbers and
 pictures (even if they don't print as nicely). Since functions are
-values, you can define functions that expect other functions as
+values, you can define functions that accept other functions as
 arguments:
 
 @ss-def+int[
