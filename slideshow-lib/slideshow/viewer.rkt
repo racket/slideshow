@@ -290,9 +290,9 @@
 		  [(left)
 		   (shift e -1 0 (lambda () (prev)))]
 		  [(up)
-		   (shift e 0 -1 void)]
+		   (shift e 0 -1 (lambda () (prev)))]
 		  [(down)
-		   (shift e 0 1 void)]
+		   (shift e 0 1 (lambda () (next)))]
 		  [(#\space #\f #\n next)
 		   (next)
 		   #t]

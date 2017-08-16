@@ -38,6 +38,8 @@
 
   (define sym:rightarrow (t "→"))
   (define sym:leftarrow (t "←"))
+  (define sym:uparrow (t "↑"))
+  (define sym:downarrow (t "↓"))
 
   (define (meta key)
     (hbl-append (t "Alt-")
@@ -55,8 +57,8 @@
        (lambda (s) (list (para #:fill? #f (car s)) (t ":") (t (cadr s))))
        `(((,(meta "q")) "end show")
          (("Esc") "if confirmed, end show")
-         ((,sym:rightarrow ", Space," ,(tt "f") "," ,(tt "n") ", or click") "next slide")
-         ((,sym:leftarrow ", Backspace, Delete, or" ,(tt "b")) "previous slide")
+         ((,sym:rightarrow ", " ,sym:downarrow ", Space," ,(tt "f") "," ,(tt "n") ", or click") "next slide")
+         ((,sym:leftarrow ", " ,sym:uparrow ", Backspace, Delete, or" ,(tt "b")) "previous slide")
          ((,(tt "1") "/" ,(tt "g")) "first/last slide")
          ((,(tt "a") "/" ,(tt "s")) "previous/next slide name")
          ((,(meta "g")) "select a slide")
