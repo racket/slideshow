@@ -718,25 +718,6 @@
 		    (/ current-page (max 1 (sub1 slide-count))))
 	    (values 0 0)))
 
-      (define (show-time dc w h)
-	(let* ([left (- w GAUGE-WIDTH)]
-	       [top (- h GAUGE-HEIGHT)]
-	       [b (send dc get-brush)]
-	       [p (send dc get-pen)])
-	  (send dc set-pen black-pen)
-	  (send dc set-brush (if start-time gray-brush clear-brush))
-	  (send dc draw-rectangle left top GAUGE-WIDTH GAUGE-HEIGHT)
-	  (when start-time
-	    (let-values ([(duration distance) (calc-progress)])
-	      (send dc set-brush (if (< distance duration)
-				     red-brush
-				     green-brush))
-	      (send dc draw-rectangle left top (floor (* GAUGE-WIDTH distance)) GAUGE-HEIGHT)
-	      (send dc set-brush clear-brush)
-	      (send dc draw-rectangle left top (floor (* GAUGE-WIDTH duration)) GAUGE-HEIGHT)))
-	  (send dc set-pen p)
-	  (send dc set-brush b)))
-
       (define c%
 	(class canvas%
 	  (inherit get-dc get-client-size make-bitmap
