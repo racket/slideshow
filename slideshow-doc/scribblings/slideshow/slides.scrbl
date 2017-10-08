@@ -26,7 +26,7 @@
                 [#:gap-size sep-gap-size real? (current-gap-size)]
                 [#:inset inset slide-inset? (make-slide-inset 0 0 0 0)]
                 [#:timeout secs (or/c #f real?) #f]
-                [#:condense? condense? any/c (and timeout #t)]
+                [#:condense? condense? any/c (and secs #t)]
                 [element (flat-rec-contract elem/c
                            (or/c pict? 
                                 'next 'next! 'alts 'alts~ 'nothing
