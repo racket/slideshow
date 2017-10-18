@@ -23,7 +23,7 @@
   (define orig-err-string-handler (error-value->string-handler))
 
   (define-logger slideshow)
-      
+
   (define-unit viewer@
       (import (prefix config: cmdline^) core^)
       (export (rename viewer^
@@ -34,7 +34,7 @@
                       (viewer:set-allow-new-slides-after-close! set-allow-new-slides-after-close!)
                       (viewer:pict->pre-render-pict pict->pre-render-pict)
                       (viewer:done-making-slides done-making-slides)))
-              
+
       (define-accessor margin get-margin)
       (define-accessor client-w get-client-w)
       (define-accessor client-h get-client-h)
@@ -67,7 +67,7 @@
         (set! slide-count 0)
         (set! given-slide-count 0)
         (set! current-page 0))
-      
+
       (define empty-slide
 	(make-sliderec (lambda (dc x y) (void))
 		       "<Empty>"
@@ -132,17 +132,17 @@
       (define (most-recent-talk-slide)
 	(and (pair? talk-slide-reverse-cell-list)
 	     (mcar (car talk-slide-reverse-cell-list))))
-      
+
       (define (set-init-page! p)
 	(set! current-page p)
 	(refresh-page))
-      
+
       (define (viewer:set-use-background-frame! on?)
 	(set! use-background-frame? (and on? #t)))
-      
+
       (define (viewer:enable-click-advance! on?)
 	(set! click-to-advance? (and on? #t)))
-      
+
       (define (viewer:set-page-numbers-visible! on?)
 	(set! show-page-numbers? (and on? #t)))
       (viewer:set-page-numbers-visible! config:show-page-numbers?)
@@ -151,10 +151,10 @@
                                            #:color [color #f])
         (when size (set! spotlight-size size))
         (when color (set! spotlight-color color)))
-      
+
       (define (viewer:set-allow-new-slides-after-close! on?)
         (set! allow-more-slides? (and on? #t)))
-      
+
       (define adjust-cursor (lambda () (send f set-blank-cursor #f)))
 
       (define (add-click-region! cr)
@@ -172,10 +172,10 @@
 	  (make-quad (append l (vector->list
 				(make-vector
 				 (- 4 (length l))
-				 (make-sliderec void #f #f 
+				 (make-sliderec void #f #f
 						(sliderec-page (last l))
-						1 
-						zero-inset 
+						1
+						zero-inset
 						null
                                                 #f)))))]
 	 [else (let ([a (car l)]
@@ -193,7 +193,7 @@
 			    (send dc set-origin (+ orig-ox (* x orig-sx)) (+ orig-oy (* y orig-sy))))
                           (define (call-with-clipping thunk)
                             (let ([clip-rgn (send dc get-clipping-region)])
-                              (send dc set-clipping-rect 
+                              (send dc set-clipping-rect
                                     (- margin)
                                     (- margin)
                                     (+ client-w (* 2 margin))
@@ -238,13 +238,13 @@
       ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                   Main GUI                    ;;
       ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      
+
       (define GAUGE-WIDTH 100)
       (define GAUGE-HEIGHT 4)
 
       (define talk-start-seconds (current-seconds))
       (define slide-start-seconds (current-seconds))
-      
+
       (define blank-cursor (make-object cursor% 'blank))
 
       (application-quit-handler (lambda ()
@@ -252,7 +252,7 @@
 
       (define current-use-screen-w config:use-screen-w)
       (define current-use-screen-h config:use-screen-h)
-      
+
       (define auto-resize-frame%
         (class frame%
           (super-new)
@@ -269,9 +269,9 @@
                                      (floor (* s config:use-screen-h)))))
               (move (- dx) (- dy))
               (resize w h)))))
-      
+
       (define talk-frame%
-	(class auto-resize-frame% 
+	(class auto-resize-frame%
 	  (init-field closeable?)
 	  (init-field close-bg?)
 	  (define/augment can-close? (lambda () (and closeable? (inner #t can-close?))))
@@ -392,7 +392,7 @@
                 ;; In case slides are still building, tell them to stop. We
                 ;;  prefer not to `exit' directly if we don't have to.
                 (set! error-on-slide? #t)))
-	  
+
 	  (define/private (shift e xs ys otherwise)
 	    (cond
 	     [(or (send e get-meta-down)
@@ -403,7 +403,7 @@
 	     [else
 	      (otherwise)])
 	    #t)
-	  
+
 	  (inherit get-x get-y move)
 	  (define/private (move-over dx dy)
 	    (let ([x (get-x)]
@@ -413,17 +413,17 @@
 	      (let ([x (send background-f get-x)]
 		    [y (send background-f get-y)])
 		(send background-f move (+ x dx) (+ y dy)))))
-	  
+
 	  (define/public (prev)
 	    (stop-transition)
-	    (set! current-page 
+	    (set! current-page
                   (let loop ([pos (max (sub1 current-page) 0)])
                     (cond
                      [(zero? pos) pos]
                      [(sliderec-timeout (talk-list-ref pos)) (loop (sub1 pos))]
                      [else pos])))
 	    (refresh-page))
-	  
+
 	  (define/public (next)
 	    (if (pair? current-transitions)
 		(stop-transition)
@@ -517,7 +517,7 @@
 	      (set-cursor (if (and blank-cursor? blank-cursor-allowed?)
 			      blank-cursor
 			      #f))))
-          
+
           (define/augment (display-changed)
             (when config:auto-screen-size?
               (set! prefetched-page #f))
@@ -570,7 +570,7 @@
                                 (append
                                  (if fullscreen? '(hide-menu-bar) null)
                                  '(no-caption no-resize-border)))]))
-      
+
       (define f-both (new talk-frame%
 			  [closeable? #t]
 			  [close-bg? #f]
@@ -579,7 +579,7 @@
 			  [width (inexact->exact (floor (* config:actual-screen-w 8/10 1)))]
 			  [height (inexact->exact (floor (* config:actual-screen-h 8/10 2/3)))]
 			  [style '()]))
-      
+
       (define current-sinset zero-inset)
       (define resizing-frame? #f)
       (define (reset-display-inset! sinset dc)
@@ -589,19 +589,19 @@
 		     (= (sinset-b current-sinset) (sinset-b sinset)))
 	  (set! resizing-frame? #t) ; hack --- see yield below
           (send dc clear)
-	  (send f resize 
-		(max 1 (- (inexact->exact (floor config:actual-screen-w)) 
+	  (send f resize
+		(max 1 (- (inexact->exact (floor config:actual-screen-w))
 			  (inexact->exact (floor (* (+ (sinset-l sinset) (sinset-r sinset))
 						    (/ config:actual-screen-w config:screen-w))))))
-		(max 1 (- (inexact->exact (floor config:actual-screen-h)) 
+		(max 1 (- (inexact->exact (floor config:actual-screen-h))
 			  (inexact->exact (floor (* (+ (sinset-t sinset) (sinset-b sinset))
 						    (/ config:actual-screen-h config:screen-h)))))))
-	  (send f move 
-		(inexact->exact (- (floor (* (sinset-l sinset) 
-					     (/ config:actual-screen-w config:screen-w))) 
+	  (send f move
+		(inexact->exact (- (floor (* (sinset-l sinset)
+					     (/ config:actual-screen-w config:screen-w)))
 				   screen-left-inset))
-		(inexact->exact (- (floor (* (sinset-t sinset) 
-					     (/ config:actual-screen-h config:screen-h))) 
+		(inexact->exact (- (floor (* (sinset-t sinset)
+					     (/ config:actual-screen-h config:screen-h)))
 				   screen-top-inset)))
 	  (set! current-sinset sinset)
 	  ;; FIXME: This yield is here so that the frame
@@ -611,7 +611,7 @@
 	  ;;  kind of race condition for incoming events from the user.
 	  (let loop () (when (yield) (loop)))
 	  (set! resizing-frame? #f)))
-      
+
 
       (define c-frame (new (class talk-frame%
 			     (define/override (on-move x y)
@@ -639,7 +639,7 @@
 			   [x (get-preference 'slideshow:commentary-x (lambda () #f))]
 			   [y (get-preference 'slideshow:commentary-y (lambda () #f))]))
       (define commentary (make-object text%))
-      (send (new (class editor-canvas% 
+      (send (new (class editor-canvas%
 		   (define/override (on-event e)
 		     (super on-event e)
 		     (when click-to-advance?
@@ -648,8 +648,8 @@
                        (when (send e button-up? 'right)
                          (send f prev))))
 		   (super-new))
-		 [parent c-frame] 
-		 [editor commentary] 
+		 [parent c-frame]
+		 [editor commentary]
 		 [style (if (eq? (system-type) 'macosx)
 			    '(auto-hscroll resize-corner)
 			    '(auto-hscroll auto-vscroll))])
@@ -683,9 +683,9 @@
 	  (set-snipclass pict-snipclass)))
       (define pict-snipclass (new snip-class%))
 
-      
+
       (define start-time #f)
-      
+
       (define clear-brush (make-object brush% "WHITE" 'transparent))
       (define white-brush (make-object brush% "WHITE" 'solid))
       (define gray-brush (make-object brush% "GRAY" 'solid))
@@ -709,13 +709,13 @@
           (unless (string? s)
             (error 'current-page-number-adjust "expected a procedure that returned a string, but it returned ~s" s))
           s))
-      
+
       (define (calc-progress)
 	(if (and start-time config:talk-duration-minutes)
 	    (values (min 1 (/ (- (current-seconds) start-time) (* 60 config:talk-duration-minutes)))
 		    (/ current-page (max 1 (sub1 slide-count))))
 	    (values 0 0)))
-      
+
       (define (show-time dc w h)
 	(let* ([left (- w GAUGE-WIDTH)]
 	       [top (- h GAUGE-HEIGHT)]
@@ -734,7 +734,7 @@
 	      (send dc draw-rectangle left top (floor (* GAUGE-WIDTH duration)) GAUGE-HEIGHT)))
 	  (send dc set-pen p)
 	  (send dc set-brush b)))
-      
+
       (define c%
 	(class canvas%
 	  (inherit get-dc get-client-size make-bitmap
@@ -745,7 +745,7 @@
 
           (define mouse-x 0)
           (define mouse-y 0)
-	  
+
 	  (define/override (on-paint)
 	    (let ([dc (get-dc)])
 	      (stop-transition/no-refresh)
@@ -765,7 +765,7 @@
               (define old-b (send dc get-brush))
               (send dc set-pen "black" 0 'transparent)
               (send dc set-brush spotlight-color 'solid)
-              (send dc draw-ellipse 
+              (send dc draw-ellipse
                     (- mouse-x (/ spotlight-size 2))
                     (- mouse-y (/ spotlight-size 2))
                     spotlight-size
@@ -784,17 +784,17 @@
                 (let ([dx (floor (/ (- cw current-use-screen-w) 2))]
                       [dy (floor (/ (- ch current-use-screen-h) 2))]
                       [d (seconds->date (current-seconds))])
-                  (send dc draw-text 
+                  (send dc draw-text
                         (~a (let ([h (modulo (date-hour d) 12)])
                               (if (zero? h) 12 h))
-                            ":" 
-                            (~a #:width 2 #:align 'right #:pad-string "0" 
+                            ":"
+                            (~a #:width 2 #:align 'right #:pad-string "0"
                                 (date-minute d)))
                         (+ dx 5)
                         (+ dy (- current-use-screen-h time-size 5)))))
               (send dc set-text-foreground c)
               (send dc set-font f)))
-	  
+
 	  (inherit get-top-level-window)
 	  (define/override (on-event e)
             (unless (and (= mouse-x (send e get-x))
@@ -838,12 +838,12 @@
 	     [(send e button-up? 'right)
 	      (when click-to-advance?
 		(send (get-top-level-window) prev))]
-	     [else 
+	     [else
 	      (when (and clicking clicking-hit?)
 		(invert-clicking! #f))
 	      (set! clicking #f)]))
 
-	  
+
 	  (define/private (click-hits? e c)
 	    (let ([x (send e get-x)]
 		  [y (send e get-y)])
@@ -865,7 +865,7 @@
                     (let* ([b (send dc get-brush)]
                            [p (send dc get-pen)])
                       (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
-                      (send dc set-brush  (send the-brush-list find-or-create-brush "black" 
+                      (send dc set-brush  (send the-brush-list find-or-create-brush "black"
                                                 (if config:use-offscreen?
                                                     'hilite
                                                     'xor)))
@@ -876,10 +876,10 @@
                           (send offscreen get-bitmap)
                           x y x y
                           w h)))))
-	  
+
 	  (define offscreen #f)
 	  (define/public get-offscreen (lambda () offscreen))
-	  
+
 	  (define/private (shift-click-region cr dx dy)
 	    (make-click-region (+ dx (click-region-left cr))
 			       (+ dy (click-region-top cr))
@@ -887,7 +887,7 @@
 			       (+ dy (click-region-bottom cr))
 			       (click-region-thunk cr)
 			       (click-region-show-click? cr)))
-	  
+
 	  (define/private (shift-interact cr dx dy)
 	    (make-interact (+ dx (interact-left cr))
                            (+ dy (interact-top cr))
@@ -941,13 +941,13 @@
                   (set! current-timeout-key key)
                   (define interval
                     (inexact->exact
-                     (floor 
+                     (floor
                       (* (sliderec-timeout (talk-list-ref current-page))
                          1000))))
                   (new timer%
                        [interval interval]
                        [just-once? #t]
-                       [notify-callback 
+                       [notify-callback
                         (lambda ()
                           (when (eq? current-timeout-key key)
 			    ;; run as low priority:
@@ -956,7 +956,7 @@
                                (collect-garbage 'incremental)
                                (when (send f is-shown?)
                                  (log-slideshow-debug "Timeout vs. requested: ~s vs. ~s"
-                                                      (- (current-milliseconds) now) 
+                                                      (- (current-milliseconds) now)
                                                       interval)
                                  (send c-frame next-one)))
 			     #f)))])))
@@ -970,7 +970,7 @@
 		    (send offscreen set-bitmap #f)
 		    (set! offscreen #f))
 		  (unless offscreen
-		    (set! offscreen (make-object bitmap-dc% 
+		    (set! offscreen (make-object bitmap-dc%
 						 (make-bitmap cw ch)))))
 		(send offscreen clear)
 		(cond
@@ -1021,7 +1021,7 @@
                 (send win show #t)))
             (set! interactives new-i))
 
-          (define/override on-superwindow-show 
+          (define/override on-superwindow-show
             (lambda (on?)
               (unless on?
                 (swap-interactives! interactives #hash()))))
@@ -1058,7 +1058,7 @@
 	  (define/public (paint-prefetched)
 	    (let ([dc (get-dc)])
 	      (let*-values ([(cw ch) (send dc get-size)])
-		(send dc set-scale 
+		(send dc set-scale
 		      (/ (* cw 1/2) (send prefetch-bitmap get-width))
 		      (/ ch (send prefetch-bitmap get-height)))
 		(send dc set-origin (/ cw 2) 0)
@@ -1066,6 +1066,20 @@
 		(send dc set-origin 0 0)
 		(send dc set-scale 1 1)
 		(send dc draw-line (/ cw 2) 0 (/ cw 2) ch))))
+
+         (define/private (show-elapsed-time)
+           (define dc (get-dc))
+           (define-values (cw ch) (send dc get-size))
+           (let ([text-fg (send dc get-text-foreground)]
+                 [text-bg (send dc get-text-background)]
+                 [font (send dc get-font)]
+                 [ellapsed (- (current-seconds) talk-start-seconds)])
+             (send dc set-text-foreground red-color)
+             (send dc set-font (make-font #:size 32 #:size-in-pixels? #t))
+             (send dc draw-text (seconds->hhmmss ellapsed) (* cw 5/6) (* ch 5/6))
+             (send dc set-text-foreground text-fg)
+             (send dc set-text-background text-bg)
+             (send dc set-font font)))
 
 	  (define/override (on-paint)
 	    (let ([dc (get-dc)])
@@ -1107,7 +1121,7 @@
 			  (* ch 1/6))
 		    (send dc set-pen pen)
 		    (send dc set-brush brush))
-		  (send dc set-origin (* cw 2/3) (* ch 1/6))
+		  (send dc set-origin (* cw 2/3) ch)
 		  (when (< (add1 current-page) slide-count)
 		    (send dc draw-rectangle (* cw 2/3) 0 (* cw 1/3) ch)
                     (paint-slide this
@@ -1116,17 +1130,25 @@
 				 1/3 1/2
 				 cw ch cw ch
 				 #f))])
-		(send dc set-origin 0 0)
+
+              (send dc set-origin 0 0)
+              (show-elapsed-time)
 		(send dc draw-line (* cw 2/3) 0 (* cw 2/3) ch))))
-	  
+
 	  (inherit get-top-level-window)
 	  (define/override (on-event e)
 	    (cond
 	     [(send e button-up?)
 	      (send (get-top-level-window) next)]))
-	  
+
 	  (define/public (redraw) (unless printing? (on-paint)))
 	  (super-new)))
+
+      (define ellapsed-timer-tick (new timer%
+                                       [notify-callback (lambda ()
+                                                          (when (send c-both is-shown?)
+                                                            (send c-both redraw)))]
+                                       [interval 1000]))
 
       (define (paint-letterbox dc cw ch usw ush clip?)
 	(and (or (< usw cw)
@@ -1148,15 +1170,15 @@
                (and clip?
                     (begin0
                      (box (send dc get-clipping-region))
-                     (send dc set-clipping-rect 
-                           (/ (- cw usw) 2) 
+                     (send dc set-clipping-rect
+                           (/ (- cw usw) 2)
                            (/ (- ch ush) 2)
                            usw ush))))))
 
       (define paint-slide
 	(case-lambda
 	 [(canvas dc) (paint-slide canvas dc current-page)]
-	 [(canvas dc page) 
+	 [(canvas dc page)
 	  (let-values ([(cw ch) (send dc get-size)])
 	    (paint-slide canvas dc page 1 1 cw ch current-use-screen-w current-use-screen-h #t))]
 	 [(canvas dc page extra-scale-x extra-scale-y cw ch usw ush to-main?)
@@ -1175,7 +1197,7 @@
 		 [mx (/ (- cw usw) 2)]
 		 [my (/ (- ch ush) 2)])
 	    (define clip-rgn (paint-letterbox dc cw ch usw ush #t))
-	    
+
             (when config:smoothing?
               (send dc set-smoothing 'aligned))
             (send dc set-scale (* extra-scale-x sx) (* extra-scale-y sy))
@@ -1186,12 +1208,12 @@
 	    ;;  into a bitmap, we don't change roundoff in
 	    ;;  the drawing
 	    (let-values ([(ox oy) (send dc get-origin)])
-	      (send dc set-origin 
-		    (+ ox (* extra-scale-x (floor mx))) 
+	      (send dc set-origin
+		    (+ ox (* extra-scale-x (floor mx)))
 		    (+ oy (* extra-scale-y (floor my))))
 	      ((sliderec-drawer slide) dc margin margin)
 	      (send dc set-origin ox oy))
-	    
+
 	    ;; reset the scale
 	    (send dc set-scale 1 1)
 
@@ -1227,7 +1249,7 @@
 
       (define (prefetch-slide canvas n)
 	(set! prefetched-page #f)
-	
+
 	(unless prefetch-dc
 	  (set! prefetch-dc (new bitmap-dc%)))
 
@@ -1312,7 +1334,7 @@
         (when time-update-thread
           (kill-thread time-update-thread)
           (set! time-update-thread #f)))
-      
+
       (define refresh-page
 	(lambda ([immediate-prefetch? #f])
 	  (hide-cursor-until-moved)
@@ -1352,7 +1374,7 @@
 			  (if (null? current-transitions)
 			      (refresh-page #t)
 			      (do-trans)))
-			(new timer% 
+			(new timer%
 			     [just-once? #t]
 			     [interval (inexact->exact (floor (* 1000 went)))]
 			     [notify-callback (lambda ()
@@ -1367,16 +1389,16 @@
 	(unless (null? current-transitions)
 	  (stop-transition/no-refresh)
 	  (refresh-page)))
-      
+
       (define (stop-transition/no-refresh)
 	(set! current-transitions null)
 	(set! current-transitions-key #f)
         (set! current-timeout-key #f))
-      
+
       (define (get-page-from-user)
 	(unless (zero? slide-count)
 	  (letrec ([d (make-object dialog% "Goto Page" f 200 250)]
-		   [short-slide-list 
+		   [short-slide-list
 		    (let loop ([slides talk-slide-list][n 1][last-title #f])
 		      (cond
 		       [(null? slides) null]
@@ -1389,7 +1411,7 @@
 					 "(untitled)")])
 			  (cons (cons
 				 n
-				 (format "~a. ~a" 
+				 (format "~a. ~a"
 					 (slide-page-string (car slides))
 					 title))
 				(loop (cdr slides) (add1 n) title)))]))]
@@ -1398,7 +1420,7 @@
 					  null
 					  (cons (cons
 						 n
-						 (format "~a. ~a" 
+						 (format "~a. ~a"
 							 (slide-page-string (car slides))
 							 (or (sliderec-title (car slides))
 							     "(untitled)")))
@@ -1437,12 +1459,12 @@
 	      (send l set-selection (max 0 now))
 	      (send l set-first-visible-item (max 0 (- now 3))))
 	    (send d show #t))))
-      
+
       (send f reflow-container)
       (send f-both reflow-container)
 
       (refresh-page)
-      
+
       (define slideshow-bm
 	(include-bitmap (lib "slideshow/slideshow.png")))
       (define slideshow-mbm
@@ -1452,7 +1474,7 @@
 	     [mbm slideshow-mbm])
 	(when (send bm ok?)
 	  (send f set-icon bm (and (send mbm ok?) mbm) 'both)))
-      
+
       (when (and config:commentary?
 		 (not config:commentary-on-slide?))
 	(send c-frame show #t)
@@ -1468,7 +1490,7 @@
                      \n  {Meta,Alt}-c - show/hide commentary~
                      \n  {Meta,Alt,Shift}-{Right,Left,Up,Down} - move window~
                      \nAll bindings work in all windows")))
-      
+
       (define (do-print)
 	(let ([ps-dc (dc-for-text-size)])
 	  (when config:smoothing?
@@ -1509,7 +1531,7 @@
       (define-values (progress-window progress-display)
 	(if config:printing?
 	    (parameterize ([current-eventspace (make-eventspace)])
-	      (let* ([f (make-object (class frame% 
+	      (let* ([f (make-object (class frame%
 				       (define/augment (on-close) (exit))
 				       (super-instantiate ()))
 				     "Progress")]
@@ -1545,4 +1567,4 @@
 	   (when background-f
 	     (send background-f show #f))
            (stop-time-update!)
-	   (eh exn))))))
+           (eh exn))))))

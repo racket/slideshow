@@ -54,6 +54,8 @@
     (define no-stretch? #f)
     (define screen-set? #f)
 
+
+
     (define (die name . args)
       (eprintf "~a: ~a\n" name (apply format args))
       (exit -1))
@@ -137,7 +139,7 @@
                          "set the color of the letter box; default to black"
                          (set! letterbox-color color))
         (("--time") "time seconds per slide" (set! print-slide-seconds? #t))
-        (("--timer") "show an ellapsed timer on the preview window" (set! show-timer? #t))
+;;        (("--timer") "show an ellapsed timer on the preview window" (set! show-timer? #t))
         (("--clock") "show clock" (set! show-time? #t))
         #:ps
         "After requiring <slide-module-file>, if a `slideshow' submodule exists,"
