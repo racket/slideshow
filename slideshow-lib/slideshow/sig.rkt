@@ -105,6 +105,7 @@
      print-slide-seconds?
      show-page-numbers?
      show-time?
+     show-elapsed-time?
      commentary?
      use-offscreen?
      actual-screen-w actual-screen-h ; actual size (center use- within here)

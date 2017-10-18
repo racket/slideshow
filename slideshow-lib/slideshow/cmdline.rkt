@@ -31,6 +31,7 @@
     (define keep-titlebar? #f)
     (define show-page-numbers? #t)
     (define show-time? #f)
+    (define show-elapsed-time? #f)
     (define quad-view? #f)
     (define pixel-scale (if quad-view? 1/2 1))
     (define print-slide-seconds? #f)
@@ -139,7 +140,7 @@
                          "set the color of the letter box; default to black"
                          (set! letterbox-color color))
         (("--time") "time seconds per slide" (set! print-slide-seconds? #t))
-;;        (("--timer") "show an ellapsed timer on the preview window" (set! show-timer? #t))
+        (("--elapsed-time") "show an ellapsed timer on the preview window" (set! show-elapsed-time? #t))
         (("--clock") "show clock" (set! show-time? #t))
         #:ps
         "After requiring <slide-module-file>, if a `slideshow' submodule exists,"

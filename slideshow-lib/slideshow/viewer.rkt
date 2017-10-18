@@ -1132,7 +1132,10 @@
 				 #f))])
 
               (send dc set-origin 0 0)
-              (show-elapsed-time)
+
+              (when config:show-elapsed-time?
+                (show-elapsed-time))
+
 		(send dc draw-line (* cw 2/3) 0 (* cw 2/3) ch))))
 
 	  (inherit get-top-level-window)
@@ -1144,11 +1147,14 @@
 	  (define/public (redraw) (unless printing? (on-paint)))
 	  (super-new)))
 
-      (define ellapsed-timer-tick (new timer%
-                                       [notify-callback (lambda ()
-                                                          (when (send c-both is-shown?)
-                                                            (send c-both redraw)))]
-                                       [interval 1000]))
+      (define elapsed-timer-tick
+        (if config:show-elapsed-time?
+            (new timer%
+                 [notify-callback (lambda ()
+                                    (when (send c-both is-shown?)
+                                      (send c-both redraw)))]
+                 [interval 1000])
+            (new timer% [interval 1000])))
 
       (define (paint-letterbox dc cw ch usw ush clip?)
 	(and (or (< usw cw)
