@@ -140,7 +140,7 @@
                          "set the color of the letter box; default to black"
                          (set! letterbox-color color))
         (("--time") "time seconds per slide" (set! print-slide-seconds? #t))
-        (("--elapsed-time") "show an ellapsed timer on the preview window" (set! show-elapsed-time? #t))
+        (("--elapsed-time") "show an elapsed timer on the preview window" (set! show-elapsed-time? #t))
         (("--clock") "show clock" (set! show-time? #t))
         #:ps
         "After requiring <slide-module-file>, if a `slideshow' submodule exists,"

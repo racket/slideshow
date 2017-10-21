@@ -1073,10 +1073,10 @@
            (let ([text-fg (send dc get-text-foreground)]
                  [text-bg (send dc get-text-background)]
                  [font (send dc get-font)]
-                 [ellapsed (- (current-seconds) talk-start-seconds)])
+                 [elapsed (- (current-seconds) talk-start-seconds)])
              (send dc set-text-foreground red-color)
              (send dc set-font (make-font #:size 32 #:size-in-pixels? #t))
-             (send dc draw-text (seconds->hhmmss ellapsed) (* cw 5/6) (* ch 5/6))
+             (send dc draw-text (seconds->hhmmss elapsed) (* cw 5/6) (* ch 5/6))
              (send dc set-text-foreground text-fg)
              (send dc set-text-background text-bg)
              (send dc set-font font)))
