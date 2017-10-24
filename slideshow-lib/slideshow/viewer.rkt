@@ -1129,7 +1129,7 @@
 			  (* ch 1/6))
 		    (send dc set-pen pen)
 		    (send dc set-brush brush))
-		  (send dc set-origin (* cw 2/3) ch)
+		  (send dc set-origin (* cw 2/3) (* ch 1/6))
 		  (when (< (add1 current-page) slide-count)
 		    (send dc draw-rectangle (* cw 2/3) 0 (* cw 1/3) ch)
                     (paint-slide this
