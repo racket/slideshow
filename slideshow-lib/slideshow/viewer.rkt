@@ -1072,13 +1072,19 @@
          (define/private (show-elapsed-time)
            (define dc (get-dc))
            (define-values (cw ch) (send dc get-size))
-           (let ([text-fg (send dc get-text-foreground)]
-                 [text-bg (send dc get-text-background)]
-                 [font (send dc get-font)]
-                 [elapsed (- (current-seconds) talk-start-seconds)])
-             (send dc set-text-foreground red-color)
+           (let* ([text-fg (send dc get-text-foreground)]
+                  [text-bg (send dc get-text-background)]
+                  [font (send dc get-font)]
+                  [elapsed (- (current-seconds) talk-start-seconds)]
+                  [etime (seconds->hhmmss elapsed)])
              (send dc set-font (make-font #:size 32 #:size-in-pixels? #t))
-             (send dc draw-text (seconds->hhmmss elapsed) (* cw 5/6) (* ch 5/6))
+             (define-values (tw th bh eh) (send dc get-text-extent etime))
+
+             (send dc set-text-foreground red-color)
+             (send dc draw-text etime
+                   (- (* cw 5/6) (/ tw 2))
+                   (+ (* ch 5/6) (/ th 2) bh))
+
              (send dc set-text-foreground text-fg)
              (send dc set-text-background text-bg)
              (send dc set-font font)))
