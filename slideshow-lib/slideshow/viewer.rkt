@@ -279,7 +279,8 @@
 						 (unless on?
 						   (when (and close-bg? background-f)
 						     (send background-f show #f))
-                                                   (stop-time-update!))))
+                                             (stop-time-update!)
+                                             (stop-elapsed-timer!))))
 
 	  (define/override on-subwindow-char
 	    (lambda (w e)
@@ -382,7 +383,8 @@
 	    (send f-both show #f)
 	    (when use-background-frame?
 	      (send f show #f))
-            (stop-time-update!)
+           (stop-time-update!)
+           (stop-elapsed-timer!)
 	    (send f show #f)
 	    (when config:print-slide-seconds?
 	      (printf "Total Time: ~a seconds\n"
@@ -1156,6 +1158,9 @@
                  [interval 1000])
             (new timer% [interval 1000])))
 
+      (define (stop-elapsed-timer!)
+        (send elapsed-timer-tick stop))
+
       (define (paint-letterbox dc cw ch usw ush clip?)
 	(and (or (< usw cw)
                  (< ush ch))
@@ -1339,7 +1344,8 @@
       (define (stop-time-update!)
         (when time-update-thread
           (kill-thread time-update-thread)
-          (set! time-update-thread #f)))
+          (set! time-update-thread #f))
+        (stop-elapsed-timer!))
 
       (define refresh-page
 	(lambda ([immediate-prefetch? #f])
@@ -1572,5 +1578,6 @@
 	     (send f-both show #f))
 	   (when background-f
 	     (send background-f show #f))
-           (stop-time-update!)
-           (eh exn))))))
+          (stop-time-update!)
+          (stop-elapsed-timer!)
+          (eh exn))))))
