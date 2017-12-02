@@ -14,7 +14,7 @@
      condense? printing?        ; mode
      smoothing?
      commentary-on-slide?))
-     
+
   ;; Viewer inputs to the core unit:
   (define-signature viewer^
     (;; Registering slides:
@@ -36,7 +36,7 @@
      ;; To potentially speed up display:
      pict->pre-render-pict))
 
-  ;; The core unit's exports, which are the functions used by a 
+  ;; The core unit's exports, which are the functions used by a
   ;; Slideshow program:
   (define-signature core^
     (slide/kw
@@ -44,15 +44,15 @@
      slide/title
      slide/title/tall
      slide/center
-     slide/title/center 
+     slide/title/center
      slide/inset
      slide/title/inset
      slide/title/tall/inset
      slide/center/inset
      slide/title/center/inset
-     slide/name 
-     slide/name/tall 
-     slide/name/center 
+     slide/name
+     slide/name/tall
+     slide/name/center
      slide/name/inset
      slide/name/tall/inset
      slide/name/center/inset
@@ -60,7 +60,7 @@
      slide/title/timeout
      slide/center/timeout
      slide/title/center/timeout
-     
+
      most-recent-slide retract-most-recent-slide re-slide slide->pict start-at-recent-slide
      scroll-transition pause-transition
      comment make-outline
@@ -101,10 +101,11 @@
   (define-signature cmdline^ extends config^
     (file-to-load ; #f or a path/string
      init-page
-     use-transitions? 
+     use-transitions?
      print-slide-seconds?
      show-page-numbers?
      show-time?
+     show-elapsed-time?
      commentary?
      use-offscreen?
      actual-screen-w actual-screen-h ; actual size (center use- within here)
@@ -112,7 +113,7 @@
      trust-me?
      quad-view?
      keep-titlebar?
-     right-half-screen? 
+     right-half-screen?
      two-frames?
      use-prefetch?
      use-prefetch-in-preview?

@@ -15,7 +15,7 @@
   (define-unit cmdline@
     (import)
     (export (prefix final: cmdline^))
-    
+
     (define-values (screen-w screen-h) (values 1024 768))
     (define base-font-size 32)
 
@@ -31,6 +31,7 @@
     (define keep-titlebar? #f)
     (define show-page-numbers? #t)
     (define show-time? #f)
+    (define show-elapsed-time? #f)
     (define quad-view? #f)
     (define pixel-scale (if quad-view? 1/2 1))
     (define print-slide-seconds? #f)
@@ -48,16 +49,18 @@
     (define right-half-screen? #f)
     (define zero-margins? #f)
     (define letterbox-color "black")
-    
+
     (define init-page 0)
 
     (define no-stretch? #f)
     (define screen-set? #f)
-    
+
+
+
     (define (die name . args)
       (eprintf "~a: ~a\n" name (apply format args))
       (exit -1))
-    
+
     (define file-to-load
       (command-line
        #:program "slideshow"
@@ -67,7 +70,7 @@
 	   (unless (and n (exact-nonnegative-integer? n))
 	     (die 'slideshow "argument to -M is not an exact non-negative integer: ~a" monitor))
 	   (set! screen-number n)))
-        (("-d" "--preview") "show next-slide preview (useful on a non-mirroring display)" 
+        (("-d" "--preview") "show next-slide preview (useful on a non-mirroring display)"
          (set! two-frames? #t))
         (("-p" "--print") "print"
          (set! printing-mode 'print))
@@ -110,7 +113,7 @@
          (set! no-squash? #f))
         (("-z" "--zero-margins") "when printing, draw the slides right to the edge of the page"
                                  (set! zero-margins? #t))
-        (("-m" "--no-smoothing") 
+        (("-m" "--no-smoothing")
          "disable anti-aliased drawing (usually faster)"
          (set! smoothing? #f))
         (("-i" "--immediate") "no transitions"
@@ -137,6 +140,7 @@
                          "set the color of the letter box; default to black"
                          (set! letterbox-color color))
         (("--time") "time seconds per slide" (set! print-slide-seconds? #t))
+        (("--elapsed-time") "show an elapsed timer on the preview window" (set! show-elapsed-time? #t))
         (("--clock") "show clock" (set! show-time? #t))
         #:ps
         "After requiring <slide-module-file>, if a `slideshow' submodule exists,"
@@ -168,7 +172,7 @@
 
     (when (and (not printing-mode) zero-margins?)
       (raise-user-error 'slideshow "The --zero and -z flags may be used only when printing"))
-    
+
     (dc-for-text-size
      (if printing-mode
          (let ([p (let ([pss (make-object ps-setup%)])
@@ -211,7 +215,7 @@
            (send p start-page)
            (set!-values (actual-screen-w actual-screen-h) (send p get-size))
            p)
-         
+
          ;; Bitmaps give same size as the screen:
          (make-object bitmap-dc% (make-object bitmap% 1 1))))
 
@@ -233,4 +237,3 @@
     ;; it is one way to do that...
     (define-unit-from-context final@ cmdline^)
     (define-values/invoke-unit final@ (import) (export (prefix final: cmdline^)))))
-
