@@ -1156,16 +1156,16 @@
 	  (super-new)))
 
       (define elapsed-timer-tick
-        (if config:show-elapsed-time?
+        (when config:show-elapsed-time?
             (new timer%
                  [notify-callback (lambda ()
                                     (when (send c-both is-shown?)
                                       (send c-both redraw)))]
-                 [interval 1000])
-            (new timer% [interval 1000])))
+                 [interval 1000])))
 
       (define (stop-elapsed-timer!)
-        (send elapsed-timer-tick stop))
+        (when config:show-elapsed-time?
+          (send elapsed-timer-tick stop)))
 
       (define (paint-letterbox dc cw ch usw ush clip?)
 	(and (or (< usw cw)
