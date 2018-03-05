@@ -8,3 +8,8 @@
 (define binary-keep-files '("tutorial-show.rkt"
                             "initial-ones.rkt"
                             "examples"))
+
+(define raco-commands '(("slideshow"
+                         slideshow/start
+                         "render a Slideshow document"
+                         #f)))
