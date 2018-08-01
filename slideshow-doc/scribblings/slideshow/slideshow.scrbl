@@ -31,6 +31,7 @@ and all of @racketmodname[pict].}
 
 @include-section["guide.scrbl"]
 @include-section["slides.scrbl"]
+@include-section["aspect.scrbl"]
 @include-section["code.scrbl"]
 @include-section["play.scrbl"]
 @include-section["legacy.scrbl"]

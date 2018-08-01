@@ -120,7 +120,18 @@
                (blank)
                (colorize
                 (para #:align 'right (it "Run") (tt "slideshow --help") (it "for more options"))
-                "blue"))))
+                "blue"))
+         (list (para "Use")
+               (scale/improve-new-text
+                (code #,(tt "#lang") slideshow/widescreen)
+                0.9)
+               (para "or")
+               (scale/improve-new-text
+                (code #,(tt "#lang") slideshow/fullscreen)
+                0.9)
+               (para "to pick a specific aspect ratio")
+               (para "Otherwise, the aspect ratio can be selected externally:")
+               (hbl-append (tt "slideshow --widescreen ") mytalk.rkt))))
 
   (define (sub-para . l)
     (colorize (para #:width (* 3/4 (current-para-width)) l) "blue"))
