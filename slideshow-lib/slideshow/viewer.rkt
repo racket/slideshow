@@ -76,6 +76,7 @@
 		       1
 		       zero-inset
 		       null
+                       #f
                        #f))
 
       (define (talk-list-ref n)
@@ -177,6 +178,7 @@
 						1
 						zero-inset
 						null
+                                                #f
                                                 #f)))))]
 	 [else (let ([a (car l)]
 		     [b (cadr l)]
@@ -232,7 +234,8 @@
 			(- (+ (sliderec-page d) (sliderec-page-count d)) (sliderec-page a))
 			zero-inset
 			null
-                        (sliderec-timeout a))
+                        (sliderec-timeout a)
+                        #f)
 		       (make-quad (list-tail l 4))))]))
 
       ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -250,8 +253,8 @@
       (application-quit-handler (lambda ()
 				  (send f stop-show)))
 
-      (define current-use-screen-w config:use-screen-w)
-      (define current-use-screen-h config:use-screen-h)
+      (define current-use-screen-ws config:use-screen-ws)
+      (define current-use-screen-hs config:use-screen-hs)
 
       (define auto-resize-frame%
         (class frame%
@@ -262,11 +265,18 @@
             (when config:auto-screen-size?
               (define-values (w h) (get-display-size #t))
               (define-values (dx dy) (get-display-left-top-inset))
-              (set!-values (current-use-screen-w current-use-screen-h)
-                           (let ([s (min (/ w config:use-screen-w)
-                                         (/ h config:use-screen-h))])
-                             (values (floor (* s config:use-screen-w))
-                                     (floor (* s config:use-screen-h)))))
+              (define scales (for/hasheq ([(aspect use-screen-w) (in-hash config:use-screen-ws)])
+                               (define use-screen-h (hash-ref config:use-screen-hs aspect))
+                               (min (/ w use-screen-w)
+                                    (/ h use-screen-h))))
+              (set!-values (current-use-screen-ws current-use-screen-hs)
+                           (values
+                            (for/hasheq ([(aspect use-screen-w) (in-hash config:use-screen-ws)])
+                              (define s (hash-ref scales aspect))
+                              (values aspect (floor (* s use-screen-w))))
+                            (for/hasheq ([(aspect use-screen-h) (in-hash config:use-screen-hs)])
+                              (define s (hash-ref scales aspect))
+                              (values aspect (floor (* s use-screen-h))))))
               (move (- dx) (- dy))
               (resize w h)))))
 
@@ -584,7 +594,7 @@
 
       (define current-sinset zero-inset)
       (define resizing-frame? #f)
-      (define (reset-display-inset! sinset dc)
+      (define (reset-display-inset! sinset dc aspect)
 	(unless (and (= (sinset-l current-sinset) (sinset-l sinset))
 		     (= (sinset-t current-sinset) (sinset-t sinset))
 		     (= (sinset-r current-sinset) (sinset-r sinset))
@@ -594,16 +604,20 @@
 	  (send f resize
 		(max 1 (- (inexact->exact (floor config:actual-screen-w))
 			  (inexact->exact (floor (* (+ (sinset-l sinset) (sinset-r sinset))
-						    (/ config:actual-screen-w config:screen-w))))))
+						    (/ config:actual-screen-w
+                                                       (hash-ref config:screen-ws aspect)))))))
 		(max 1 (- (inexact->exact (floor config:actual-screen-h))
 			  (inexact->exact (floor (* (+ (sinset-t sinset) (sinset-b sinset))
-						    (/ config:actual-screen-h config:screen-h)))))))
+						    (/ config:actual-screen-h
+                                                       (hash-ref config:screen-hs aspect))))))))
 	  (send f move
 		(inexact->exact (- (floor (* (sinset-l sinset)
-					     (/ config:actual-screen-w config:screen-w)))
+					     (/ config:actual-screen-w
+                                                (hash-ref config:screen-ws aspect))))
 				   screen-left-inset))
 		(inexact->exact (- (floor (* (sinset-t sinset)
-					     (/ config:actual-screen-h config:screen-h)))
+					     (/ config:actual-screen-h
+                                                (hash-ref config:screen-hs aspect))))
 				   screen-top-inset)))
 	  (set! current-sinset sinset)
 	  ;; FIXME: This yield is here so that the frame
@@ -718,25 +732,6 @@
 		    (/ current-page (max 1 (sub1 slide-count))))
 	    (values 0 0)))
 
-      (define (show-time dc w h)
-	(let* ([left (- w GAUGE-WIDTH)]
-	       [top (- h GAUGE-HEIGHT)]
-	       [b (send dc get-brush)]
-	       [p (send dc get-pen)])
-	  (send dc set-pen black-pen)
-	  (send dc set-brush (if start-time gray-brush clear-brush))
-	  (send dc draw-rectangle left top GAUGE-WIDTH GAUGE-HEIGHT)
-	  (when start-time
-	    (let-values ([(duration distance) (calc-progress)])
-	      (send dc set-brush (if (< distance duration)
-				     red-brush
-				     green-brush))
-	      (send dc draw-rectangle left top (floor (* GAUGE-WIDTH distance)) GAUGE-HEIGHT)
-	      (send dc set-brush clear-brush)
-	      (send dc draw-rectangle left top (floor (* GAUGE-WIDTH duration)) GAUGE-HEIGHT)))
-	  (send dc set-pen p)
-	  (send dc set-brush b)))
-
       (define c%
 	(class canvas%
 	  (inherit get-dc get-client-size make-bitmap
@@ -759,7 +754,7 @@
 		(send dc clear)
 		(paint-slide this dc)])
               (show-spotlight dc)
-              (show-time dc)))
+              (show-time dc (sliderec-aspect (talk-list-ref current-page)))))
 
           (define/private (show-spotlight dc)
             (when (and spotlight-on? spotlight-shown?)
@@ -775,7 +770,7 @@
               (send dc set-pen old-p)
               (send dc set-brush old-b)))
 
-          (define/private (show-time dc)
+          (define/private (show-time dc aspect)
             (when config:show-time?
               (define c (send dc get-text-foreground))
               (define f (send dc get-font))
@@ -783,8 +778,8 @@
               (send dc set-text-foreground (make-color 100 100 100))
               (send dc set-font (make-font #:size time-size #:size-in-pixels? #t))
               (let-values ([(cw ch) (get-client-size)])
-                (let ([dx (floor (/ (- cw current-use-screen-w) 2))]
-                      [dy (floor (/ (- ch current-use-screen-h) 2))]
+                (let ([dx (floor (/ (- cw (hash-ref current-use-screen-ws aspect)) 2))]
+                      [dy (floor (/ (- ch (hash-ref current-use-screen-hs aspect)) 2))]
                       [d (seconds->date (current-seconds))])
                   (send dc draw-text
                         (~a (let ([h (modulo (date-hour d) 12)])
@@ -793,7 +788,7 @@
                             (~a #:width 2 #:align 'right #:pad-string "0"
                                 (date-minute d)))
                         (+ dx 5)
-                        (+ dy (- current-use-screen-h time-size 5)))))
+                        (+ dy (- (hash-ref current-use-screen-hs aspect) time-size 5)))))
               (send dc set-text-foreground c)
               (send dc set-font f)))
 
@@ -899,9 +894,12 @@
 
 	  (define/private (paint-prefetch dc)
 	    (let-values ([(cw ch) (get-client-size)])
-              (paint-letterbox dc cw ch current-use-screen-w current-use-screen-h #f)
-	      (let ([dx (floor (/ (- cw current-use-screen-w) 2))]
-		    [dy (floor (/ (- ch current-use-screen-h) 2))])
+              (paint-letterbox dc cw ch
+                               (hash-ref current-use-screen-ws prefetch-aspect)
+                               (hash-ref current-use-screen-hs prefetch-aspect)
+                               #f)
+	      (let ([dx (floor (/ (- cw (hash-ref current-use-screen-ws prefetch-aspect)) 2))]
+		    [dy (floor (/ (- ch (hash-ref current-use-screen-hs prefetch-aspect)) 2))])
 		(send dc draw-bitmap prefetch-bitmap dx dy)
 		(set! click-regions (map (lambda (cr)
 					   (shift-click-region cr dx dy))
@@ -919,7 +917,8 @@
 	  (define/public (redraw)
 	    (unless printing?
               (define now (current-milliseconds))
-	      (reset-display-inset! (sliderec-inset (talk-list-ref current-page)) (get-dc))
+              (define slide (talk-list-ref current-page))
+	      (reset-display-inset! (sliderec-inset slide) (get-dc) (sliderec-aspect slide))
 	      (send commentary lock #f)
 	      (send commentary begin-edit-sequence)
 	      (send commentary erase)
@@ -989,7 +988,7 @@
 		  (send dc clear)
 		  (paint-slide this dc))])
               (show-spotlight (get-dc))
-              (show-time (get-dc))
+              (show-time (get-dc) (sliderec-aspect slide))
               (swap-interactives! old-interactives interactives)
               (log-slideshow-debug "Redraw time: ~s"
                                    (- (current-milliseconds) now))))
@@ -1197,20 +1196,25 @@
 	 [(canvas dc) (paint-slide canvas dc current-page)]
 	 [(canvas dc page)
 	  (let-values ([(cw ch) (send dc get-size)])
-	    (paint-slide canvas dc page 1 1 cw ch current-use-screen-w current-use-screen-h #t))]
+            (define slide (if (sliderec? page) page (talk-list-ref page)))
+            (define aspect (sliderec-aspect slide))
+	    (paint-slide canvas dc page 1 1 cw ch
+                         (hash-ref current-use-screen-ws aspect) (hash-ref current-use-screen-hs aspect)
+                         #t))]
 	 [(canvas dc page extra-scale-x extra-scale-y cw ch usw ush to-main?)
 	  (let* ([slide (if (sliderec? page)
                             page
                             (talk-list-ref page))]
 		 [ins (sliderec-inset slide)]
+                 [aspect (sliderec-aspect slide)]
 		 [cw (if to-main?
 			 (+ cw (sinset-l ins) (sinset-r ins))
 			 cw)]
 		 [ch (if to-main?
 			 (+ ch (sinset-t ins) (sinset-b ins))
 			 ch)]
-		 [sx (/ usw config:screen-w)]
-		 [sy (/ ush config:screen-h)]
+		 [sx (/ usw (hash-ref config:screen-ws aspect))]
+		 [sy (/ ush (hash-ref config:screen-hs aspect))]
 		 [mx (/ (- cw usw) 2)]
 		 [my (/ (- ch ush) 2)])
 	    (define clip-rgn (paint-letterbox dc cw ch usw ush #t))
@@ -1253,9 +1257,11 @@
 
       ;; prefetched-page : (union #f number)
       (define prefetched-page #f)
+      ;; prefetch-bitmaps : aspect -> (union #f bitmap)
+      (define prefetch-bitmaps #hasheq())
       ;; prefetch-bitmap : (union #f bitmap)
       (define prefetch-bitmap #f)
-      ;; prefetch-bitmap : (union #f bitmap-dc)
+      ;; prefetch-dc : (union #f bitmap-dc)
       (define prefetch-dc #f)
       ;; prefetch-schedule-cancel-box : (box boolean)
       (define prefetch-schedule-cancel-box (box #f))
@@ -1263,19 +1269,29 @@
       (define prefetched-click-regions null)
       ;; prefetched-interactives : hash
       (define prefetched-interactives #hash())
+      (define prefetch-aspect #f)
 
       (define (prefetch-slide canvas n)
 	(set! prefetched-page #f)
 
+        (define slide (if (sliderec? n) n (talk-list-ref n)))
+        (define aspect (sliderec-aspect slide))
+        (define current-use-screen-w (hash-ref current-use-screen-ws aspect))
+        (define current-use-screen-h (hash-ref current-use-screen-hs aspect))
+
 	(unless prefetch-dc
 	  (set! prefetch-dc (new bitmap-dc%)))
 
+        (set! prefetch-aspect aspect)
+        (set! prefetch-bitmap (hash-ref prefetch-bitmaps aspect #f))
+          
 	;; try to re-use existing bitmap
 	(unless (and (is-a? prefetch-bitmap bitmap%)
 		     (= current-use-screen-w (send prefetch-bitmap get-width))
 		     (= current-use-screen-h (send prefetch-bitmap get-height)))
 	  (send prefetch-dc set-bitmap #f)
 	  (set! prefetch-bitmap (send canvas make-bitmap current-use-screen-w current-use-screen-h))
+          (set! prefetch-bitmaps (hash-set prefetch-bitmaps aspect prefetch-bitmap))
 	  (when (send prefetch-bitmap ok?)
 	    (send prefetch-dc set-bitmap prefetch-bitmap)))
 
@@ -1517,16 +1533,23 @@
 	    (unless (null? l)
 	      (set! current-page n)
 	      (refresh-page)
+              (define aspect (sliderec-aspect (car l)))
 	      (when start?
 		(send ps-dc start-page))
 	      (let ([slide (car l)])
-		(let ([xs (/ current-use-screen-w config:screen-w)]
-		      [ys (/ current-use-screen-h config:screen-h)])
+		(let ([xs (/ (hash-ref current-use-screen-ws aspect)
+                             (hash-ref config:screen-ws aspect))]
+		      [ys (/ (hash-ref current-use-screen-hs aspect)
+                             (hash-ref config:screen-hs aspect))])
 		  (send ps-dc set-scale xs ys)
                   (let ([clip (send ps-dc get-clipping-region)]
-                        [dx (/ (- config:actual-screen-w current-use-screen-w) 2 xs)]
-                        [dy (/ (- config:actual-screen-h current-use-screen-h) 2 ys)])
-                    (send ps-dc set-clipping-rect dx dy config:screen-w config:screen-h)
+                        [dx (/ (- config:actual-screen-w
+                                  (hash-ref current-use-screen-ws aspect))
+                               2 xs)]
+                        [dy (/ (- config:actual-screen-h
+                                  (hash-ref current-use-screen-hs aspect))
+                               2 ys)])
+                    (send ps-dc set-clipping-rect dx dy (hash-ref config:screen-ws aspect) (hash-ref config:screen-hs aspect))
                     ((sliderec-drawer slide) ps-dc (+ margin dx) (+ margin dy))
                     (send ps-dc set-clipping-region clip)))
 		(when show-page-numbers?

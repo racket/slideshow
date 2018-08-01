@@ -7,11 +7,11 @@
 
   ;; Configuration inputs to the core unit:
   (define-signature config^
-    (base-font-size             ; normally 32
-     screen-w screen-h          ; logical size, normally 1024x768
-     use-screen-w use-screen-h  ; "pixel" size
-     pixel-scale                ; amount the "pixels" are scaled (e.g., for quad)
-     condense? printing?        ; mode
+    (base-font-size              ; normally 32
+     screen-ws screen-hs         ; aspect -> logical size; 'fullscreen -> 1024x768, 'widescreen -> 1360x766, #f varies
+     use-screen-ws use-screen-hs ; aspect -> "pixel" size
+     pixel-scale                 ; amount the "pixels" are scaled (e.g., for quad)
+     condense? printing?         ; mode
      smoothing?
      commentary-on-slide?))
 
@@ -83,7 +83,7 @@
      enable-click-advance!
      get-title-h set-title-h! current-slide-assembler
      current-page-number-font current-page-number-color current-page-number-adjust
-     current-titlet current-para-width
+     current-titlet current-para-widths get-current-para-width
      set-page-numbers-visible! done-making-slides
      set-spotlight-style!
      set-allow-new-slides-after-close!

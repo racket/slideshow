@@ -121,14 +121,14 @@
 	   bullet o-bullet
 	   margin get-margin set-margin! 
 	   client-w client-h get-client-w get-client-h
-	   full-page titleless-page get-full-page get-titleless-page
+	   full-page titleless-page get-full-page get-titleless-page get-current-para-width
 	   printing? condense?
 	   skip-slides
 	   set-use-background-frame!
 	   enable-click-advance!
 	   title-h get-title-h set-title-h! current-slide-assembler
 	   current-page-number-font current-page-number-color current-page-number-adjust
-           current-titlet current-para-width
+           current-titlet current-para-widths
 	   set-page-numbers-visible! done-making-slides
            set-spotlight-style!
            set-allow-new-slides-after-close!
