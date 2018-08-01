@@ -74,6 +74,11 @@
       (when (and aspect (aspect? aspect))
         (select-aspect! aspect)))
 
+    (define (maybe-add-default aspects str)
+      (if (memq selected-aspect aspects)
+          (string-append str " (current default)")
+          str))
+
     (define (die name . args)
       (eprintf "~a: ~a\n" name (apply format args))
       (exit -1))
@@ -112,9 +117,9 @@
          (set! quad-view? #t)
          (set! pixel-scale 1/2))
         #:once-any
-        [("--widescreen") "set default slide aspect to 16:9"
+        [("--widescreen") ((maybe-add-default '(widescreen) "set default slide aspect to 16:9"))
          (select-aspect! 'widescreen)]
-        [("--fullscreen") "set default slide aspect to 4:3"
+        [("--fullscreen") ((maybe-add-default '(#f fullscreen) "set default slide aspect to 4:3"))
          (select-aspect! 'fullscreen)]
         #:once-each
         [("--save-aspect") "record selected aspect in preferences"

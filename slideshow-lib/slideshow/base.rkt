@@ -15,7 +15,8 @@
      (current-main-font '("Tahoma" . swiss))])
 
   (define current-para-width (hash-ref current-para-widths #f))
-  (current-para-width (* 3/4 client-w))
+  (for ([(aspect current-para-width) (in-hash current-para-widths)])
+    (current-para-width (* 3/4 (get-client-w #:aspect aspect))))
 
   (current-titlet (lambda (s)
                     (colorize (text s (current-main-font) 40)
