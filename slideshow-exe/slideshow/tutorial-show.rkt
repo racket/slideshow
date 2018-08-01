@@ -181,10 +181,16 @@
  (cc-superimpose 
   (frame (blank client-w client-h))
   (vc-append gap-size
-             (t "By definition, the screen is 1024 x 768 units")
+             (vr-append
+              (current-line-sep)
+              (t "By definition, the screen is 1024 x 768 units in fullscreen")
+              (t "and 1360 x 766 units in widescreen"))
+             (t (format "In the current aspect, the screen is ~a x ~a units"
+                        (+ client-w (* 2 margin))
+                        (+ client-h (* 2 margin))))
              (t "If you have more or less pixels, the image is scaled")
              (para #:fill? #f
-                   "There's a margin, so the ``client'' area is"
+                   "There's a margin, so the ``client'' area now is"
               (number->string client-w) "x" (number->string client-h))
              (para #:fill? #f
                    "The font size is" (number->string (current-font-size))))))

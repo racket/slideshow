@@ -22,6 +22,7 @@
 
 @defproc[(slide [#:title title (or/c #f string? pict?) #f]
                 [#:name  name (or/c #f string?) title]
+                [#:aspect aspect aspect? #f]
                 [#:layout layout (or/c 'auto 'center 'top 'tall) 'auto]
                 [#:gap-size sep-gap-size real? (current-gap-size)]
                 [#:inset inset slide-inset? (make-slide-inset 0 0 0 0)]
@@ -69,7 +70,9 @@ after @racket[secs] seconds, and manual advancing skips this slide.
 
 If @racket[condense?] is true, then in condense mode (as specified by
 the @Flag{c} command-line flag), the slide is not created and
-registered.}
+registered.
+
+@history[#:changed "1.5" @elem{Added the @racket[#:aspect] argument.}]}
 
 
 @defproc[(t [str string?]) pict?]{
@@ -106,7 +109,8 @@ The normal way to make serif text. Returns @racket[(text str 'roman
 
 Creates title text. Returns @racket[((current-titlet) str)].}
 
-@defproc[(para [#:width width real? (current-para-width)]
+@defproc[(para [#:aspect aspect aspect? #f]
+               [#:width width real? ((get-current-para-width #:aspect aspect))]
                [#:align align (or/c 'left 'center 'right) 'left]
                [#:fill? fill? any/c #t]
                [#:decode? decode? any/c #t]
@@ -144,10 +148,13 @@ The @racket[align] argument specifies how to align lines within the
 paragraph.
 
 See the spacing between lines is determined by the
-@racket[current-line-sep] parameter.}
+@racket[current-line-sep] parameter.
+
+@history[#:changed "1.5" @elem{Added the @racket[#:aspect] argument.}]}
 
 
-@defproc[(item [#:width width real? (current-para-width)]
+@defproc[(item [#:aspect aspect aspect? #f]
+               [#:width width real? ((get-current-para-width #:aspect aspect))]
                [#:gap-size sep-gap-size real? (current-gap-size)]
                [#:bullet blt pict? (scale bullet (/ sep-gap-size gap-size))]
                [#:align align (or/c 'left 'center 'right) 'left]
@@ -161,10 +168,13 @@ Like @racket[para], but with @racket[blt] followed by @racket[(/
 sep-gap-size 2)] space appended horizontally to the resulting paragraph,
 aligned with the top line. The paragraph width of @racket[blt] plus
 @racket[(/ sep-gap-size 2)] is subtracted from the maximum width of the
-paragraph.}
+paragraph.
+
+@history[#:changed "1.5" @elem{Added the @racket[#:aspect] argument.}]}
 
 
-@defproc[(subitem [#:width width real? (current-para-width)]
+@defproc[(subitem [#:aspect aspect aspect? #f]
+                  [#:width width real? ((get-current-para-width #:aspect aspect))]
                   [#:gap-size sep-gap-size real? (current-gap-size)]
                   [#:bullet blt pict? (scale o-bullet (/ sep-gap-size gap-size))]
                   [#:align align (or/c 'left 'center 'right) 'left]
@@ -177,7 +187,9 @@ paragraph.}
 Like @racket[item], but an additional @racket[(* 2 sep-gap-size)] is
 subtracted from the paragraph width and added as space to the left of
 the pict. Also, @racket[o-bullet] is the default bullet, instead of
-@racket[bullet].}
+@racket[bullet].
+
+@history[#:changed "1.5" @elem{Added the @racket[#:aspect] argument.}]}
 
 
 @defproc[(clickback [pict pict?] [thunk (-> any)])
@@ -199,12 +211,17 @@ must be a procedure that is called when the window is removed (because
 the slide changes, for example).}
 
 
-@defproc[(size-in-pixels [pict pict?]) pict?]{
+@defproc[(size-in-pixels [pict pict?]
+                         [#:aspect aspect aspect? #f])
+         pict?]{
 
 Scales @racket[pict] so that it is displayed on the screen as
 @racket[(pict-width pict)] pixels wide and @racket[(pict-height pict)]
 pixels tall. The result is @racket[pict] when using a 1024 by 768
-display.}
+display with a fullscreen aspect or when using a 1360 by 766
+display with a widescreen aspect.
+
+@history[#:changed "1.5" @elem{Added the @racket[#:aspect] argument.}]}
 
 
 @defproc[(pict->pre-render-pict [pict pict?]) pict?]{
@@ -220,7 +237,8 @@ to reduce drawing times for for large bitmaps or complex drawings.
                        [title (or/c string? pict?)]
                        [subitems (or/c #f null?
                                        (symbol? . -> . pict?))]
-                       ...)
+                       ...
+                       [#:aspect aspect aspect? #f])
           (symbol? . -> . void?)]{
 
 Returns a function that takes a symbol and generates an outline
@@ -245,7 +263,9 @@ trio of arguments defines a section for the outline:
        should be a function that takes a symbol (the same one passed
        to the outline maker) and produces a pict.}
 
-]}
+]
+
+@history[#:changed "1.5" @elem{Added the @racket[#:aspect] argument.}]}
 
 @defproc[(comment [text (or/c string? pict?)] ...)
          comment?]{
@@ -364,6 +384,20 @@ this function with @racket[#t] enables new slides to start a new slideshow.
 
 @section{Constants and Layout Variables}
 
+@defproc[(aspect? [v any/c]) boolean?]{
+
+Return @racket[#t] if @racket[v] is @racket['fullscreen],
+@racket['widescreen], or @racket[#f], otherwise returns @racket[#f].
+
+A symbolic @racket[v] selects a specific aspect, while @racket[#f] as
+an aspect corresponds to a user-selected aspect through the
+@DFlag{widescreen} or @DFlag{fullscreen} flag.
+
+See also @seclink["aspect"].
+
+@history[#:added "1.5"]}
+
+
 @defthing[gap-size 24]{
 
 A width commonly used for layout.}
@@ -399,32 +433,56 @@ It's implementation is:
                (blank 0 gap-size)))]
 }
 
+@deftogether[(
+@defidform[client-w]
+@defproc[(get-client-w [#:aspect aspect aspect? #f]) exact-nonnegative-integer?]
+)]{
 
-@defidform[client-w]{
+Produces the width of the display area, minus @racket[margin]s for a
+given @racket[aspect], where @racket[client-w] is equivalent to
+@racket[(get-client-w)]. The result changes if the margin is adjusted
+via @racket[set-margin!].
 
-Produces the width of the display area, minus @racket[margin]s. The
-result of the form changes if the margin is adjusted via
-@racket[set-margin!].}
-
-
-@defidform[client-h]{
-
-Produces the height of the display area, minus @racket[margin]s, but
-including the title area). The result of the form changes if the
-margin is adjusted via @racket[set-margin!].}
+@history[#:changed "1.5" @elem{Added @racket[get-client-w].}]}
 
 
-@defidform[full-page]{
+@deftogether[(
+@defidform[client-h]
+@defproc[(get-client-h [#:aspect aspect aspect? #f]) exact-nonnegative-integer?]
+)]{
+
+Produces the height of the display area, minus @racket[margin]s for a
+given @racket[aspect], where @racket[client-h] is equivalent to
+@racket[(get-client-h)]. The result changes if the margin is adjusted
+via @racket[set-margin!].
+
+@history[#:changed "1.5" @elem{Added @racket[get-client-h].}]}
+
+
+@deftogether[(
+@defidform[full-page]
+@defproc[(get-full-page [#:aspect aspect aspect? #f]) pict?]
+)]{
 
 Produces an empty pict that is the same size as the client area, which
-is like @racket[(blank client-w client-h)].}
+is like @racket[(blank client-w client-h)]. The @racket[full-page]
+form is equivalent to @racket[(get-full-page)].
+
+@history[#:changed "1.5" @elem{Added @racket[get-full-page].}]}
 
 
-@defidform[titleless-page]{
+@deftogether[(
+@defidform[titleless-page]
+@defproc[(get-titleless-page [#:aspect aspect aspect? #f]) pict?]
+)]{
 
 Produces an empty pict that is the same size as the client area minus
 the title area in @racket['top] layout mode, which is like
-@racket[(blank client-w (- client-h title-h (* 2 gap-size)))].}
+@racket[(blank client-w (- client-h title-h (* 2 gap-size)))]. The
+@racket[titleless-page] form is equivalent to
+@racket[(get-titleless-page)].
+
+@history[#:changed "1.5" @elem{Added @racket[get-titleless-page].}]}
 
 
 @defidform[margin]{
@@ -485,10 +543,18 @@ Parameter that controls the amount of space used between lines by
 @racket[para], @racket[item], and @racket[subitem].}
 
 
-@defparam[current-para-width n exact-nonnegative-integer?]{
+@deftogether[(
+@defparam[current-para-width n exact-nonnegative-integer?]
+@defproc[(get-current-para-width (#:aspect aspect aspect? #f))
+         (parameter/c exact-nonnegative-integer?)]
+)]{
 
 Parameter that controls the width of a pict created by
-@racket[para], @racket[item], and @racket[subitem].}
+@racket[para], @racket[item], and @racket[subitem]. The value
+of @racket[current-para-width] is the same as
+@racket[(get-current-para-width)].
+
+@history[#:changed "1.5" @elem{Added @racket[get-current-para-width].}]}
 
 
 @defparam[current-title-color color (or/c string? (is-a?/c color%))]{

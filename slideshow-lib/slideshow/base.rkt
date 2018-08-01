@@ -1,6 +1,7 @@
 (module base scheme/base
   (require "slide.rkt"
            scheme/gui/base
+           "private/aspect.rkt"
            (only-in "core.rkt"
                     sliderec?
                     just-a-comment?))
@@ -12,7 +13,10 @@
      (current-main-font '("Gill Sans" . swiss))]
     [(windows)
      (current-main-font '("Tahoma" . swiss))])
-  (current-para-width (* 3/4 client-w))
+
+  (define current-para-width (hash-ref current-para-widths #f))
+  (for ([(aspect current-para-width) (in-hash current-para-widths)])
+    (current-para-width (* 3/4 (get-client-w #:aspect aspect))))
 
   (current-titlet (lambda (s)
                     (colorize (text s (current-main-font) 40)
@@ -48,4 +52,6 @@
 	   set-page-numbers-visible! done-making-slides
            set-spotlight-style! set-allow-new-slides-after-close!
            pict->pre-render-pict
-           clickback interactive make-slide-inset slide-inset? apply-slide-inset))
+           clickback interactive make-slide-inset slide-inset? apply-slide-inset
+           get-client-w get-client-h get-full-page get-titleless-page get-current-para-width
+           aspect?))

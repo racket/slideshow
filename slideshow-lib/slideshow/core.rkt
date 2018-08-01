@@ -1,4 +1,3 @@
-
 (module core scheme/base
   (require scheme/class
            scheme/unit
@@ -8,7 +7,8 @@
            texpict/utils
            scheme/math
 	   "sig.ss"
-	   "private/utils.ss")
+	   "private/utils.ss"
+           "private/aspect.rkt")
 
   (provide core@ 
 	   zero-inset)
@@ -23,7 +23,8 @@
 				   inset         ; sinset
 				   [transitions  ; canvas% bitmap% -> 'went or delay-msecs
                                     #:mutable]
-                                   timeout))     ; msecs
+                                   timeout       ; msecs
+                                   aspect))      ; screen aspect: '3:4, '16:9, or #f (= default)
   (define/provide-struct just-a-comment (content)) ; content is list of strings and picts
   (define/provide-struct sinset (l t r b))
   (define/provide-struct click-region (left top right bottom thunk show-click?))
@@ -32,7 +33,11 @@
     #:transparent)
 
   (define zero-inset (make-sinset 0 0 0 0))
-      
+
+  (define (check-aspect who v)
+    (unless (aspect? v)
+      (raise-argument-error who "aspect?" v)))
+
   (define-unit core@
       (import config^ (prefix viewer: viewer^))
       (export (rename core^ 
@@ -61,15 +66,19 @@
 
       (define commentary-content-scale 0.8)
 
-      (when (not (and (= use-screen-w screen-w)
-		      (= use-screen-h screen-h)
-		      (= pixel-scale 1)
-		      (not commentary-on-slide?)))
-	(let ([c-scale (if commentary-on-slide?
-			   commentary-content-scale
-			   1)])
-	  (current-expected-text-scale (list (* (/ use-screen-w screen-w) pixel-scale c-scale)
-					     (* (/ use-screen-h screen-h) pixel-scale c-scale)))))
+      (let ([use-screen-w (hash-ref use-screen-ws #f)]
+            [use-screen-h (hash-ref use-screen-hs #f)]
+            [screen-w (hash-ref screen-ws #f)]
+            [screen-h (hash-ref screen-hs #f)])
+        (when (not (and (= use-screen-w screen-w)
+                        (= use-screen-h screen-h)
+                        (= pixel-scale 1)
+                        (not commentary-on-slide?)))
+          (let ([c-scale (if commentary-on-slide?
+                             commentary-content-scale
+                             1)])
+            (current-expected-text-scale (list (* (/ use-screen-w screen-w) pixel-scale c-scale)
+                                               (* (/ use-screen-h screen-h) pixel-scale c-scale))))))
 
       (define red "red")
       (define green "forest green")
@@ -139,29 +148,45 @@
 
 
       (define margin 20)
-      (define-values (client-w client-h) (values (- screen-w (* margin 2))
-						 (- screen-h (* margin 2))))
-      (define full-page (blank client-w client-h))
+      (define client-ws #hasheq())
+      (define client-hs #hasheq())
+      (define full-pages #hasheq())
       (define title-h (pict-height (titlet "Hi")))
-      (define (mk-titleless-page)
+      (define (mk-titleless-page full-page)
 	(inset full-page 0 (- 0 title-h (* 2 gap-size)) 0 0))
-      (define titleless-page (mk-titleless-page))
-
+      (define titleless-pages #hasheq())
+      (define (set-titleless-pages!)
+	(set! titleless-pages (for/hasheq ([(aspect full-page) (in-hash full-pages)])
+                                (values aspect (mk-titleless-page full-page)))))
       (define (set-margin! m)
 	(set! margin m)
-	(set! client-w (- screen-w (* 2 margin)))
-	(set! client-h (- screen-h (* 2 margin)))
-	(set! full-page (blank client-w client-h))
-	(set! titleless-page (mk-titleless-page)))
+	(set! client-ws (for/hasheq ([(aspect w) (in-hash screen-ws)])
+                          (values aspect (- w (* margin 2)))))
+	(set! client-hs (for/hasheq ([(aspect w) (in-hash screen-hs)])
+                          (values aspect (- w (* margin 2)))))
+        (set! full-pages (for/hasheq ([(aspect client-w) (in-hash client-ws)])
+                           (define client-h (hash-ref client-hs aspect))
+                           (values aspect (blank client-w client-h))))
+        (set-titleless-pages!))
+      (set-margin! margin)
+
       (define (get-margin) margin)
-      (define (get-client-w) client-w)
-      (define (get-client-h) client-h)
-      (define (get-full-page) full-page)
-      (define (get-titleless-page) titleless-page)
+      (define (get-client-w #:aspect [aspect #f])
+        (check-aspect 'get-client-w aspect)
+        (hash-ref client-ws aspect))
+      (define (get-client-h #:aspect [aspect #f])
+        (check-aspect 'get-client-h aspect)
+        (hash-ref client-hs aspect))
+      (define (get-full-page #:aspect [aspect #f])
+        (check-aspect 'get-full-page aspect)
+        (hash-ref full-pages aspect))
+      (define (get-titleless-page #:aspect [aspect #f])
+        (check-aspect 'get-titleless-page aspect)
+        (hash-ref titleless-pages aspect))
 
       (define (set-title-h! h)
 	(set! title-h h)
-	(set! titleless-page (mk-titleless-page)))
+        (set-titleless-pages!))
       (define (get-title-h) title-h)
 
       (define (set-use-background-frame! on?)
@@ -209,10 +234,10 @@
       
       (define page-number 1)
 
-      (define (add-commentary p comment)
+      (define (add-commentary p comment aspect)
 	(if commentary-on-slide?
 	    (let ([p (scale (frame
-			     (inset (let ([tp (launder full-page)])
+			     (inset (let ([tp (launder (hash-ref full-pages aspect))])
 				      (refocus (lt-superimpose p tp) tp))
 				    margin))
 			    commentary-content-scale)]
@@ -234,7 +259,7 @@
 			     (apply vl-append
 				    1
 				    (map (lambda (l) 
-					   (apply para (- (* screen-w (- 1 commentary-content-scale))
+					   (apply para (- (* (hash-ref screen-ws aspect) (- 1 commentary-content-scale))
 							  margin margin 2)
 						  l))
 					 comments))))
@@ -242,17 +267,17 @@
 	      (ht-append 2 p t))
 	    p))
 
-      (define (add-slide! pict title comment page-count inset timeout)
+      (define (add-slide! pict title comment page-count inset timeout aspect)
 	(viewer:add-talk-slide! 
-	 (make-sliderec (make-pict-drawer (add-commentary pict
-							  comment))
+	 (make-sliderec (make-pict-drawer (add-commentary pict comment aspect))
 			title 
 			comment
 			page-number
 			page-count
 			inset
 			null
-                        timeout))
+                        timeout
+                        aspect))
 	(set! page-number (+ page-number page-count)))
 
       (define (skip-slides n)
@@ -271,16 +296,17 @@
 	       (- (sinset-r sinset))
 	       (- (sinset-b sinset))))
 
-      (define (do-add-slide! content title comment page-count inset timeout)
+      (define (do-add-slide! content title comment page-count inset timeout aspect)
 	(add-slide!
 	 (ct-superimpose
-	  (apply-slide-inset inset full-page)
+	  (apply-slide-inset inset (hash-ref full-pages aspect))
 	  content)
 	 title
 	 comment
 	 page-count
 	 inset
-         timeout))
+         timeout
+         aspect))
 
       (define default-slide-assembler
 	(lambda (s v-sep p)
@@ -295,7 +321,7 @@
       (define-struct name-only (title))
       (define-struct name+title (name title))
 
-      (define (one-slide/title/inset do-add-slide! use-assem? process v-sep skipped-pages s inset timeout a-gap-size . x) 
+      (define (one-slide/title/inset do-add-slide! use-assem? process v-sep skipped-pages s inset timeout aspect a-gap-size . x)
 	(let-values ([(x c)
 		      (let loop ([x x][c #f][r null])
 			(cond
@@ -324,7 +350,8 @@
 	     c
 	     (+ 1 skipped-pages)
 	     inset
-             timeout))))
+             timeout
+             aspect))))
 
       (define (slide-error nested string . args)
 	(apply error
@@ -336,7 +363,7 @@
 	       args))
 
       (define (do-slide/title/tall/inset do-add-slide! use-assem? skip-ok? skip-all? process v-sep s 
-                                         inset timeout a-gap-size . x)
+                                         inset timeout aspect a-gap-size . x)
 	;; Check slides:
 	(let loop ([l x][nested null])
 	  (or (null? l)
@@ -370,7 +397,7 @@
                  (add1 skipped)
                  (begin
                    (apply one-slide/title/inset do-add-slide! use-assem? process v-sep skipped s 
-                          inset timeout a-gap-size (reverse r))
+                          inset timeout aspect a-gap-size (reverse r))
                    0))]
             [(memq (car l) '(nothing))
              (loop (cdr l) r comment skip-all? skipped)]
@@ -380,7 +407,7 @@
                                   (add1 skipped)
                                   (begin
                                     (apply one-slide/title/inset do-add-slide! use-assem? process v-sep skipped s 
-                                           inset timeout a-gap-size (reverse r))
+                                           inset timeout aspect a-gap-size (reverse r))
                                     0))])
                  (loop (cdr l) r comment skip-all? skipped)))]
             [(memq (car l) '(alts alts~)) 
@@ -399,13 +426,15 @@
 
       (define slide/kw 
         (let ([slide (lambda (#:title [s #f]
-                                      #:name [name s]
-                                      #:inset [inset zero-inset]
-                                      #:timeout [timeout #f]
-                                      #:layout [layout 'auto]
-                                      #:condense? [condense-this? timeout]
-                                      #:gap-size [a-gap-size (current-gap-size)]
-                                      . body)
+                              #:name [name s]
+                              #:inset [inset zero-inset]
+                              #:timeout [timeout #f]
+                              #:aspect [aspect #f]
+                              #:layout [layout 'auto]
+                              #:condense? [condense-this? timeout]
+                              #:gap-size [a-gap-size (current-gap-size)]
+                              . body)
+                       (check-aspect 'slide aspect)
                        (let ([t (if s
                                     (if (equal? name s)
                                         (if (string? s)
@@ -428,15 +457,17 @@
                                    t
                                    inset
                                    timeout
+                                   aspect
                                    a-gap-size
                                    body)]
                            [else ; center, auto
-                            (apply slide/title/center/inset/timeout/gap 
+                            (apply slide/title/center/inset/timeout/aspect/gap 
                                    (or (not s) (eq? layout 'center))
                                    (and condense? condense-this?)
                                    t
                                    inset 
-                                   timeout 
+                                   timeout
+                                   aspect
                                    a-gap-size
                                    body)]))
                        (void))])
@@ -446,7 +477,7 @@
 	(make-sinset l t r b))
 
       (define (slide/title/tall/inset/gap v-sep s inset . x)
-	(apply do-slide/title/tall/inset do-add-slide! #t #t #f values v-sep s inset #f gap-size x))
+	(apply do-slide/title/tall/inset do-add-slide! #t #t #f values v-sep s inset #f #f gap-size x))
 
       (define (slide/title/tall/inset s inset . x)
 	(apply slide/title/tall/inset/gap gap-size s inset x))
@@ -455,7 +486,7 @@
 	(apply slide/title/tall/inset (make-name-only s) inset x))
 
       (define (slide/title/tall/gap v-sep s timeout . x)
-	(apply do-slide/title/tall/inset do-add-slide! #t #t #f values v-sep s zero-inset timeout gap-size x))
+	(apply do-slide/title/tall/inset do-add-slide! #t #t #f values v-sep s zero-inset timeout #f gap-size x))
 
       (define (slide/title/tall s . x)
 	(apply slide/title/tall/gap gap-size s #f x))
@@ -488,6 +519,9 @@
         (apply slide/title/center/inset/timeout/gap always-center? skip-all? s inset timeout gap-size x))
 
       (define (slide/title/center/inset/timeout/gap always-center? skip-all? s inset timeout a-gap-size . x)
+        (apply slide/title/center/inset/timeout/aspect/gap always-center? skip-all? s inset timeout #f a-gap-size x))
+        
+      (define (slide/title/center/inset/timeout/aspect/gap always-center? skip-all? s inset timeout aspect a-gap-size . x)
 	(let ([max-width 0]
 	      [max-height 0]
 	      [combine (lambda (x)
@@ -497,16 +531,16 @@
 				 x)))])
 	  ;; Run through all the slides once to measure (don't actually create slides):
 	  (apply do-slide/title/tall/inset
-		 (lambda (content title comment page-count inset timeout)
+		 (lambda (content title comment page-count inset timeout aspect)
 		   (set! max-width (max max-width (pict-width content)))
 		   (set! max-height (max max-height (pict-height content))))
 		 #f
 		 #f
                  #f
 		 (lambda (x) (list (combine x)))
-		 0 #f inset timeout a-gap-size x)
+		 0 #f inset timeout aspect a-gap-size x)
           (let ([center? (or always-center?
-                             (max-height . < . (- client-h 
+                             (max-height . < . (- (hash-ref client-hs aspect)
                                                   (* 2
                                                      (+ (* 2 a-gap-size)
                                                         title-h)))))])
@@ -520,14 +554,14 @@
                          (list
                           (cc-superimpose
                            (apply-slide-inset inset (if (and s (not (name-only? s)))
-                                                        titleless-page 
-                                                        full-page))
+                                                        (hash-ref titleless-pages aspect)
+                                                        (hash-ref full-pages aspect)))
                            (ct-superimpose
                             (blank max-width max-height)
                             (combine x)))))
                        values)
                    (if center? 0 (* 2 a-gap-size))
-                   s inset timeout a-gap-size x))))
+                   s inset timeout aspect a-gap-size x))))
 
       (define (slide/name/center/inset s inset . x)
 	(apply slide/title/center/inset (make-name-only s) inset x))
@@ -572,8 +606,7 @@
 	    (let ([orig (sliderec-drawer s)]
 		  [extra (if addition
 			     (make-pict-drawer 
-			      (add-commentary addition
-					      #f))
+			      (add-commentary addition #f (sliderec-aspect s)))
 			     void)])
 	      (lambda (dc x y)
 		(orig dc x y)
@@ -584,14 +617,15 @@
 	    1
 	    (sliderec-inset s)
 	    null
-            (sliderec-timeout s)))
+            (sliderec-timeout s)
+            (sliderec-aspect s)))
 	  (set! page-number (+ page-number 1))))
       
       (define (slide->pict s)
         (unless (sliderec? s)
           (raise-argument-error 'slide->pict "slide?" s))
         (let ([orig (sliderec-drawer s)])
-          (dc orig client-w client-h)))
+          (dc orig (hash-ref client-ws (sliderec-aspect s)) (hash-ref client-hs (sliderec-aspect s)))))
 
       (define (start-at-recent-slide)
 	(viewer:set-init-page! (max 0 (- page-number 2))))
@@ -599,7 +633,8 @@
       (define (done-making-slides)
 	(viewer:done-making-slides))
 
-      (define (make-outline . l)
+      (define (make-outline #:aspect [aspect #f] . l)
+        (check-aspect 'make-outline aspect)
 	(define ah (arrowhead gap-size 0))
 	(define current-item (colorize (hc-append (- (/ gap-size 2)) ah ah) blue))
 	(define other-item (rc-superimpose (ghost current-item) (colorize ah "light gray")))
@@ -619,7 +654,7 @@
 		      [else (loop (to-next l))])))
 	   (blank (+ title-h gap-size))
 	   (lc-superimpose
-	    (blank (current-para-width) 0)
+	    (blank ((hash-ref current-para-widths aspect)) 0)
 	    (let loop ([l l])
 	      (cond
 	       [(null? l) (blank)]
@@ -697,14 +732,22 @@
 				  (cdr a))))))]
 	   [else (loop (cdr l) (cons (car l) a))])))
 
-      (define current-para-width (make-parameter client-w))
+      (define current-para-widths
+        (for/hasheq ([(aspect client-w) (in-hash client-ws)])
+          (values aspect (make-parameter client-w))))
+
+      (define (get-current-para-width #:aspect [aspect #f])
+        (check-aspect 'get-current-para-width aspect)
+        (hash-ref current-para-widths aspect))
 
       (define para/kw
-        (let ([para (lambda (#:width [width (current-para-width)]
-                                     #:align [align 'left]
-                                     #:fill? [fill? #t]
-                                     #:decode? [decode? #t]
-                                     . s)
+        (let ([para (lambda (#:aspect [aspect #f]
+                             #:width [width ((hash-ref current-para-widths aspect))]
+                             #:align [align 'left]
+                             #:fill? [fill? #t]
+                             #:decode? [decode? #t]
+                             . s)
+                      (check-aspect 'para aspect)
                       (let ([p (para*/align (case align
                                               [(right) vr-append]
                                               [(center) vc-append]
@@ -838,7 +881,7 @@
 
 
       (define (page-para*/align v-append . s)
-	(para*/align v-append (current-para-width) s))
+	(para*/align v-append ((hash-ref current-para-widths #f)) s))
 
       (define (page-para* . s)
 	(page-para*/align vl-append s))
@@ -851,7 +894,7 @@
 
 
       (define (page-para/align superimpose v-append . s)
-	(para/align superimpose v-append (current-para-width) s))
+	(para/align superimpose v-append ((hash-ref current-para-widths #f)) s))
 
       (define (page-para . s)
 	(page-para/align lbl-superimpose vl-append s))
@@ -874,17 +917,20 @@
 
       (define item/kw
         (let ([item (lambda (#:gap-size [a-gap-size (current-gap-size)]
-                                        #:bullet [bullet (if (eq? a-gap-size gap-size)
-                                                             bullet
-                                                             (scale bullet (/ a-gap-size gap-size)))]
-                                        #:width [width (current-para-width)]
-                                        #:align [align 'left]
-                                        #:fill? [fill? #t]
-                                        #:decode? [decode? #t]
-                                      . s)
+                             #:bullet [bullet (if (eq? a-gap-size gap-size)
+                                                  bullet
+                                                  (scale bullet (/ a-gap-size gap-size)))]
+                             #:aspect [aspect #f]
+                             #:width [width ((hash-ref current-para-widths aspect))]
+                             #:align [align 'left]
+                             #:fill? [fill? #t]
+                             #:decode? [decode? #t]
+                             . s)
+                      (check-aspect 'item aspect)
                       (htl-append (/ a-gap-size 2)
                                   bullet 
-                                  (para/kw #:width (- width
+                                  (para/kw #:aspect aspect
+                                           #:width (- width
                                                       (pict-width bullet) 
                                                       (/ a-gap-size 2)) 
                                            #:align align
@@ -913,32 +959,35 @@
 			 (blank w 0)))
 
       (define (page-item* . s)
-	(item* (current-para-width) s))
+	(item* ((hash-ref current-para-widths #f)) s))
 
       (define (page-item . s)
-	(item (current-para-width) s))
+	(item ((hash-ref current-para-widths #f)) s))
 
       (define (page-item*/bullet b . s)
-	(item*/bullet b (current-para-width) s))
+	(item*/bullet b ((hash-ref current-para-widths #f)) s))
 
       (define (page-item/bullet b . s)
-	(item/bullet b (current-para-width) s))
+	(item/bullet b ((hash-ref current-para-widths #f)) s))
 
       ;; ----------------------------------------
 
       (define subitem/kw
         (let ([subitem (lambda (#:gap-size [a-gap-size (current-gap-size)]
-                                           #:bullet [bullet (if (eq? gap-size a-gap-size)
-                                                                o-bullet
-                                                                (scale o-bullet (/ a-gap-size gap-size)))]
-                                           #:width [width (current-para-width)]
-                                           #:align [align 'left]
-                                           #:fill? [fill? #t]
-                                           #:decode? [decode? #t]
-                                           . s)
+                                #:bullet [bullet (if (eq? gap-size a-gap-size)
+                                                     o-bullet
+                                                     (scale o-bullet (/ a-gap-size gap-size)))]
+                                #:aspect [aspect #f]
+                                #:width [width ((hash-ref current-para-widths aspect))]
+                                #:align [align 'left]
+                                #:fill? [fill? #t]
+                                #:decode? [decode? #t]
+                                . s)
+                         (check-aspect 'subitem aspect)
                          (inset (htl-append (/ a-gap-size 2)
                                             bullet 
-                                            (para/kw #:width (- width
+                                            (para/kw #:aspect aspect
+                                                     #:width (- width
                                                                 (* 2 a-gap-size)
                                                                 (pict-width bullet) 
                                                                 (/ a-gap-size 2)) 
@@ -964,10 +1013,10 @@
 			 (blank w 0)))
 
       (define (page-subitem* . s)
-	(subitem* (current-para-width) s))
+	(subitem* ((hash-ref current-para-widths #f)) s))
 
       (define (page-subitem . s)
-	(subitem (current-para-width) s))
+	(subitem ((hash-ref current-para-widths #f)) s))
 
       ;; ----------------------------------------
 
@@ -978,10 +1027,10 @@
 	(l-combiner para w l))
 
       (define (page-paras* . l)
-	(l-combiner (lambda (x y) (page-para* y)) (current-para-width) l))
+	(l-combiner (lambda (x y) (page-para* y)) ((hash-ref current-para-widths #f)) l))
 
       (define (page-paras . l)
-	(l-combiner (lambda (x y) (page-para y)) (current-para-width) l))
+	(l-combiner (lambda (x y) (page-para y)) ((hash-ref current-para-widths #f)) l))
 
       ;; ----------------------------------------
 
@@ -992,20 +1041,25 @@
 	(l-combiner item* w l))
 
       (define (page-itemize . l)
-	(l-combiner (lambda (x y) (page-item y)) (current-para-width) l))
+	(l-combiner (lambda (x y) (page-item y)) ((hash-ref current-para-widths #f)) l))
 
       (define (page-itemize* . l)
-	(l-combiner (lambda (x y) (page-item* y)) (current-para-width) l))
+	(l-combiner (lambda (x y) (page-item* y)) ((hash-ref current-para-widths #f)) l))
 
       ;; ----------------------------------------
 
-      (define (size-in-pixels p)
-	(if (not (and (= use-screen-w screen-w)
-		      (= use-screen-h screen-h)))
-	    (scale p 
-		   (/ screen-w use-screen-w)
-		   (/ screen-h use-screen-h))
-	    p))
+      (define (size-in-pixels p #:aspect [aspect #f])
+        (check-aspect 'size-in-pixels aspect)
+        (let ([use-screen-w (hash-ref use-screen-ws aspect)]
+              [use-screen-h (hash-ref use-screen-hs aspect)]
+              [screen-w (hash-ref screen-ws aspect)]
+              [screen-h (hash-ref screen-hs aspect)])
+          (if (not (and (= use-screen-w screen-w)
+                        (= use-screen-h screen-h)))
+              (scale p 
+                     (/ screen-w use-screen-w)
+                     (/ screen-h use-screen-h))
+              p)))
 
       ;; ----------------------------------------
       
@@ -1070,62 +1124,66 @@
       (define scroll-dc (make-object bitmap-dc%))
 
       (define scroll-transition
-	(lambda (x y w h dx dy [duration 0.20] [steps 12])
-	  (add-transition! 'scroll-transition
-			   (lambda (offscreen-dc)
-			     (let* ([steps-done 0]
-				    [xs (/ use-screen-w screen-w)]
-				    [ys (/ use-screen-h screen-h)]
-				    [bcw (send (send offscreen-dc get-bitmap) get-width)]
-				    [bch (send (send offscreen-dc get-bitmap) get-height)]
-				    [mx (- margin (/ (- use-screen-w bcw) 2 xs))]
-				    [my (- margin (/ (- use-screen-h bch) 2 ys))]
-				    [x-space (ceiling (* xs (/ (abs dx) steps)))]
-				    [y-space (ceiling (* ys (/ (abs dy) steps)))]
-				    [x-in (if (positive? dx)
-					      x-space
-					      0)]
-				    [y-in (if (positive? dy)
-					      y-space
-					      0)])
-			       (unless (and scroll-bm
-					    (>= (send scroll-bm get-width) 
-						(+ x-space (* xs w)))
-					    (>= (send scroll-bm get-height) 
-						(+ y-space (* ys h))))
-				 (set! scroll-bm (make-bitmap
-						  (inexact->exact (ceiling (+ x-space (* xs w))))
-						  (inexact->exact (ceiling (+ y-space (* ys h))))))
-				 (if (send scroll-bm ok?)
-				     (send scroll-dc set-bitmap scroll-bm)
-				     (set! scroll-bm #f)))
+	(lambda (x y w h dx dy [duration 0.20] [steps 12] #:aspect [aspect #f])
+          (let ([use-screen-w (hash-ref use-screen-ws aspect)]
+                [use-screen-h (hash-ref use-screen-hs aspect)]
+                [screen-w (hash-ref screen-ws aspect)]
+                [screen-h (hash-ref screen-hs aspect)])
+            (add-transition! 'scroll-transition
+                             (lambda (offscreen-dc)
+                               (let* ([steps-done 0]
+                                      [xs (/ use-screen-w screen-w)]
+                                      [ys (/ use-screen-h screen-h)]
+                                      [bcw (send (send offscreen-dc get-bitmap) get-width)]
+                                      [bch (send (send offscreen-dc get-bitmap) get-height)]
+                                      [mx (- margin (/ (- use-screen-w bcw) 2 xs))]
+                                      [my (- margin (/ (- use-screen-h bch) 2 ys))]
+                                      [x-space (ceiling (* xs (/ (abs dx) steps)))]
+                                      [y-space (ceiling (* ys (/ (abs dy) steps)))]
+                                      [x-in (if (positive? dx)
+                                                x-space
+                                                0)]
+                                      [y-in (if (positive? dy)
+                                                y-space
+                                                0)])
+                                 (unless (and scroll-bm
+                                              (>= (send scroll-bm get-width) 
+                                                  (+ x-space (* xs w)))
+                                              (>= (send scroll-bm get-height) 
+                                                  (+ y-space (* ys h))))
+                                   (set! scroll-bm (make-bitmap
+                                                    (inexact->exact (ceiling (+ x-space (* xs w))))
+                                                    (inexact->exact (ceiling (+ y-space (* ys h))))))
+                                   (if (send scroll-bm ok?)
+                                       (send scroll-dc set-bitmap scroll-bm)
+                                       (set! scroll-bm #f)))
 
-			       (when scroll-bm
-				 (send scroll-dc clear)
-				 (send scroll-dc draw-bitmap-section (send offscreen-dc get-bitmap)
-				       x-in y-in
-				       (* (+ x mx) xs) (* (+ y my) ys)
-				       (* w xs) (* h ys)))
-			       
-			       (lambda (canvas offscreen-dc)
-				 (if (or (not scroll-bm) (= steps-done steps))
-				     'done
-				     (let*-values ([(cw ch) (send canvas get-client-size)])
-				       (let ([xm (- margin (/ (- use-screen-w bcw) 2 xs))]
-					     [ym (- margin (/ (- use-screen-h bch) 2 ys))])
-					 (set! steps-done (add1 steps-done))
-					 (let ([draw
-						(lambda (dc xm ym)
-						  (send dc draw-bitmap-section
-							scroll-bm
-							(- (* (+ x xm (* dx (/ steps-done steps))) xs) x-in)
-							(- (* (+ y ym (* dy (/ steps-done steps))) ys) y-in)
-							0 0 
-							(ceiling (* xs (+ w (/ (abs dx) steps))))
-							(ceiling (* ys (+ h (/ (abs dy) steps))))))])
-					   (draw (send canvas get-dc) xm ym)
-					   (draw offscreen-dc mx my)))
-				       (/ duration steps)))))))))
+                                 (when scroll-bm
+                                   (send scroll-dc clear)
+                                   (send scroll-dc draw-bitmap-section (send offscreen-dc get-bitmap)
+                                         x-in y-in
+                                         (* (+ x mx) xs) (* (+ y my) ys)
+                                         (* w xs) (* h ys)))
+                                 
+                                 (lambda (canvas offscreen-dc)
+                                   (if (or (not scroll-bm) (= steps-done steps))
+                                       'done
+                                       (let*-values ([(cw ch) (send canvas get-client-size)])
+                                         (let ([xm (- margin (/ (- use-screen-w bcw) 2 xs))]
+                                               [ym (- margin (/ (- use-screen-h bch) 2 ys))])
+                                           (set! steps-done (add1 steps-done))
+                                           (let ([draw
+                                                  (lambda (dc xm ym)
+                                                    (send dc draw-bitmap-section
+                                                          scroll-bm
+                                                          (- (* (+ x xm (* dx (/ steps-done steps))) xs) x-in)
+                                                          (- (* (+ y ym (* dy (/ steps-done steps))) ys) y-in)
+                                                          0 0 
+                                                          (ceiling (* xs (+ w (/ (abs dx) steps))))
+                                                          (ceiling (* ys (+ h (/ (abs dy) steps))))))])
+                                             (draw (send canvas get-dc) xm ym)
+                                             (draw offscreen-dc mx my)))
+                                         (/ duration steps))))))))))
 
       (define pause-transition
 	(lambda (time)
