@@ -16,7 +16,7 @@
 (define-accessor full-page slide:get-full-page #:aspect 'fullscreen)
 (define-accessor titleless-page slide:get-titleless-page #:aspect 'fullscreen)
 
-(define current-para-width (get-current-para-width 'fullscreen))
+(define current-para-width (get-current-para-width #:aspect 'fullscreen))
 
 (provide slide
          (all-from-out "../base.rkt")
