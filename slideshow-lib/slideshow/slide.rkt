@@ -8,6 +8,7 @@
            "sig.rkt"
            "core.rkt"
            "private/utils.rkt"
+           "private/aspect.rkt"
            "param.rkt")
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -49,11 +50,12 @@
 
   (define elem/c (flat-rec-contract elem/c (or/c string? pict? (listof elem/c))))
   (define item-contract (() (#:bullet pict?
-                                      #:width real? 
-                                      #:gap-size real?
-                                      #:align (or/c 'left 'center 'right)
-                                      #:fill? any/c 
-                                      #:decode? any/c)
+                             #:aspect aspect?
+                             #:width real?
+                             #:gap-size real?
+                             #:align (or/c 'left 'center 'right)
+                             #:fill? any/c
+                             #:decode? any/c)
                          #:rest elem/c
                          . ->* . pict?))
 
@@ -88,10 +90,11 @@
 		    [slide/name/tall/inset slide/title/inset-contract]
 		    [slide/name/center/inset slide/title/inset-contract]
 		    [comment (() () #:rest (listof (or/c string? pict?)) . ->* . any)]
-                    [para/kw (() (#:width real? 
-                                          #:align (or/c 'left 'center 'right)
-                                          #:fill? any/c 
-                                          #:decode? any/c)
+                    [para/kw (() (#:aspect aspect?
+                                  #:width real?
+                                  #:align (or/c 'left 'center 'right)
+                                  #:fill? any/c
+                                  #:decode? any/c)
                               #:rest elem/c
                              . ->* . pict?)]
                     [item/kw item-contract]
