@@ -51,6 +51,7 @@
     (define use-prefetch? #t)
     (define use-prefetch-in-preview? #f)
     (define print-target #f)
+    (define print-not-paper? #f)
     (define smoothing? #t)
     (define screen-number 0)
     (define right-half-screen? #f)
@@ -102,6 +103,8 @@
          (set! printing-mode 'pdf))
         (("-o") file "set output file for PostScript or PDF printing"
          (set! print-target file))
+        (("-e" "--not-paper") "use slide as PostScript/PDF/print bounding box"
+         (set! print-not-paper? #t))
         (("-c" "--condense") "condense"
          (set! condense? #t))
         (("-x" "--export") "short for `--pdf -c -o <slide-module-file-without-suffix>.pdf`"
@@ -206,6 +209,11 @@
     (when (and (not printing-mode) zero-margins?)
       (raise-user-error 'slideshow "The --zero and -z flags may be used only when printing"))
 
+    (define-values (print-w print-h)
+      (if print-not-paper?
+          (values (hash-ref screen-ws #f) (hash-ref screen-hs #f))
+          (values #f #f)))
+
     (dc-for-text-size
      (if printing-mode
          (let ([p (let ([pss (make-object ps-setup%)])
@@ -227,7 +235,12 @@
                                                           suffix))
                                     (format "untitled.~a" suffix)))))
                     (when zero-margins? (send pss set-margin 0 0))
-                    (send pss set-orientation 'landscape)
+                    (send pss set-orientation (if print-not-paper?
+                                                  'portrait
+                                                  'landscape))
+                    (when print-not-paper?
+                      (send pss set-scaling 1.0 1.0)
+                      (send pss set-margin 0 0))
                     (parameterize ([current-ps-setup pss])
                       (case printing-mode
                         [(print)
@@ -237,16 +250,30 @@
                              (if v
                                  (send pss copy-from v)
                                  (exit))))
-                         (make-object printer-dc% #f)]
-                        [(ps)
-                         (make-object post-script-dc% (not print-target) #f #t #f)]
-                        [(pdf)
-                         (make-object pdf-dc% (not print-target) #f #t #f)])))])
+                         (new printer-dc%
+                              [interactive #f]
+                              [use-paper-bbox (not (or print-target
+                                                       print-not-paper?))]
+                              [width print-w]
+                              [height print-h])]
+                        [else
+                         (new (case printing-mode
+                                [(ps) post-script-dc%]
+                                [else pdf-dc%])
+                              [interactive (not (or print-target
+                                                    print-not-paper?))]
+                              [use-paper-bbox (not print-not-paper?)]
+                              [as-eps #f]
+                              [width print-w]
+                              [height print-h])])))])
            ;; Init page, set "screen" size, etc.:
            (unless (send p ok?) (exit))
            (send p start-doc "Slides")
            (send p start-page)
-           (set!-values (actual-screen-w actual-screen-h) (send p get-size))
+           (set!-values (actual-screen-w actual-screen-h)
+                        (if print-not-paper?
+                            (values print-w print-h)
+                            (send p get-size)))
            p)
 
          ;; Bitmaps give same size as the screen:

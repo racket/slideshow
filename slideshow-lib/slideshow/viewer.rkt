@@ -135,8 +135,9 @@
 	     (mcar (car talk-slide-reverse-cell-list))))
 
       (define (set-init-page! p)
-	(set! current-page p)
-	(refresh-page))
+	(unless config:printing?
+          (set! current-page p)
+          (refresh-page)))
 
       (define (viewer:set-use-background-frame! on?)
 	(set! use-background-frame? (and on? #t)))
