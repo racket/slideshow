@@ -267,8 +267,9 @@
               (define-values (dx dy) (get-display-left-top-inset))
               (define scales (for/hasheq ([(aspect use-screen-w) (in-hash config:use-screen-ws)])
                                (define use-screen-h (hash-ref config:use-screen-hs aspect))
-                               (min (/ w use-screen-w)
-                                    (/ h use-screen-h))))
+                               (values aspect
+                                       (min (/ w use-screen-w)
+                                            (/ h use-screen-h)))))
               (set!-values (current-use-screen-ws current-use-screen-hs)
                            (values
                             (for/hasheq ([(aspect use-screen-w) (in-hash config:use-screen-ws)])
