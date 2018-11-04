@@ -643,51 +643,58 @@
             (if (and (pair? l) (number? (car l)))
                 (cdr l)
                 l)))
-	(lambda (which)
-	  (slide/name
-	   (format "--~a--"
-		   (let loop ([l l])
-		     (cond
-		      [(null? l) "<unknown>"]
-		      [(eq? (car l) which)
-		       (cadr l)]
-		      [else (loop (to-next l))])))
-	   (blank (+ title-h gap-size))
-	   (lc-superimpose
-	    (blank ((hash-ref current-para-widths aspect)) 0)
-	    (let loop ([l l])
-	      (cond
-	       [(null? l) (blank)]
-	       [else
-		(let ([current? (or (eq? which (car l)) 
-				    (and (list? (car l))
-					 (memq which (car l))))])
-		  (vc-append
-                   gap-size
-		   (page-para
-		    (hbl-append
-		     (quotient gap-size 2)
-		     (if current?
-			 current-item
-			 other-item)
-		     (let ([p (cadr l)])
-		       (if (pict? p)
-			   p
-			   (bt p)))))
-		   (let* ([rest (let ([p (loop (to-next l))]
-                                      [l (cdddr l)])
-                                  (if (and (pair? l) (number? (car l)))
-                                      (inset p 0 (car l) 0 0)
-                                      p))]
-                          [sub-items (caddr l)])
-		     (if (and current?
-			      sub-items
-			      (not (null? sub-items)))
-			 (vc-append
-			  gap-size
-			  (sub-items which)
-			  rest)
-			 rest))))]))))
+        (lambda (which)
+          (do-slide/title/tall/inset
+           do-add-slide! #t #t #f values
+           (* 2 gap-size) ;; v-sep
+           (make-name-only
+            (format "--~a--"
+                    (let loop ([l l])
+                      (cond
+                        [(null? l) "<unknown>"]
+                        [(eq? (car l) which)
+                         (cadr l)]
+                        [else (loop (to-next l))]))))
+           zero-inset
+           #f ;; timeout
+           aspect
+           gap-size
+           (blank (+ title-h gap-size))
+           (lc-superimpose
+            (blank ((hash-ref current-para-widths aspect)) 0)
+            (let loop ([l l])
+              (cond
+                [(null? l) (blank)]
+                [else
+                 (let ([current? (or (eq? which (car l)) 
+                                     (and (list? (car l))
+                                          (memq which (car l))))])
+                   (vc-append
+                    gap-size
+                    (page-para
+                     (hbl-append
+                      (quotient gap-size 2)
+                      (if current?
+                          current-item
+                          other-item)
+                      (let ([p (cadr l)])
+                        (if (pict? p)
+                            p
+                            (bt p)))))
+                    (let* ([rest (let ([p (loop (to-next l))]
+                                       [l (cdddr l)])
+                                   (if (and (pair? l) (number? (car l)))
+                                       (inset p 0 (car l) 0 0)
+                                       p))]
+                           [sub-items (caddr l)])
+                      (if (and current?
+                               sub-items
+                               (not (null? sub-items)))
+                          (vc-append
+                           gap-size
+                           (sub-items which)
+                           rest)
+                          rest))))]))))
           (void)))
 
       (define (comment . s) 
