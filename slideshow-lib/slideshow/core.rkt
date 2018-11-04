@@ -671,7 +671,8 @@
                                           (memq which (car l))))])
                    (vc-append
                     gap-size
-                    (page-para
+                    (para
+                     ((hash-ref current-para-widths aspect))
                      (hbl-append
                       (quotient gap-size 2)
                       (if current?
