@@ -571,11 +571,11 @@ title. The default is @racket["black"].}
 
 Parameter whose value is a function for assembling slide content into
 a single pict; the assembling function takes a string for the title
-(or @racket[#f]), a separation for the title (if any) and pict, and a
+(or @racket[#f]), a separation for the title (if any), and a
 pict for the slide content (not counting the title).
 
-The result is of the assembler is @racket[ct-superimpose]d with the
-client area, but the result pict might draw outside the client region
+The result of the assembler is @racket[ct-superimpose]d with the
+client area, but the resulting pict might draw outside the client region
 to paint the screen margins, too.
 
 The default assembler uses @racket[titlet] to turn a title string (if
