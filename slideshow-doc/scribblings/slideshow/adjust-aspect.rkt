@@ -13,7 +13,7 @@
         (define from-base @racket[proc])))
     (define-it from-base)
     @defthing[proc procedure?]{
-         The same as @from-base frmo @racketmodname[slideshow/base], but with @racket[def] as the default
+         The same as @from-base from @racketmodname[slideshow/base], but with @racket[def] as the default
          value of the @racket[#:aspect] argument.}))
 
 (define-syntax-rule (define-aspect-select id get-id def)
