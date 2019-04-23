@@ -145,6 +145,13 @@
       (define o-bullet (baseless
 			(cc-superimpose (circle (/ gap-size 2)) 
 					(blank 0 gap-size))))
+      (define nitem-start-num 0) ;; start at 0 so that the first number is 1
+      (define (make-nitem-counter)
+        (let ([n nitem-start-num])
+          (lambda ()
+            (set! n (add1 n))
+            n)))
+      (define nitem-counter (make-nitem-counter))
 
 
       (define margin 20)
@@ -435,6 +442,7 @@
                               #:gap-size [a-gap-size (current-gap-size)]
                               . body)
                        (check-aspect 'slide aspect)
+                       (set! nitem-counter (make-nitem-counter)) ;; reset the number counter
                        (let ([t (if s
                                     (if (equal? name s)
                                         (if (string? s)
@@ -946,6 +954,29 @@
                                            #:decode? decode?
                                            s)))])
           item))
+      (define nitem/kw
+        (let ([nitem (lambda (#:gap-size [a-gap-size (current-gap-size)]
+                              #:number [number (nitem-counter)]
+                              #:separator [separator "."]
+                              #:aspect [aspect #f]
+                              #:width [width ((hash-ref current-para-widths aspect))]
+                              #:align [align 'left]
+                              #:fill? [fill? #t]
+                              #:decode? [decode? #t]
+                              . s)
+                       (check-aspect 'item aspect)
+                       (htl-append (/ a-gap-size 2)
+                                   (para/kw #:aspect aspect
+                                            #:width (- width
+                                                       (pict-width bullet)
+                                                       (/ a-gap-size 2))
+                                            #:align align
+                                            #:fill? fill?
+                                            #:decode? decode?
+                                            (number->string number)
+                                            separator
+                                            s)))])
+          nitem))
 
       (define (item*/bullet bullet w . s)
 	(htl-append (/ gap-size 2)

@@ -58,6 +58,16 @@
                              #:decode? any/c)
                          #:rest elem/c
                          . ->* . pict?))
+  (define nitem-contract (() (#:number integer?
+                              #:separator string?
+                              #:width real?
+                              #:gap-size real?
+                              #:align (or/c 'left 'center 'right)
+                              #:fill? any/c
+                              #:decode? any/c)
+                             #:rest elem/c
+                             . ->* . pict?))
+
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;                 Exports                       ;;
@@ -98,6 +108,7 @@
                               #:rest elem/c
                              . ->* . pict?)]
                     [item/kw item-contract]
+                    [nitem/kw nitem-contract]
                     [subitem/kw item-contract]
                     [t (string? . -> . pict?)]
                     [bt (string? . -> . pict?)]
