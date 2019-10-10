@@ -593,18 +593,16 @@
      "blue")))
 
 (define (run-example-talk f)
-  (let ([c (make-custodian)])
+  (let ([c (make-custodian)]
+        [f/full-path (collection-file-path f "slideshow" "examples")])
     (parameterize ([current-namespace (make-gui-namespace)]
                    [current-command-line-arguments
-                    (vector (path->string
-                             (build-path (collection-path "slideshow")
-                                         "examples"
-                                         f)))]
+                    (vector (path->string f/full-path))]
                    [current-custodian c]
                    [exit-handler (lambda (v)
                                    (custodian-shutdown-all c))]
-                   [current-directory (build-path (collection-path "slideshow")
-                                                  "examples")])
+                   [current-directory (let-values ([(base name dir?) (split-path f/full-path)])
+                                        base)])
       (parameterize ([current-eventspace (make-eventspace)])
         (queue-callback
          (lambda () (dynamic-require 'slideshow/start #f)))))))
