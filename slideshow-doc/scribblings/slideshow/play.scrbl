@@ -26,7 +26,7 @@ corresponds to an animation that fades in the word ``Hello.''
 @section{Generating Animated Slides}
 
 @defproc[(play [gen ((real-in 0.0 1.0) . -> . pict?)]
-               [#:steps steps exact-positive-integer? 10]
+               [#:steps steps exact-positive-integer? (current-play-steps)]
                [#:delay delay-secs real? 0.05]
                [#:skip-first? skip-first? any/c #f]
                [#:title title (or/c string? pict? #f 
@@ -71,7 +71,7 @@ slide that would be registered with a timeout is instead skipped.}
                               (λ (x) (number? (procedure-arity x))))]
                  [#:steps steps (list*of exact-positive-integer?
                                          (or/c exact-positive-integer? '()))
-                          10]
+                          (current-play-steps)]
                  [#:delay delay-secs real? 0.05]
                  [#:skip-first? skip-first? any/c #f]
                  [#:skip-last? skip-last? any/c #f]
@@ -144,3 +144,9 @@ and @racket['alts] and produces a procedure suitable for use with
 with fades for @racket['next] and @racket['alts] transitions (to
 better fit the style, perhaps, of surrounding animations).}
 
+@defparam[current-play-steps n exact-positive-integer?]{
+
+A parameter that determines the default number of steps used for a
+slide animation. The parameter's initial value is @racket[10].
+
+@history[#:added "1.6"]}

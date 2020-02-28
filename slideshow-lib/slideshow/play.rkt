@@ -42,7 +42,8 @@
                               (-> (real-in 0.0 1.0) (or/c string? #f)))
                         #:layout (or/c 'auto 'center 'top 'tall)
                         #:comments (list*of comment? (or/c comment? #f '())))
-                       void?)]))
+                       void?)])
+         current-play-steps)
 
 (define (fail-gracefully t)
   (with-handlers ([exn:fail? (lambda (x) (values 0 0))])
@@ -53,13 +54,20 @@
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Animation player
 
+(define current-play-steps
+  (make-parameter 10
+                  (lambda (v)
+                    (unless (exact-positive-integer? v)
+                      (raise-argument-error 'current-play-steps "exact-positive-integer?" v))
+                    v)))
+
 ;; Create a slide sequence where `mid' takes a number from 0.0 to 1.0.
 ;; The 0.0 slide will wit until you advance, but the remaining ones will
 ;; time out automatically to create the animation.
 (define (play #:title [title #f]
               #:name [name title]
               #:layout [layout 'auto] 
-              #:steps [N 10]
+              #:steps [N (current-play-steps)]
               #:delay [secs 0.05]
               #:skip-first? [skip-first? #f]
               #:comment [comment #f]
@@ -93,7 +101,7 @@
 (define (play-n #:title [title #f] 
                 #:name [name title] 
                 #:layout [layout 'auto]
-                #:steps [N 10]
+                #:steps [N (current-play-steps)]
                 #:delay [secs 0.05]
                 #:skip-last? [skip-last? #f]
                 #:skip-first? [skip-first? #f]
