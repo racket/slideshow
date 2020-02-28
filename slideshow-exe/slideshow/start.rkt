@@ -67,6 +67,9 @@
 			      (error 'slideshow
 				     "slide program attempted to make a network connection")))))
     (define content-path (path->complete-path content))
+    (let ([configure `(submod ,content-path configure-runtime)])
+      (when (module-declared? configure #t)
+        (dynamic-require configure #f)))
     (dynamic-require content-path #f)
     (ormap (lambda (sm)
              (define submod-path `(submod ,content-path ,sm))
