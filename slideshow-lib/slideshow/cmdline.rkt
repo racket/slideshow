@@ -32,6 +32,7 @@
 
     (define condense? #f)
     (define printing-mode #f)
+    (define progress-mode #f)
     (define commentary? #f)
     (define commentary-on-slide? #f)
     (define show-gauge? #f)
@@ -175,6 +176,11 @@
         (("--time") "time seconds per slide" (set! print-slide-seconds? #t))
         (("--elapsed-time") "show an elapsed timer on the preview window" (set! show-elapsed-time? #t))
         (("--clock") "show clock" (set! show-time? #t))
+        #:once-any
+        (("--progress-text") "report printing progress via stdout instead of a GUI window"
+         (set! progress-mode 'text))
+        (("--progress-none") "do not report printing progress"
+         (set! progress-mode 'none))
         #:ps
         "After requiring <slide-module-file>, if a `slideshow' submodule exists,"
         " it is required. Otherwise, if a `main' submodule exists, it is required."
@@ -208,6 +214,13 @@
 
     (when (and (not printing-mode) zero-margins?)
       (raise-user-error 'slideshow "The --zero and -z flags may be used only when printing"))
+
+    (when (and (not printing-mode) progress-mode)
+      (raise-user-error 'slideshow
+                        "The --progress-~a flag may be used only when printing"
+                        progress-mode))
+    (when (not progress-mode)
+      (set! progress-mode (if printing-mode 'gui 'none)))
 
     (dc-for-text-size
      (if printing-mode

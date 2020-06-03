@@ -110,7 +110,7 @@
 	(set! given-slide-count (add1 given-slide-count))
 	(given->main!)
 	(if config:printing?
-	    (send progress-display set-label (number->string slide-count))
+	    (report-progress)
 	    (begin
 	      (send f slide-changed (sub1 slide-count))
 	      (when (and target-page (= target-page (sub1 slide-count)))
@@ -1564,34 +1564,53 @@
 	      (send ps-dc end-page)
 	      (loop #t (cdr l) (add1 n))))
 	  (parameterize ([current-security-guard original-security-guard])
-	    (send ps-dc end-doc))
-	  (exit)))
+	    (send ps-dc end-doc))))
 
       ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                Progress for Print             ;;
       ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-      (define-values (progress-window progress-display)
-	(if config:printing?
-	    (parameterize ([current-eventspace (make-eventspace)])
-	      (let* ([f (make-object (class frame%
-				       (define/augment (on-close) (exit))
-				       (super-instantiate ()))
-				     "Progress")]
-		     [h (instantiate horizontal-panel% (f)
-				     (stretchable-width #f)
-				     (stretchable-height #f))])
-		(make-object message% "Building slide: " h)
-		(let ([d (make-object message% "0000" h)])
-		  (send d set-label "1")
-		  (send f center)
-		  (send f show #t)
-		  (values f d))))
-	    (values #f #f)))
+      (define report-progress
+        (case config:progress-mode
+          [(none) void]
+
+          [(text)
+           (lambda ()
+             (printf "\rBuilding slide ~a..." slide-count)
+             (flush-output))]
+
+          [(gui)
+           (parameterize ([current-eventspace (make-eventspace)])
+             (define frame (make-object (class frame%
+                                          (define/augment (on-close) (exit))
+                                          (super-instantiate ()))
+                             "Progress"))
+             (define panel (instantiate horizontal-panel% (frame)
+                             (stretchable-width #f)
+                             (stretchable-height #f)))
+             (make-object message% "Building slide: " panel)
+
+             (define display (make-object message% "0000" panel))
+             (send display set-label "1")
+             (send frame center)
+             (send frame show #t)
+             
+             (lambda ()
+               (send display set-label (number->string slide-count))))]))
 
       (define (viewer:done-making-slides)
 	(when config:printing?
-	  (do-print)))
+          (when (eq? config:progress-mode 'text)
+            (displayln " done.")
+            (display "Printing slides...")
+            (flush-output))
+
+          (do-print)
+
+          (when (eq? config:progress-mode 'text)
+            (displayln " done."))
+
+          (exit)))
 
       (when config:printing?
         ;; Just before exiting normally, print the slides:

@@ -118,6 +118,7 @@
      use-prefetch?
      use-prefetch-in-preview?
      print-target
+     progress-mode
      talk-duration-minutes
      screen-number
      letterbox-color)))
