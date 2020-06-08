@@ -1193,6 +1193,12 @@
                            (/ (- ch ush) 2)
                            usw ush))))))
 
+    (define (maybe-set-smoothing dc)
+      (when config:smoothing?
+        ; When printing, there is no known pixel grid, so 'aligned drawing
+        ; doesn't make sense; see racket/draw#26.
+        (send dc set-smoothing (if config:printing? 'smoothed 'aligned))))
+
       (define paint-slide
 	(case-lambda
 	 [(canvas dc) (paint-slide canvas dc current-page)]
@@ -1221,8 +1227,7 @@
 		 [my (/ (- ch ush) 2)])
 	    (define clip-rgn (paint-letterbox dc cw ch usw ush #t))
 
-            (when config:smoothing?
-              (send dc set-smoothing 'aligned))
+            (maybe-set-smoothing dc)
             (send dc set-scale (* extra-scale-x sx) (* extra-scale-y sy))
 
 	    ;; Draw the slide
@@ -1339,8 +1344,9 @@
       (define c-both (make-object two-c% f-both))
 
       (define (viewer:pict->pre-render-pict p)
-        (case (system-type)
-          [(macosx)
+        (cond
+          [(and (not config:printing?)
+                (eq? (system-type) 'macosx))
            (let ([bm (send c make-bitmap
                            (inexact->exact (ceiling (pict-width p)))
                            (inexact->exact (ceiling (pict-height p))))])
@@ -1529,8 +1535,7 @@
 
       (define (do-print)
 	(let ([ps-dc (dc-for-text-size)])
-	  (when config:smoothing?
-	    (send ps-dc set-smoothing 'aligned)) ; for printer-dc%
+          (maybe-set-smoothing ps-dc) ; for printer-dc%
 	  (let loop ([start? #f][l (list-tail talk-slide-list current-page)][n current-page])
 	    (unless (null? l)
 	      (set! current-page n)
