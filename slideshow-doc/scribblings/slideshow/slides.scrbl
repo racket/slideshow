@@ -489,7 +489,7 @@ the title area in @racket['top] layout mode, which is like
 
 Produces a number that corresponds to the current margin, which
 surrounds every side of the slide. The client area for a slide
-corresponds to the display area (which is always 1024 by 768) minus
+corresponds to the display area (which is either 1024 by 768 or 1360 by 766) minus
 this margin on each side. The default margin is @racket[20].
 
 The margin can be adjusted via @racket[set-margin!].}

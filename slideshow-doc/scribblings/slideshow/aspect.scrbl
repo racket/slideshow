@@ -3,7 +3,7 @@
 
 @title[#:tag "aspect"]{Fullscreen vs. Widescreen Aspect Ratio}
 
-Fullscreen (4:3) versus widescreen (16:9) aspect mode is a property of
+Fullscreen (4:3, 1024 by 768) versus widescreen (16:9,  1360 by 766) aspect mode is a property of
 an individual slide that can be selected using the @racket[#:aspect]
 argument to @racket[slide]. The @racketmodname[slideshow/widescreen]
 language provides a variant of @racket[slide] that makes
