@@ -740,3 +740,4 @@ mode.
 If @racket[stop-after] is not @racket[#f], then the list is truncated
 after @racket[stop-after] slides are converted to picts.}
 
+@include-section["plt-title-background.scrbl"]

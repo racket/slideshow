@@ -9,6 +9,7 @@
                      "scribble-doc"
                      "web-server-doc"
                      "base"
+                     "draw-lib"
                      "gui-lib"
                      "pict-lib"
                      "scribble-lib"
