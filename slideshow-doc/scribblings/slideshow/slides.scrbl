@@ -570,17 +570,17 @@ title. The default is @racket["black"].}
                                         pict?)]{
 
 Parameter whose value is a function for assembling slide content into
-a single pict; the assembling function takes a string for the title
-(or @racket[#f]), a separation for the title (if any), and a
-pict for the slide content (not counting the title).
+a single pict. An assembling function takes: a title, a vertical space amount,
+and a pict for the slide content (not counting the title).
+
+The default assembler uses @racket[titlet] to turn a title string (if
+any) to a pict and uses the vertical space to put the title pict above
+the slide content. See also @racket[current-titlet] and
+@racket[set-title-h!].
 
 The result of the assembler is @racket[ct-superimpose]d with the
 client area, but the resulting pict might draw outside the client region
 to paint the screen margins, too.
-
-The default assembler uses @racket[titlet] to turn a title string (if
-any) to a pict. See also @racket[current-titlet] and
-@racket[set-title-h!].
 
 The slide assembler is @emph{not} responsible for adding page
 numbers to the slide; that job belongs to the viewer. See also
