@@ -16,7 +16,7 @@
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ;; The actual config and viewer units are determined by a parameter
-  ;;  in "param.rkt". This somewhat strange technqiue allows the units
+  ;;  in "param.rkt". This somewhat strange technique allows the units
   ;;  to be changed as this module is loaded in a new namespace; see
   ;;  "slides-to-picts.rkt". Such namespace games are not necessary if
   ;;  talks are written as units and linked to the core.rkt unit.
