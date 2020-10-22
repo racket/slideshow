@@ -3,6 +3,7 @@
            scheme/unit
            scheme/file
            racket/draw
+           racket/match
            texpict/mrpict
            texpict/utils
            scheme/math
@@ -363,12 +364,12 @@
 	       args))
 
       (define (do-slide/title/tall/inset do-add-slide! use-assem? skip-ok? skip-all? process v-sep s 
-                                         inset timeout aspect a-gap-size . x)
+                                         inset timeout aspect a-gap-size . input-with-convertibles)
 	;; Check slides:
-	(let loop ([l x][nested null])
+	(let loop ([l input-with-convertibles][nested null])
 	  (or (null? l)
 	      (cond
-	       [(pict? (car l)) (loop (cdr l) nested)]
+	       [(pict-convertible? (car l)) (loop (cdr l) nested)]
 	       [(just-a-comment? (car l)) (loop (cdr l) nested)]
 	       [(memq (car l) '(next next!)) (and (or (pair? l) 
 						      (slide-error nested "argument sequence contains 'next at end"))
@@ -388,9 +389,15 @@
 	       [(eq? (car l) 'nothing) (loop (cdr l) nested)]
 	       [else #f])
 	      (slide-error nested "argument sequence contains a bad element: ~e" (car l))))
-
+        (define input-without-convertibles
+          (let loop ([x input-with-convertibles])
+            (match x
+              [(cons a b) (cons (loop a) (loop b))]
+              [(? pict?) x]
+              [(? pict-convertible?) (pict-convert x)]
+              [else x])))
         (skip-slides
-         (let loop ([l x][r null][comment #f][skip-all? skip-all?][skipped 0])
+         (let loop ([l input-without-convertibles][r null][comment #f][skip-all? skip-all?][skipped 0])
            (cond
             [(null? l) 
              (if skip-all?

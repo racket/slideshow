@@ -29,7 +29,7 @@
                 [#:timeout secs (or/c #f real?) #f]
                 [#:condense? condense? any/c (and secs #t)]
                 [element (flat-rec-contract elem/c
-                           (or/c pict? 
+                           (or/c pict-convertible?
                                 'next 'next! 'alts 'alts~ 'nothing
                                 comment?
                                 (listof (listof elem/c))))] ...)
