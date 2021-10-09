@@ -14,3 +14,6 @@
 (define pkg-desc "Slide-presentation tool")
 
 (define pkg-authors '(mflatt robby))
+
+(define license
+  '(Apache-2.0 OR MIT))
