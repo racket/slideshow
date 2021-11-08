@@ -1302,6 +1302,10 @@
 	  (when (send prefetch-bitmap ok?)
 	    (send prefetch-dc set-bitmap prefetch-bitmap)))
 
+        ;; handle potential aspect change:
+        (unless (eq? (send prefetch-dc get-bitmap) prefetch-bitmap)
+          (send prefetch-dc set-bitmap prefetch-bitmap))
+
 	(when (send prefetch-dc ok?)
 	  (send prefetch-dc clear)
 	  (let ([old-click-regions click-regions]
