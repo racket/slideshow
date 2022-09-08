@@ -24,6 +24,7 @@
                       #:title 	
                       (or/c string? pict? #f
                             (-> (real-in 0.0 1.0) (or/c string? pict? #f)))
+                      #:aspect aspect?
                       #:name
                       (or/c string? #f
                             (-> (real-in 0.0 1.0) (or/c string? #f)))
@@ -37,6 +38,7 @@
                         #:title 	
                         (or/c string? pict? #f
                               (-> (real-in 0.0 1.0) (or/c string? pict? #f)))
+                        #:aspect aspect?
                         #:name
                         (or/c string? #f
                               (-> (real-in 0.0 1.0) (or/c string? #f)))
@@ -71,11 +73,13 @@
               #:delay [secs 0.05]
               #:skip-first? [skip-first? #f]
               #:comment [comment #f]
+              #:aspect [aspect #f]
               mid)
   (unless skip-first?
     (slide #:title (if (procedure? title) (title 0) title) 
            #:name (if (procedure? name) (name 0) name)
            #:layout layout
+
            (or comment 'nothing)
            (mid 0)))
   (if condense?
@@ -91,6 +95,7 @@
                #:name (if (procedure? name) (name n) name)
                #:layout layout
                #:timeout secs
+               #:aspect aspect
                (mid n)))))
 
 ;; Create a sequences of N `play' sequences, where `mid' takes
@@ -106,6 +111,7 @@
                 #:skip-last? [skip-last? #f]
                 #:skip-first? [skip-first? #f]
                 #:comments [comments #f]
+                #:aspect [aspect #f]
                 mid)
   (let ([n (procedure-arity mid)])
     (let loop ([post (vector->list (make-vector n))]
@@ -118,6 +124,7 @@
             (slide #:title (if (procedure? title) (apply title pre) title)
                    #:name (if (procedure? name) (apply name pre) name)
                    #:layout layout
+                   #:aspect aspect
                    (cond
                      [(or (null? comments) (not comments)) 'nothing]
                      [(pair? comments) (car comments)]
@@ -140,6 +147,7 @@
                                      (car comments)
                                      comments))
                   #:skip-first? skip?
+                  #:aspect aspect
                   (lambda (n)
                     (apply mid (append pre (list n) (cdr post)))))
             (loop (cdr post) (cons 1.0 pre) #f (if (pair? Ns) (cdr Ns) Ns)
