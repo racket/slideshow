@@ -41,7 +41,7 @@ corresponds to an animation that fades in the word ``Hello.''
          void?]{
 
 Generates @math{@racket[steps]+1} slides by calling @racket[gen] on
-equally-spaced values from @racket[0.0] (inclusve) to @racket[1.0]
+equally-spaced values from @racket[0.0] (inclusive) to @racket[1.0]
 (exclusive). Except for the first of the slides, each slide has a
 timeout of @racket[delay-secs], so that the next slide appears
 automatically.
