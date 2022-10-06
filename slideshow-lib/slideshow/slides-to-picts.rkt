@@ -12,12 +12,16 @@
   (define-namespace-anchor anchor)
 
   (define get-slides-as-picts
-    (lambda (file w h c? [stop-after #f])
+    (lambda (file w h c? [stop-after #f]
+                  #:aspect [aspect (if (< (abs (- (/ w h) (/ 1360 766)))
+                                          (abs (- (/ w h) (/ 1024 768))))
+                                       'widescreen
+                                       'fullscreen)])
       (let ([ns (make-base-namespace)]
 	    [orig-ns (namespace-anchor->empty-namespace anchor)]
 	    [slides null]
-	    [xs (/ w 1024)]
-	    [ys (/ h 768)]
+            [xs (/ w (if (eq? aspect 'widescreen) 1360 1024))]
+	    [ys (/ h (if (eq? aspect 'fullscreen) 766 768))]
 	    [escape void])
 	(parameterize ([current-namespace ns])
 	  (namespace-attach-module orig-ns 'slideshow/param)
@@ -31,8 +35,10 @@
                                           (import)
                                           (export config^)
                                           (define base-font-size 32)
-                                          (define screen-ws #hasheq((#f . 1024) (fullscreen . 1024) (widescreen . 1360)))
-                                          (define screen-hs #hasheq((#f .  768) (fullscreen .  768) (widescreen .  766)))
+                                          (define base-screen-ws #hasheq((fullscreen . 1024) (widescreen . 1360)))
+                                          (define base-screen-hs #hasheq((fullscreen .  768) (widescreen .  766)))
+                                          (define screen-ws (hash-set base-screen-ws #f (hash-ref base-screen-ws aspect)))
+                                          (define screen-hs (hash-set base-screen-hs #f (hash-ref base-screen-hs aspect)))
                                           (define (all-aspects v)
                                             (for/hasheq ([aspect (in-hash-keys screen-ws)])
                                               (values aspect v)))
@@ -79,10 +85,24 @@
 	(map (lambda (s)
 	       (let ([drawer (sliderec-drawer (car s))]
                      [margin (cadr s)])
-		 (dc (lambda (dc x y)
-		       (let-values ([(orig-xs orig-ys) (send dc get-scale)])
-			 (send dc set-scale (* orig-xs xs) (* orig-ys ys))
-			 (drawer dc (+ (/ x xs) margin) (+ (/ y ys) margin))
-			 (send dc set-scale orig-xs orig-ys)))
-		     w h 0 0)))
+                 (define-values (dcw dch dcx dcy ms)
+                   (cond
+                     [(or (not (sliderec-aspect (car s)))
+                          (eq? aspect (sliderec-aspect (car s))))
+                      (values w h 0 0 1)]
+                     [(eq? aspect 'widescreen)
+                      (let ([dcw (* w 1024/1360 1.0)])
+                        (values dcw h (* 0.5 (- w dcw)) 0 1))]
+                     [else
+                      (let ([dch (* h 1024/1360 1.0)])
+                        (values w dch 0 (* 0.5 (- h dch)) (/ dch h)))]))
+                 (inset (dc (lambda (dc x y)
+                              (let-values ([(orig-xs orig-ys) (send dc get-scale)]
+                                           [(xs) (* xs ms)]
+                                           [(ys) (* ys ms)])
+                                (send dc set-scale (* orig-xs xs) (* orig-ys ys))
+                                (drawer dc (+ (/ x xs) margin) (+ (/ y ys) margin))
+                                (send dc set-scale orig-xs orig-ys)))
+                            dcw dch 0 0)
+                        dcx dcy)))
 	     (reverse slides))))))

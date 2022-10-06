@@ -728,15 +728,22 @@ of whether the name of the last @racket[id] name ends in @litchar{~}).
                               [width real?]
                               [height real?]
                               [condense? any/c]
-                              [stop-after (or/c #f exact-nonnegative-integer?) #f])
+                              [stop-after (or/c #f exact-nonnegative-integer?) #f]
+                              [#:aspect aspect (or/c 'fullscreen 'widescreen) _inferred-aspect])
          (listof pict?)]{
 
 Executes the Slideshow program indicated by @racket[path] in a fresh
 namespace, and returns a list of picts for the slides. Each pict has
 the given @racket[width] and @racket[height], and @racket[condense?]
-determines whether the Slideshow program is executed in condense
-mode.
+determines whether the Slideshow program is executed in condense mode.
+
+The @racket[aspect] argument indicates which kinds of slides should
+full the @racket[width] be @racket[height] area, and slides in the
+other aspect are scaled to fit; the default for @racket[aspect] is
+inferred from @racket[width] and @racket[height]. The @racket[aspect]
+argument also sets the default aspect while loading @racket[path].
 
 If @racket[stop-after] is not @racket[#f], then the list is truncated
-after @racket[stop-after] slides are converted to picts.}
+after @racket[stop-after] slides are converted to picts.
 
+@history[#:changed "1.8" @elem{Added @racket[#:aspect].}]}
