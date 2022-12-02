@@ -98,7 +98,13 @@ Bold-italic text. Returns @racket[(text str (list* 'bold 'italic
 @defproc[(tt [str string?]) pict?]{
 
 The normal way to make monospaced text. Returns @racket[(text str
-`(bold . modern) (current-font-size))].}
+(current-tt-font) (or (current-tt-font-size) (current-font-size)))].
+
+@history[#:changed "1.9" @list{
+ Generalized to use @racket[current-tt-font]
+ and @racket[current-tt-font-size]
+ }]
+}
 
 @defproc[(rt [str string?]) pict?]{
 
@@ -531,11 +537,25 @@ Parameter that determines the font size used by @racket[t],
 
 @defparam[current-main-font style text-style/c]{
 
-Parameter that determines the font size used by @racket[t],
+Parameter that determines the font used by @racket[t],
 @racket[para], etc.  The default is platform-specific; possible
 initial values include @racket['swiss], @racket["Verdana"], and
 @racket["Gill Sans"].}
 
+@defparam[current-tt-font style text-style/c]{
+ Parameter that determines the font used by @racket[tt].
+ The default is @racket['(bold . modern)].
+
+ @history[#:added "1.9"]
+}
+
+@defparam[current-tt-font-size size (or/c #f exact-nonnegative-integer?)]{
+ Parameter that determines the font size used by @racket[tt].
+ The default is @racket[#f], which causes @racket[tt] to use
+ @racket[current-font-size].
+
+ @history[#:added "1.9"]
+}
 
 @defparam[current-line-sep n exact-nonnegative-integer?]{
 

@@ -74,7 +74,7 @@
      commentary-on-slide-font-size
      main-font current-main-font with-font current-title-color
      red green blue purple orange size-in-pixels
-     t it bt bit tt titlet tt* rt
+     t it bt bit tt titlet tt* rt current-tt-font current-tt-font-size
      bullet o-bullet
      get-margin set-margin! get-client-w get-client-h
      get-full-page get-titleless-page
