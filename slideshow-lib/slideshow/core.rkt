@@ -62,6 +62,7 @@
 			    'default
 			    'swiss))
       (define current-main-font (make-parameter main-font))
+      (define current-tt-font (make-parameter '(bold . modern)))
 
       (define current-line-sep (make-parameter line-sep))
 
@@ -119,7 +120,7 @@
       (define (it s) (text s `(italic . ,(current-main-font)) (current-font-size)))
       (define (bt s) (text s `(bold . ,(current-main-font)) (current-font-size)))
       (define (bit s) (text s `(bold italic . ,(current-main-font)) (current-font-size)))
-      (define (tt s) (text s '(bold . modern) (current-font-size)))
+      (define (tt s) (text s (current-tt-font) (current-font-size)))
       (define (rt s) (text s 'roman (current-font-size)))
 
       (define current-titlet
