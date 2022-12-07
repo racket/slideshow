@@ -34,7 +34,7 @@
                        [subitem/kw subitem]
                        [para/kw para])
 	   gap-size current-gap-size current-font-size current-line-sep
-	   current-main-font current-tt-font current-title-color
+	   current-main-font current-tt-font current-tt-font-size current-title-color
 	   size-in-pixels
 	   t it bt bit tt titlet tt* rt
 	   bullet o-bullet
