@@ -595,7 +595,7 @@ If you are new to programming or if you have the patience to work
 through a textbook, we recommend reading
 @italic{@link["http://www.htdp.org/"]{How to Design Programs}}. If you
 have already read it, or if you want to see where the book will take
-you, then see @Continue[].
+you, then see @Continue[Continue-title].
 
 For experienced programmers, to continue touring Racket from a
 systems-oriented perspective instead of pictures, your next stop is
