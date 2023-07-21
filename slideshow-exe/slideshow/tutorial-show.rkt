@@ -609,9 +609,7 @@
 
 (require mred/edit)
 (define (show-example-code f)
-  (new-text-frame (path->string (build-path (collection-path "slideshow")
-                                            "examples"
-                                            f))))
+  (new-text-frame (path->string (collection-file-path f "slideshow" "examples"))))
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Part IV
