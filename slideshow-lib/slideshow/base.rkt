@@ -31,6 +31,7 @@
            most-recent-slide retract-most-recent-slide re-slide slide->pict start-at-recent-slide
 	   make-outline
 	   (rename-out [item/kw item]
+                   [nitem/kw nitem]
                        [subitem/kw subitem]
                        [para/kw para])
 	   gap-size current-gap-size current-font-size current-line-sep

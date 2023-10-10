@@ -179,6 +179,24 @@ paragraph.
 @history[#:changed "1.5" @elem{Added the @racket[#:aspect] argument.}]}
 
 
+@defproc[(nitem [#:aspect aspect aspect? #f]
+                [#:width width real? ((get-current-para-width #:aspect aspect))]
+                [#:gap-size sep-gap-size real? (current-gap-size)]
+                [#:separator string? "."]
+                [#:number integer? (nitem-counter)]
+                [#:align (or/c 'left 'center 'right) 'left]
+                [#:fill? fill? any/c #t]
+                [#:decode? decode? any/c #t]
+                [element (flat-rec-contract elem/c
+                           or/c string? pict? (listof elem/c))] ...)
+          pict?]{
+
+Like @racket[item], but with a number instead of a bullet point. The
+number can be specified using @racket[#:number] or automatically
+incremented. Furthermore, the character following the number defaults
+to "." and can be specified using @racket[separator].}
+
+
 @defproc[(subitem [#:aspect aspect aspect? #f]
                   [#:width width real? ((get-current-para-width #:aspect aspect))]
                   [#:gap-size sep-gap-size real? (current-gap-size)]
