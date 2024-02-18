@@ -1,3 +1,3 @@
 #lang info
 
-(define scribblings '(("slideshow.scrbl" (multi-page) (tool))))
+(define scribblings '(("slideshow.scrbl" (multi-page) (racket-core -27))))
