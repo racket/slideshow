@@ -79,7 +79,7 @@
     (slide #:title (if (procedure? title) (title 0) title) 
            #:name (if (procedure? name) (name 0) name)
            #:layout layout
-
+           #:aspect aspect
            (or comment 'nothing)
            (mid 0)))
   (if condense?
