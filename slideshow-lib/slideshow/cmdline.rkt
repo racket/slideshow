@@ -298,8 +298,8 @@
                                      (if (< (/ actual-screen-w screen-w)
                                             (/ actual-screen-h screen-h))
                                          (cons actual-screen-w
-                                               (floor (* (/ actual-screen-w screen-w) screen-h)))
-                                         (cons (floor (* (/ actual-screen-h screen-h) screen-w))
+                                               (ceiling (* (/ actual-screen-w screen-w) screen-h)))
+                                         (cons (ceiling (* (/ actual-screen-h screen-h) screen-w))
                                                actual-screen-h)))))
                     (values (for/hasheq ([(aspect size) (in-hash sizes)])
                               (values aspect (car size)))

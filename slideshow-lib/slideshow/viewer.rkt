@@ -275,10 +275,10 @@
                            (values
                             (for/hasheq ([(aspect use-screen-w) (in-hash config:use-screen-ws)])
                               (define s (hash-ref scales aspect))
-                              (values aspect (floor (* s use-screen-w))))
+                              (values aspect (ceiling (* s use-screen-w))))
                             (for/hasheq ([(aspect use-screen-h) (in-hash config:use-screen-hs)])
                               (define s (hash-ref scales aspect))
-                              (values aspect (floor (* s use-screen-h))))))
+                              (values aspect (ceiling (* s use-screen-h))))))
               (move (- dx) (- dy))
               (resize w h)))))
 
