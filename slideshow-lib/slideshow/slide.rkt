@@ -48,7 +48,7 @@
 			       (integer? n)
 			       (n . >= . 0)))
 
-  (define elem/c (flat-rec-contract elem/c (or/c string? pict? (listof elem/c))))
+  (define elem/c (flat-rec-contract elem/c (or/c string? pict-convertible? (listof elem/c))))
   (define item-contract (() (#:bullet pict?
                              #:aspect aspect?
                              #:width real?

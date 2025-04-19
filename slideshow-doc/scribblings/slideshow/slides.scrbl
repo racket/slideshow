@@ -121,7 +121,7 @@ Creates title text. Returns @racket[((current-titlet) str)].}
                [#:fill? fill? any/c #t]
                [#:decode? decode? any/c #t]
                [element (flat-rec-contract elem/c
-                          (or/c string? pict? (listof elem/c)))] ...)
+                          (or/c string? pict-convertible? (listof elem/c)))] ...)
          pict?]{
 
 Generates a paragraph pict that is no wider than @racket[width] units,
@@ -167,7 +167,7 @@ See the spacing between lines is determined by the
                [#:fill? fill? any/c #t]
                [#:decode? decode? any/c #t]
                [element (flat-rec-contract elem/c
-                          (or/c string? pict? (listof elem/c)))] ...)
+                          (or/c string? pict-convertible? (listof elem/c)))] ...)
          pict?]{
 
 Like @racket[para], but with @racket[blt] followed by @racket[(/
@@ -187,7 +187,7 @@ paragraph.
                   [#:fill? fill? any/c #t]
                   [#:decode? decode? any/c #t]
                   [element (flat-rec-contract elem/c
-                             (or/c string? pict? (listof elem/c)))] ...)
+                             (or/c string? pict-convertible? (listof elem/c)))] ...)
          pict?]{
 
 Like @racket[item], but an additional @racket[(* 2 sep-gap-size)] is
