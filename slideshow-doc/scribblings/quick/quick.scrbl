@@ -189,7 +189,7 @@ bindings. For example, it can be used inside a function body:
 (four (circle 10))
 ]
 
-More typically, Racketeers use the @racket[let] or @racket[let*] form
+Sometimes, Racketeers use the @racket[let] or @racket[let*] form
 for local binding. An advantage of @racket[let] is that it can be used
 in any expression position. Also, it binds many identifiers at once,
 instead of requiring a separate @racket[define] for each identifier:
