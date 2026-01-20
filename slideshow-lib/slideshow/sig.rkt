@@ -65,6 +65,7 @@
      scroll-transition pause-transition
      comment make-outline
      item/kw item item* page-item page-item*
+     nitem/kw
      item/bullet item*/bullet page-item/bullet page-item*/bullet
      subitem/kw subitem subitem* page-subitem page-subitem*
      itemize itemize* page-itemize page-itemize*

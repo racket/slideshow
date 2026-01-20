@@ -297,6 +297,20 @@
  (para "where" (code bullet) "is a constant pict:" bullet))
 
 (slide
+ #:title "Numbering"
+ (nitem "Numbered items can also occur in slides")
+ (nitem "You can make a number list using" (code nitem))
+ (nitem "The numbers are automatically calculated for you!")
+ (nitem #:separator ")"
+        "The separator can be modified using" (code #:separator)))
+
+(slide
+ #:title "More Numbering"
+ (nitem "The numbers automatically restart with every slide")
+ (nitem #:number 15
+        "But the number can also be provided using" (code #:number)))
+
+(slide
  #:title "Grouping and Space"
  (para "Sometimes you want to group items on a slide")
  (item "A bullet goes with a statement")
