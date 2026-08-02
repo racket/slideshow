@@ -719,7 +719,7 @@
       (define (slide-page-string slide)
         (let ([s ((current-page-number-adjust)
                   (sliderec-page slide)
-                  (if (= 1 (sliderec-page-count slide))
+                  (if (>= 1 (sliderec-page-count slide))
                       (format "~a" (sliderec-page slide))
                       (format "~a-~a" (sliderec-page slide) (+ (sliderec-page slide)
                                                                (sliderec-page-count slide)

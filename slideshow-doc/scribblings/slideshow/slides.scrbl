@@ -28,6 +28,7 @@
                 [#:inset inset slide-inset? (make-slide-inset 0 0 0 0)]
                 [#:timeout secs (or/c #f real?) #f]
                 [#:condense? condense? any/c (and secs #t)]
+                [#:page-mode page-mode (or/c 'none 'epoch 'all) (current-page-mode)]
                 [element (flat-rec-contract elem/c
                            (or/c pict-convertible?
                                 'next 'next! 'alts 'alts~ 'nothing
@@ -70,9 +71,20 @@ after @racket[secs] seconds, and manual advancing skips this slide.
 
 If @racket[condense?] is true, then in condense mode (as specified by
 the @Flag{c} command-line flag), the slide is not created and
-registered.
+registered, but the page number is still incremented according to
+@racket[page-mode],
 
-@history[#:changed "1.5" @elem{Added the @racket[#:aspect] argument.}]}
+The @racket[page-mode] argument determines how the @racket[slide] call
+increments the page number. If @racket[page-mode] is @racket['all],
+then every step for the slide increments the page number. If
+@racket[page-mode] is @racket['none], the all steps for the slide use
+the same page number, and the next @racket[slide] call also starts
+with the same page number. If @racket[page-mode] is @racket['epoch], then
+it is equivalent to @racket['all] if the timeout @racket[secs] is @racket[#f]
+or equivalent to @racket['none] otherwise.
+
+@history[#:changed "1.5" @elem{Added the @racket[#:aspect] argument.}
+         #:changed "1.10" @elem{Added the @racket[#:page-mode] argument.}]}
 
 
 @defproc[(t [str string?]) pict?]{
@@ -653,6 +665,14 @@ Returns @racket[#t] if @racket[v] is a slide inset created by
 @defparam[commentary-on-slide-font-size size exact-positive-integer?]{
  The font size used for commentary when passing @verbatim{--commentary-on-slide}
  on the command-line.
+}
+
+@defparam[current-page-mode mode (or/c 'none 'epoch 'all)]{
+
+Determines the default @racket[#:page-mode] argument for
+@racket[slide], @racket[play], and @racket[play-n].
+
+@history[#:added "1.10"]
 }
 
 @; ----------------------------------------------------------------------

@@ -37,7 +37,8 @@ corresponds to an animation that fades in the word ``Hello.''
                        title]
                [#:aspect aspect aspect? #f]
                [#:comment comment (or/c comment? #f) #f]
-               [#:layout layout (or/c 'auto 'center 'top 'tall) 'auto])
+               [#:layout layout (or/c 'auto 'center 'top 'tall) 'auto]
+               [#:page-mode page-mode (or/c 'none 'epoch 'all) (current-page-mode)])
          void?]{
 
 Generates @math{@racket[steps]+1} slides by calling @racket[gen] on
@@ -54,7 +55,8 @@ complete the animation and stop the auto-advance of slides. The
 If @racket[skip-first?] is @racket[#f], then one fewer slide is
 generated, because @racket[gen] is not called on @racket[0.0].
 
-The @racket[title], @racket[name], @racket[aspect], and @racket[layout] arguments are
+The @racket[title], @racket[name], @racket[aspect], @racket[layout],
+and @racket[page-mode] arguments are
 passed on to @racket[slide], at least when @racket[title] and/or
 @racket[name] are not functions. When @racket[title] or @racket[name]
 is a function, the function is applied to the value used to produce
@@ -67,7 +69,8 @@ The @racket[comment] argument is used like a comment argument to
 In condensed mode (i.e., when @racket[condense?] is @racket[#t]), any
 slide that would be registered with a timeout is instead skipped.
 
-@history[#:changed "1.7" @elem{Added the @racket[aspect] argument.}]}
+@history[#:changed "1.7" @elem{Added the @racket[aspect] argument.}
+         #:changed "1.10" @elem{Added the @racket[#:page-mode] argument.}]}
 
 
 @defproc[(play-n [gen* (and/c (unconstrained-domain-> pict?)
@@ -86,7 +89,8 @@ slide that would be registered with a timeout is instead skipped.
                          title]
                  [#:aspect aspect aspect? #f]
                  [#:comments comment (list*of comment? (or/c comment? #f '())) #f]
-                 [#:layout layout (or/c 'auto 'center 'top 'tall) 'auto])
+                 [#:layout layout (or/c 'auto 'center 'top 'tall) 'auto]
+                 [#:page-mode page-mode (or/c 'none 'epoch 'all) (current-page-mode)])
           void?]{
 
 Generates a sequence of slides by calling @racket[gen*] with, for each
@@ -132,10 +136,12 @@ The elements of the @racket[comment] argument are used like the @racket[steps]
 argument, except passed as comments instead of used as step counts.
 
 The @racket[delay-secs], @racket[title],
-@racket[name], @racket[aspect], and @racket[layout] arguments are passed on to
+@racket[name], @racket[aspect], @racket[layout], and @racket[page-mode]
+arguments are passed on to
 @racket[play] for each of the @math{n} segments of animation.
 
-@history[#:changed "1.7" @elem{Added the @racket[aspect] argument.}]}
+@history[#:changed "1.7" @elem{Added the @racket[aspect] argument.}
+         #:changed "1.10" @elem{Added the @racket[#:page-mode] argument.}]}
 
 
 @defproc[(animate-slide [element (flat-rec-contract elem/c

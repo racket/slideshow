@@ -84,6 +84,7 @@
      get-title-h set-title-h! current-slide-assembler
      current-page-number-font current-page-number-color current-page-number-adjust
      current-titlet current-para-widths get-current-para-width
+     current-page-mode
      set-page-numbers-visible! done-making-slides
      set-spotlight-style!
      set-allow-new-slides-after-close!

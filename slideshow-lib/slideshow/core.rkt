@@ -117,6 +117,13 @@
                                                              x))
 				     x)))
 
+    (define current-page-mode (make-parameter 'all (lambda (v)
+                                                     (unless (memq v '(none epoch all))
+                                                       (raise-argument-error 'current-page-mode
+                                                                             "(or/c 'none 'epoch 'all)"
+                                                                             v))
+                                                     v)))
+
       (define (t s) (text s (current-main-font) (current-font-size)))
       (define (it s) (text s `(italic . ,(current-main-font)) (current-font-size)))
       (define (bt s) (text s `(bold . ,(current-main-font)) (current-font-size)))
@@ -365,7 +372,7 @@
 	       string
 	       args))
 
-      (define (do-slide/title/tall/inset do-add-slide! use-assem? skip-ok? skip-all? process v-sep s 
+      (define (do-slide/title/tall/inset do-add-slide! use-assem? skip-ok? skip-all? page-mode process v-sep s
                                          inset timeout aspect a-gap-size . input-with-convertibles)
 	;; Check slides:
 	(let loop ([l input-with-convertibles][nested null])
@@ -398,13 +405,14 @@
               [(? pict?) x]
               [(? pict-convertible?) (pict-convert x)]
               [else x])))
+        (define page? (case page-mode [(none) #f] [(epoch) (not timeout)] [else #t]))
         (skip-slides
-         (let loop ([l input-without-convertibles][r null][comment #f][skip-all? skip-all?][skipped 0])
+         (let loop ([l input-without-convertibles] [r null] [comment #f] [skip-all? skip-all?] [skipped 0])
            (cond
             [(null? l) 
              (if skip-all?
-                 (add1 skipped)
-                 (begin
+                 (+ skipped (if page? 1 0))
+                 (let ([skipped (if page? skipped (sub1 skipped))])
                    (apply one-slide/title/inset do-add-slide! use-assem? process v-sep skipped s 
                           inset timeout aspect a-gap-size (reverse r))
                    0))]
@@ -413,8 +421,12 @@
             [(memq (car l) '(next next!))
              (let ([skip? (or skip-all? (and condense? skip-ok? (eq? (car l) 'next)))])
                (let ([skipped (if skip?
-                                  (add1 skipped)
-                                  (begin
+                                  (if page?
+                                      (add1 skipped)
+                                      skipped)
+                                  (let ([skipped (case page-mode
+                                                   [(none one) (sub1 skipped)]
+                                                   [else skipped])])
                                     (apply one-slide/title/inset do-add-slide! use-assem? process v-sep skipped s 
                                            inset timeout aspect a-gap-size (reverse r))
                                     0))])
@@ -441,9 +453,12 @@
                               #:aspect [aspect #f]
                               #:layout [layout 'auto]
                               #:condense? [condense-this? timeout]
+                              #:page-mode [page-mode (current-page-mode)]
                               #:gap-size [a-gap-size (current-gap-size)]
                               . body)
                        (check-aspect 'slide aspect)
+                       (unless (memq page-mode '(all epoch none))
+                         (raise-argument-error 'slide "(or/c 'all 'epoch 'none)" page-mode))
                        (let ([t (if s
                                     (if (equal? name s)
                                         (if (string? s)
@@ -458,8 +473,8 @@
                                         #f))])
                          (case layout
                            [(tall top)
-                            (apply do-slide/title/tall/inset 
-                                   do-add-slide! #t #t (and condense? condense-this?) values
+                            (apply do-slide/title/tall/inset
+                                   do-add-slide! #t #t (and condense? condense-this?) page-mode values
                                    (if (eq? layout 'tall)
                                        a-gap-size 
                                        (* 2 a-gap-size))
@@ -470,9 +485,9 @@
                                    a-gap-size
                                    body)]
                            [else ; center, auto
-                            (apply slide/title/center/inset/timeout/aspect/gap 
+                            (apply slide/title/center/inset/timeout/aspect/gap
                                    (or (not s) (eq? layout 'center))
-                                   (and condense? condense-this?)
+                                   (and condense? condense-this?) page-mode
                                    t
                                    inset 
                                    timeout
@@ -486,7 +501,7 @@
 	(make-sinset l t r b))
 
       (define (slide/title/tall/inset/gap v-sep s inset . x)
-	(apply do-slide/title/tall/inset do-add-slide! #t #t #f values v-sep s inset #f #f gap-size x))
+	(apply do-slide/title/tall/inset do-add-slide! #t #t #f 'all values v-sep s inset #f #f gap-size x))
 
       (define (slide/title/tall/inset s inset . x)
 	(apply slide/title/tall/inset/gap gap-size s inset x))
@@ -495,7 +510,7 @@
 	(apply slide/title/tall/inset (make-name-only s) inset x))
 
       (define (slide/title/tall/gap v-sep s timeout . x)
-	(apply do-slide/title/tall/inset do-add-slide! #t #t #f values v-sep s zero-inset timeout #f gap-size x))
+	(apply do-slide/title/tall/inset do-add-slide! #t #t #f 'all values v-sep s zero-inset timeout #f gap-size x))
 
       (define (slide/title/tall s . x)
 	(apply slide/title/tall/gap gap-size s #f x))
@@ -528,9 +543,9 @@
         (apply slide/title/center/inset/timeout/gap always-center? skip-all? s inset timeout gap-size x))
 
       (define (slide/title/center/inset/timeout/gap always-center? skip-all? s inset timeout a-gap-size . x)
-        (apply slide/title/center/inset/timeout/aspect/gap always-center? skip-all? s inset timeout #f a-gap-size x))
+        (apply slide/title/center/inset/timeout/aspect/gap always-center? skip-all? 'all s inset timeout #f a-gap-size x))
         
-      (define (slide/title/center/inset/timeout/aspect/gap always-center? skip-all? s inset timeout aspect a-gap-size . x)
+      (define (slide/title/center/inset/timeout/aspect/gap always-center? skip-all? page-mode s inset timeout aspect a-gap-size . x)
 	(let ([max-width 0]
 	      [max-height 0]
 	      [combine (lambda (x)
@@ -546,6 +561,7 @@
 		 #f
 		 #f
                  #f
+                 page-mode
 		 (lambda (x) (list (combine x)))
 		 0 #f inset timeout aspect a-gap-size x)
           (let ([center? (or always-center?
@@ -558,6 +574,7 @@
                    #t
                    #t
                    skip-all?
+                   page-mode
                    (if center?
                        (lambda (x)
                          (list
@@ -654,7 +671,7 @@
                 l)))
         (lambda (which)
           (do-slide/title/tall/inset
-           do-add-slide! #t #t #f values
+           do-add-slide! #t #t #f 'all values
            (* 2 gap-size) ;; v-sep
            (make-name-only
             (format "--~a--"

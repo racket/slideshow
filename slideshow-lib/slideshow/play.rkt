@@ -28,7 +28,8 @@
                       #:name
                       (or/c string? #f
                             (-> (real-in 0.0 1.0) (or/c string? #f)))
-                      #:layout (or/c 'auto 'center 'top 'tall) )
+                      #:layout (or/c 'auto 'center 'top 'tall)
+                      #:page-mode (or/c 'all 'epoch 'none))
                      void?)]
           [play-n (->* [(and/c (unconstrained-domain-> pict?) (λ (x) (number? (procedure-arity x))))]
                        (#:steps (list*of exact-positive-integer? (or/c exact-positive-integer? '()))
@@ -43,7 +44,8 @@
                         (or/c string? #f
                               (-> (real-in 0.0 1.0) (or/c string? #f)))
                         #:layout (or/c 'auto 'center 'top 'tall)
-                        #:comments (list*of comment? (or/c comment? #f '())))
+                        #:comments (list*of comment? (or/c comment? #f '()))
+                        #:page-mode (or/c 'all 'epoch 'none))
                        void?)])
          current-play-steps)
 
@@ -74,16 +76,20 @@
               #:skip-first? [skip-first? #f]
               #:comment [comment #f]
               #:aspect [aspect #f]
+              #:page-mode [page-mode (current-page-mode)]
               mid)
   (unless skip-first?
     (slide #:title (if (procedure? title) (title 0) title) 
            #:name (if (procedure? name) (name 0) name)
            #:layout layout
            #:aspect aspect
+           #:page-mode page-mode
            (or comment 'nothing)
            (mid 0)))
   (if condense?
-      (skip-slides N)
+      (skip-slides (case page-mode
+                     [(none epoch) 0]
+                     [else N]))
       (for ([n (in-list
                 (let ([cnt N])
                   (let loop ([n cnt])
@@ -96,6 +102,7 @@
                #:layout layout
                #:timeout secs
                #:aspect aspect
+               #:page-mode page-mode
                (mid n)))))
 
 ;; Create a sequences of N `play' sequences, where `mid' takes
@@ -112,6 +119,7 @@
                 #:skip-first? [skip-first? #f]
                 #:comments [comments #f]
                 #:aspect [aspect #f]
+                #:page-mode [page-mode (current-page-mode)]
                 mid)
   (let ([n (procedure-arity mid)])
     (let loop ([post (vector->list (make-vector n))]
@@ -125,6 +133,7 @@
                    #:name (if (procedure? name) (apply name pre) name)
                    #:layout layout
                    #:aspect aspect
+                   #:page-mode page-mode
                    (cond
                      [(or (null? comments) (not comments)) 'nothing]
                      [(pair? comments) (car comments)]
@@ -148,6 +157,7 @@
                                      comments))
                   #:skip-first? skip?
                   #:aspect aspect
+                  #:page-mode page-mode
                   (lambda (n)
                     (apply mid (append pre (list n) (cdr post)))))
             (loop (cdr post) (cons 1.0 pre) #f (if (pair? Ns) (cdr Ns) Ns)
