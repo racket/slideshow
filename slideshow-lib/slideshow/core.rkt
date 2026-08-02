@@ -243,6 +243,7 @@
                                             f)))
       
       (define page-number 1)
+      (define total-page-count 0)
 
       (define (add-commentary p comment aspect)
 	(if commentary-on-slide?
@@ -288,7 +289,8 @@
 			null
                         timeout
                         aspect))
-	(set! page-number (+ page-number page-count)))
+	(set! page-number (+ page-number page-count))
+        (set! total-page-count (+ total-page-count 1)))
 
       (define (skip-slides n)
 	(set! page-number (+ page-number n)))
@@ -620,6 +622,7 @@
 	  (let ([slide (viewer:most-recent-talk-slide)])
 	    (when slide
 	      (set! page-number (sliderec-page slide))
+              (set! total-page-count (sub1 total-page-count))
 	      (viewer:retract-talk-slide!)
 	      slide))))
       
@@ -654,7 +657,7 @@
           (dc orig (hash-ref client-ws (sliderec-aspect s)) (hash-ref client-hs (sliderec-aspect s)))))
 
       (define (start-at-recent-slide)
-	(viewer:set-init-page! (max 0 (- page-number 2))))
+	(viewer:set-init-page! (max 0 (- total-page-count 1))))
 
       (define (done-making-slides)
 	(viewer:done-making-slides))
