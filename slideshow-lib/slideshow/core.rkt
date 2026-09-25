@@ -643,12 +643,12 @@
 	    (sliderec-title s)
 	    (sliderec-comment s)
 	    page-number
-	    1
+	    (sliderec-page-count s)
 	    (sliderec-inset s)
 	    null
             (sliderec-timeout s)
             (sliderec-aspect s)))
-	  (set! page-number (+ page-number 1))))
+	  (set! page-number (+ page-number (sliderec-page-count s)))))
       
       (define (slide->pict s)
         (unless (sliderec? s)
